@@ -20,7 +20,7 @@ pub enum ChannelFormat {
 /// A structure representing an image frame with pixel data and channel format information.
 ///
 /// Various functions exist for processing images for use with FEAGI
-/// Internally, uses a 3D ndarray of d32 values from 0-1
+/// Internally, uses a 3D ndarray of f32 values from 0-1
 ///
 /// # Examples
 ///
@@ -97,7 +97,28 @@ impl ImageFrame {
         })
     }
 
-
+    /// Creates a new ImageFrame by cropping a region from a source frame.
+    ///
+    /// # Arguments
+    ///
+    /// * `source_frame` - The source ImageFrame to crop from
+    /// * `corners_crop` - The CornerPoints defining the region to crop
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// - Ok(ImageFrame) if the crop region is valid and fits within the source frame
+    /// - Err(&'static str) if the crop region would not fit in the source frame
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_data_vision::{ImageFrame, ChannelFormat, CornerPoints};
+    ///
+    /// let source = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
+    /// let corners = CornerPoints::new((10, 10), (50, 50));
+    /// let cropped = ImageFrame::from_source_frame_crop(&source, &corners).unwrap();
+    /// ```
     pub fn from_source_frame_crop(source_frame: &ImageFrame, corners_crop: &CornerPoints) -> Result<ImageFrame, &'static str> {
         let source_resolution = source_frame.get_xy_resolution();
         if !corners_crop.does_fit_in_frame_of_resolution(source_resolution) {
@@ -111,6 +132,33 @@ impl ImageFrame {
         })
     }
 
+    /// Creates a new ImageFrame by cropping a region from a source frame, followed by a resize
+    /// to the given resolution
+    ///
+    /// This function first crops the specified region from the source frame, then resizes
+    /// the cropped region to the target resolution using nearest neighbor interpolation.
+    ///
+    /// # Arguments
+    ///
+    /// * `source_frame` - The source ImageFrame to crop from
+    /// * `corners_crop` - The CornerPoints defining the region to crop
+    /// * `new_resolution` - The target resolution as a tuple of (width, height)
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// - Ok(ImageFrame) if the crop region is valid and fits within the source frame
+    /// - Err(&'static str) if the crop region would not fit in the source frame
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_data_vision::{ImageFrame, ChannelFormat, CornerPoints};
+    ///
+    /// let source = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
+    /// let corners = CornerPoints::new((10, 10), (50, 50));
+    /// let resized = ImageFrame::from_source_frame_crop_and_resize(&source, &corners, &(200, 200)).unwrap();
+    /// ```
     pub fn from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_resolution: &(usize, usize)) -> Result<ImageFrame, &'static str> {
         let source_resolution = source_frame.get_xy_resolution();
         if !corners_crop.does_fit_in_frame_of_resolution(source_resolution) {
@@ -134,6 +182,57 @@ impl ImageFrame {
         })
     }
 
+    /// Crops and resizes a region from a source frame directly into this frame.
+    ///
+    /// This method modifies this frame in-place by first cropping, then scaling the crop to fit
+    /// into this image frame.
+    /// The operation uses nearest neighbor interpolation for resizing.
+    ///
+    /// # Arguments
+    ///
+    /// * `source_cropping_points` - The CornerPoints defining the region to crop from the source
+    /// * `source` - The source ImageFrame to crop from
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// - Ok(()) if the operation was successful
+    /// - Err(&'static str) if:
+    ///   - The source and target frames have different channel counts
+    ///   - The crop region would not fit in the source frame
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_data_vision::{ImageFrame, ChannelFormat, CornerPoints};
+    ///
+    /// let mut target = ImageFrame::new(&ChannelFormat::RGB, &(50, 50));
+    /// let source = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
+    /// let corners = CornerPoints::new((10, 10), (50, 50));
+    /// target.in_place_crop_and_nearest_neighbor_resize_to_self(&corners, &source).unwrap();
+    /// ```
+    pub fn in_place_crop_and_nearest_neighbor_resize_to_self(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), &'static str> {
+        let crop_resolution: (usize, usize) = source_cropping_points.enclosed_area();
+        if &source.get_color_channel_count() != &self.get_color_channel_count() {
+            return Err("The source and source do not have the same color channel count!");
+        }
+        let source_full_resolution: (usize, usize) = source.get_xy_resolution();
+        if !source_cropping_points.does_fit_in_frame_of_resolution(source_full_resolution){
+            return Err("The upper left coordinate must be within the resolution range of the source image!");
+        }
+        
+        let resolution: (usize, usize) = self.get_xy_resolution();
+        let resolution_f: (f32, f32) = (resolution.0 as f32, resolution.1 as f32);
+        let crop_resolution_f: (f32, f32) = (crop_resolution.0 as f32, crop_resolution.1 as f32);
+
+        for ((x,y,c), color_val) in self.pixels.indexed_iter_mut() {
+            let nearest_neighbor_coordinate_x: usize = (((x as f32) / resolution_f.0) * crop_resolution_f.0).floor() as usize;
+            let nearest_neighbor_coordinate_y: usize = (((y as f32) / resolution_f.1) * crop_resolution_f.1).floor() as usize;
+            let nearest_neighbor_channel_value: f32 = source.pixels[(nearest_neighbor_coordinate_x + source_cropping_points.lower_left.0, nearest_neighbor_coordinate_y + source_cropping_points.lower_left.1, c)];
+            *color_val = nearest_neighbor_channel_value;
+        };
+        Ok(())
+    }
 
     /// Returns true if 2 ImageFrames have the same channel count and resolution
     pub fn are_two_image_frames_compatible(a: &ImageFrame, b: &ImageFrame) -> bool {
@@ -219,7 +318,7 @@ impl ImageFrame {
     ///
     /// A Result containing either:
     /// - Ok(()) if the operation was successful
-    /// - Err(&'static str) if the contrast factor is outside the valid range of -1 - 1
+    /// - Err(&'static str) if the contrast factor is outside the valid range of -1 to 1
     ///
     /// # Examples
     ///
@@ -290,29 +389,6 @@ impl ImageFrame {
     }
 
     
-    pub fn in_place_crop_and_nearest_neighbor_resize_to_self(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), &'static str> {
-        let crop_resolution: (usize, usize) = source_cropping_points.enclosed_area();
-        if &source.get_color_channel_count() != &self.get_color_channel_count() {
-            return Err("The source and source do not have the same color channel count!");
-        }
-        let source_full_resolution: (usize, usize) = source.get_xy_resolution();
-        if !source_cropping_points.does_fit_in_frame_of_resolution(source_full_resolution){
-            return Err("The upper left coordinate must be within the resolution range of the source image!");
-        }
-        
-        let resolution: (usize, usize) = self.get_xy_resolution();
-        let resolution_f: (f32, f32) = (resolution.0 as f32, resolution.1 as f32);
-        let crop_resolution_f: (f32, f32) = (crop_resolution.0 as f32, crop_resolution.1 as f32);
-
-        for ((x,y,c), color_val) in self.pixels.indexed_iter_mut() {
-            let nearest_neighbor_coordinate_x: usize = (((x as f32) / resolution_f.0) * crop_resolution_f.0).floor() as usize;
-            let nearest_neighbor_coordinate_y: usize = (((y as f32) / resolution_f.1) * crop_resolution_f.1).floor() as usize;
-            let nearest_neighbor_channel_value: f32 = source.pixels[(nearest_neighbor_coordinate_x + source_cropping_points.lower_left.0, nearest_neighbor_coordinate_y + source_cropping_points.lower_left.1, c)];
-            *color_val = nearest_neighbor_channel_value;
-        };
-        Ok(())
-    }
-
     /// Calculates the thresholded difference between two frames and stores the result in this frame.
     ///
     /// This method computes the absolute difference between corresponding pixels in `previous_frame` and `next_frame`.

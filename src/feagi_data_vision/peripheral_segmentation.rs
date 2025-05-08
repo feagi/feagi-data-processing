@@ -9,7 +9,7 @@ use std::cmp;
 #[derive(PartialEq)]
 pub struct SegmentedVisionCenterProperties {
     /// Center point coordinates in normalized space (0.0-1.0)
-    center_coordinates_normalized: (f32, f32), // Scaled from 0 - 1
+    center_coordinates_normalized: (f32, f32), // Scaled from 0 to 1
     /// Size of the center region in normalized space (0.0-1.0)
     center_size_normalized: (f32, f32), // ditto
 }
@@ -40,7 +40,7 @@ impl SegmentedVisionCenterProperties {
         })
     }
     
-    /// Returns a tuple of tuple XY coordinates representing in pixel space the corners of the central image frame, in order of lower left, top left, top right, lower right
+    /// Returns an instance of CornerPoints that defines the region of the center region by pixel index
     /// 
     /// # Arguments
     ///
