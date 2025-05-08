@@ -6,11 +6,11 @@ use ndarray::{Array1};
 #[derive(Debug)]
 pub struct NeuronPotentialXYZ {
     /// X-coordinate of the neuron
-    coordinate_x: i32,
+    coordinate_x: u32,
     /// Y-coordinate of the neuron
-    coordinate_y: i32,
+    coordinate_y: u32,
     /// Z-coordinate of the neuron
-    coordinate_z: i32,
+    coordinate_z: u32,
     /// Potential (voltage) value of the neuron
     potential: f32
 }
@@ -28,7 +28,7 @@ impl NeuronPotentialXYZ {
     /// # Returns
     ///
     /// * `Result<NeuronPotentialXYZ, &'static str>` - The created instance or an error message
-    pub fn new(coordinate_x: i32, coordinate_y: i32, coordinate_z: i32, potential: f32) -> Result<NeuronPotentialXYZ, &'static str> {
+    pub fn new(coordinate_x: u32, coordinate_y: u32, coordinate_z: u32, potential: f32) -> Result<NeuronPotentialXYZ, &'static str> {
         Ok(NeuronPotentialXYZ{
             coordinate_x,
             coordinate_y,
@@ -75,11 +75,11 @@ impl NeuronPotentialXYZ {
 #[derive(Debug)]
 pub struct NeuronPotentialCollectionXYZ {
     /// X-coordinates of the neurons, ordered
-    coordinates_x: Array1<i32>,
+    coordinates_x: Array1<u32>,
     /// Y-coordinates of the neurons, ordered
-    coordinates_y: Array1<i32>,
+    coordinates_y: Array1<u32>,
     /// Z-coordinates of the neurons, ordered
-    coordinates_z: Array1<i32>,
+    coordinates_z: Array1<u32>,
     /// Potential values of the neurons, ordered
     potentials: Array1<f32>,
 }
@@ -103,7 +103,7 @@ impl NeuronPotentialCollectionXYZ {
     ///
     /// Returns an error if array length is 0
     /// Returns an error if the arrays have different lengths
-    pub fn new(x: Array1<i32>, y: Array1<i32>, z: Array1<i32>, neuron_potentials: Array1<f32>) -> Result<NeuronPotentialCollectionXYZ, &'static str> {
+    pub fn new(x: Array1<u32>, y: Array1<u32>, z: Array1<u32>, neuron_potentials: Array1<f32>) -> Result<NeuronPotentialCollectionXYZ, &'static str> {
         if x.len() == 0 {
             return Err("Arrays cannot be empty!");
         }
@@ -182,9 +182,9 @@ mod tests {
 
     #[test]
     fn test_neuron_potential_collection_xyz_new_empty_arrays() {
-        let x = Array1::<i32>::zeros(0);
-        let y = Array1::<i32>::zeros(0);
-        let z = Array1::<i32>::zeros(0);
+        let x = Array1::<u32>::zeros(0);
+        let y = Array1::<u32>::zeros(0);
+        let z = Array1::<u32>::zeros(0);
         let p = Array1::<f32>::zeros(0);
 
         let result = NeuronPotentialCollectionXYZ::new(x, y, z, p);
