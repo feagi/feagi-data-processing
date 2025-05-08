@@ -1,5 +1,5 @@
 use ndarray::{s, Array3, ArrayView3};
-use crate::feagi_data_vision::cropping_utils::CornerPoints;
+pub use crate::brain_input::vision::cropping_utils::CornerPoints;
 
 
 /// Represents the color channel format of an image.
@@ -25,7 +25,7 @@ pub enum ChannelFormat {
 /// # Examples
 ///
 /// ```
-/// use feagi_data_vision::{ImageFrame, ChannelFormat};
+/// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::{ImageFrame, ChannelFormat};
 ///
 /// // Create a new RGB image frame
 /// let resolution = (640, 480);
@@ -78,7 +78,7 @@ impl ImageFrame {
     ///
     /// ```
     /// use ndarray::Array3;
-    /// use feagi_data_vision::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
     ///
     /// let array = Array3::<f32>::zeros((100, 100, 3)); // RGB image
     /// let frame = ImageFrame::from_array(array).unwrap();
@@ -113,10 +113,10 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_data_vision::{ImageFrame, ChannelFormat, CornerPoints};
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::{ImageFrame, ChannelFormat, CornerPoints};
     ///
     /// let source = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
-    /// let corners = CornerPoints::new((10, 10), (50, 50));
+    /// let corners = CornerPoints::new((10, 10), (50, 50)).unwrap();
     /// let cropped = ImageFrame::from_source_frame_crop(&source, &corners).unwrap();
     /// ```
     pub fn from_source_frame_crop(source_frame: &ImageFrame, corners_crop: &CornerPoints) -> Result<ImageFrame, &'static str> {
@@ -153,10 +153,10 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_data_vision::{ImageFrame, ChannelFormat, CornerPoints};
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::{ImageFrame, ChannelFormat, CornerPoints};
     ///
-    /// let source = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
-    /// let corners = CornerPoints::new((10, 10), (50, 50));
+    /// let source = ImageFrame::new(&ChannelFormat::RGB, &(300, 300));
+    /// let corners = CornerPoints::new((10, 10), (50, 50)).unwrap();
     /// let resized = ImageFrame::from_source_frame_crop_and_resize(&source, &corners, &(200, 200)).unwrap();
     /// ```
     pub fn from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_resolution: &(usize, usize)) -> Result<ImageFrame, &'static str> {
@@ -204,11 +204,11 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_data_vision::{ImageFrame, ChannelFormat, CornerPoints};
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::{ImageFrame, ChannelFormat, CornerPoints};
     ///
     /// let mut target = ImageFrame::new(&ChannelFormat::RGB, &(50, 50));
     /// let source = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
-    /// let corners = CornerPoints::new((10, 10), (50, 50));
+    /// let corners = CornerPoints::new((10, 10), (50, 50)).unwrap();
     /// target.in_place_crop_and_nearest_neighbor_resize_to_self(&corners, &source).unwrap();
     /// ```
     pub fn in_place_crop_and_nearest_neighbor_resize_to_self(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), &'static str> {
@@ -283,7 +283,7 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_data_vision::{ImageFrame, ChannelFormat};
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::{ImageFrame, ChannelFormat};
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
     /// frame.change_brightness_multiplicative(1.5).unwrap(); // Increase brightness by 50%
@@ -323,7 +323,7 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_data_vision::{ImageFrame, ChannelFormat};
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::{ImageFrame, ChannelFormat};
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
     /// frame.change_contrast(0.5).unwrap();  // Increase contrast
@@ -363,10 +363,10 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_data_vision::{ImageFrame, ChannelFormat};
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::{ImageFrame, ChannelFormat};
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
-    /// frame.resize_nearest_neighbor((200, 200)).unwrap(); // Double the resolution
+    /// frame.resize_nearest_neighbor(&(200, 200)).unwrap(); // Double the resolution
     /// ```
     pub fn resize_nearest_neighbor(&mut self, target_resolution: &(usize, usize)) -> Result<(), &'static str> {
         if target_resolution.0 <= 0 || target_resolution.1 <= 0 {
@@ -412,7 +412,7 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use super::feagi_data_vision::single_frame::{ImageFrame, ChannelFormat};
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::{ImageFrame, ChannelFormat};
     ///
     /// let mut diff_frame = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
     /// let prev_frame = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
