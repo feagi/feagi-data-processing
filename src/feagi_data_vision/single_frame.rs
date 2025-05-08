@@ -292,9 +292,6 @@ impl ImageFrame {
     
     pub fn in_place_crop_and_nearest_neighbor_resize_to_self(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), &'static str> {
         let crop_resolution: (usize, usize) = source_cropping_points.enclosed_area();
-        if crop_resolution.0 <= 0 || crop_resolution.1 < 0 {
-            return Err("The lower left coordinate must be lower and to the left of the upper right corner!");
-        }
         if &source.get_color_channel_count() != &self.get_color_channel_count() {
             return Err("The source and source do not have the same color channel count!");
         }

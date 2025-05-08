@@ -49,7 +49,7 @@ impl NeuronPotentialXYZ {
     /// # Returns
     ///
     /// * `Result<NeuronPotentialCollectionXYZ, &'static str>` - The created collection or an error message
-    pub fn convert_to_NeuronPotentialCollectionXYZ(vector: Vec<NeuronPotentialXYZ>) -> Result<NeuronPotentialCollectionXYZ, &'static str> {
+    pub fn convert_to_neuron_potential_collection_xyz(vector: Vec<NeuronPotentialXYZ>) -> Result<NeuronPotentialCollectionXYZ, &'static str> {
         let length = vector.len();
         
         let x = Array1::from_shape_fn(length, |i| {vector[i].coordinate_x});
@@ -131,12 +131,12 @@ impl NeuronPotentialCollectionXYZ {
     
     /// Converts the parallel-array representation back to a vector of individual neurons
     ///
-    /// This is the inverse operation of convert_to_NeuronPotentialCollectionXYZ.
+    /// This is the inverse operation of convert_to_neuron_potential_collection_xyz.
     ///
     /// # Returns
     ///
     /// * `Result<Vec<NeuronPotentialXYZ>, &'static str>` - Vector of individual neurons or an error message
-    pub fn convert_to_vector_of_NeuronPotentialXYZ(&self) ->  Result<Vec<NeuronPotentialXYZ>, &'static str> {
+    pub fn convert_to_vector_of_neuron_potential_xyz(&self) ->  Result<Vec<NeuronPotentialXYZ>, &'static str> {
 
         Ok((0..self.coordinates_x.len())
             .map(|i| NeuronPotentialXYZ::new(
@@ -214,11 +214,11 @@ mod tests {
         let neurons = vec![neuron1, neuron2, neuron3];
         
         // Convert to collection
-        let collection = NeuronPotentialXYZ::convert_to_NeuronPotentialCollectionXYZ(neurons).unwrap();
+        let collection = NeuronPotentialXYZ::convert_to_neuron_potential_collection_xyz(neurons).unwrap();
         assert_eq!(collection.get_number_neurons(), 3);
         
         // Convert back to vector
-        let neurons_converted = collection.convert_to_vector_of_NeuronPotentialXYZ().unwrap();
+        let neurons_converted = collection.convert_to_vector_of_neuron_potential_xyz().unwrap();
         assert_eq!(neurons_converted.len(), 3);
         
         // Verify the values are preserved

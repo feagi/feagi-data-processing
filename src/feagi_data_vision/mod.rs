@@ -4,11 +4,6 @@ pub mod peripheral_segmentation;
 pub mod cropping_utils;
 pub mod single_frame;
 
-use single_frame::{ImageFrame, ChannelFormat};
-use cropping_utils::{CornerPoints};
-use peripheral_segmentation::{SegmentedVisionCenterProperties, SegmentedVisionTargetResolutions, SegmentedVisionFrame};
-use ndarray::{s, Array3, ArrayView3};
-
 
 
 
@@ -16,6 +11,8 @@ use ndarray::{s, Array3, ArrayView3};
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use single_frame::{ImageFrame, ChannelFormat};
+    use ndarray::{Array3};
 
     #[test]
     fn test_get_view_pixels() {
@@ -205,8 +202,8 @@ pub mod tests {
 
 
         let mut diff_frame = ImageFrame::new(&ChannelFormat::RGB, &(2, 2));
-        let mut prev_frame = ImageFrame::from_array(prev_frame_pixels).unwrap();
-        let mut next_frame = ImageFrame::from_array(next_frame_pixels).unwrap();
+        let prev_frame = ImageFrame::from_array(prev_frame_pixels).unwrap();
+        let next_frame = ImageFrame::from_array(next_frame_pixels).unwrap();
 
         
         // Test with threshold of 0.15

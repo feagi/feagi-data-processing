@@ -53,7 +53,7 @@ impl SegmentedVisionCenterProperties {
     /// # Errors
     ///
     /// Returns an error if the source resolution is less than 3x3 pixels
-    pub fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_resolution: (usize, usize)) -> Result<(CornerPoints), &'static str> {
+    pub fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_resolution: (usize, usize)) -> Result<CornerPoints, &'static str> {
         if source_frame_resolution.0 < 3 || source_frame_resolution.1 < 3 {
             return Err("Source resolution must be 3 pixels or greater in the X and Y directions!");
         }
@@ -166,8 +166,6 @@ pub struct SegmentedVisionFrame {
     lower_middle: ImageFrame,
     /// Center segment of the vision frame (typically higher resolution)
     center: ImageFrame,
-    /// Target resolutions for each segment
-    segment_resolutions: SegmentedVisionTargetResolutions,
     /// Resolution of the original source frame
     original_source_resolution: (usize, usize),
     /// Corner points defining the boundaries of each segment
@@ -216,7 +214,6 @@ impl SegmentedVisionFrame {
             lower_right: ImageFrame::from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_right, &segment_resolutions.lower_right).unwrap(),
             lower_middle: ImageFrame::from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_middle, &segment_resolutions.lower_middle).unwrap(),
             center: ImageFrame::from_source_frame_crop_and_resize(source_frame, &segment_corner_points.center, &segment_resolutions.center).unwrap(),
-            segment_resolutions,
             original_source_resolution: source_frame_resolution,
             segment_corner_points
         })
