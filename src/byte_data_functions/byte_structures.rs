@@ -2,52 +2,49 @@ use super::{FeagiByteStructureType, confirm_feagi_byte_structure_type};
 
 const GLOBAL_HEADER_SIZE_IN_BYTES: u32 = 2;
 use byteorder::{ByteOrder, LittleEndian};
-pub fn from_multi_structure_holder_get_boundaries(bytes: &[u8], start_end_index: (usize, usize)) -> Result<Vec<(u32, u32)>, &'static str> {
-    const INITIAL_HEADER_CONSTANT_SIZE: u32 = GLOBAL_HEADER_SIZE_IN_BYTES + 1; 
-    const HEADER_2_ELEMENT_SIZE: u32 = 8;
+pub fn from_multi_structure_holder_get_boundaries(bytes: &[u8]) -> Result<Vec<(u32, u32)>, &'static str> {
+    const HEADER_SIZE_CONTAINED_NUMBER_OF_BYTE_STRUCTS: u32 = 1;
+    const SUBHEADER_SIZE_POSITIONING_OF_SUBSTRUCTURES: u32 = 8;
     
-    let length_of_bytes: u32 = bytes.len() as u32;
+    let length_of_input_bytes: u32 = bytes.len() as u32;
     
-    let confirm = confirm_feagi_byte_structure_type(bytes, &start_end_index, FeagiByteStructureType::MultiStructHolder, 3);
+    let check_if_multi_struct = confirm_feagi_byte_structure_type(bytes, &start_end_index, FeagiByteStructureType::MultiStructHolder, 3);
     
-    if confirm.is_err() {
-        return Err(confirm.unwrap_err());
+    if check_if_multi_struct.is_err() {
+        return Err(check_if_multi_struct.unwrap_err());
     }
-    let number_contained_structs: u8 = bytes[2];
-    let minimum_size_needed_for_second_header: u32 = INITIAL_HEADER_CONSTANT_SIZE + (number_contained_structs as u32 * HEADER_2_ELEMENT_SIZE);
     
-    if length_of_bytes < minimum_size_needed_for_second_header {
-        return Err("The byte array is smaller than specified by MultiStructHolder Sub Header 1!");
+    let number_contained_structs: u8 = bytes[2];
+    let minimum_size_needed_for_metadata: u32 = GLOBAL_HEADER_SIZE_IN_BYTES + 
+        HEADER_SIZE_CONTAINED_NUMBER_OF_BYTE_STRUCTS +
+        (SUBHEADER_SIZE_POSITIONING_OF_SUBSTRUCTURES * (number_contained_structs as u32));
+    
+    
+    if length_of_input_bytes < minimum_size_needed_for_metadata {
+        return Err("The input byte array is smaller than specified by MultiStructHolder Sub Header 1!");
     }
     
     let mut output: Vec<(u32, u32)> = Vec::with_capacity(number_contained_structs as usize);
-    let mut read_index: u32 = minimum_size_needed_for_second_header;
+    let largest_possible_index = length_of_input_bytes as usize - 8; // Minus 2 * u32 size
     
-    for i in 0..number_contained_structs {
-        let start = read_index as usize;
-        let middle = read_index + 4;
-        let end = start + 8;
+    for reading_struct_index in 0..number_contained_structs {
+        let starting_byte_u32_index = ((GLOBAL_HEADER_SIZE_IN_BYTES + HEADER_SIZE_CONTAINED_NUMBER_OF_BYTE_STRUCTS) + 
+            (reading_struct_index as u32 * SUBHEADER_SIZE_POSITIONING_OF_SUBSTRUCTURES)) as usize;
+        let number_of_bytes_index = starting_byte_u32_index + 4;
         
-        let first_bound: u32 = LittleEndian::read_u32(&bytes[start ..middle]);
-        let end_bound: u32 = LittleEndian::read_u32(&bytes[middle ..end]);
+        if starting_byte_u32_index >= largest_possible_index {
+            return Err("Out of bound reading index location!");
+        }
         
-        if first_bound > length_of_bytes || 
+        let start_and_length: (u32, u32) = (LittleEndian::read_u32(&bytes[starting_byte_u32_index .. starting_byte_u32_index + 4]), LittleEndian::read_u32(&bytes[number_of_bytes_index .. number_of_bytes_index + 4]));
+        if start_and_length.0 > length_of_input_bytes {
+            return Err("Out of bound child structure start location!");
+        }
         
-        
-        output.push((
-            LittleEndian::read_u32(&bytes[start ..middle]),
-            LittleEndian::read_u32(&bytes[middle ..end]))
-        );
-        
+        output.push(start_and_length);
+
     };
-    
-    if output.len() == 0 {
-        return Ok(output);
-    }
-    
-    
-    
-    
+    return Ok(output);\
     
 }
 
