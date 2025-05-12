@@ -1,7 +1,6 @@
 mod byte_structures;
 
 use std::cmp::PartialEq;
-use std::io::Bytes;
 
 #[derive(Debug, PartialEq)]
 pub enum FeagiByteStructureType {

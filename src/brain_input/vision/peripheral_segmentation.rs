@@ -1,6 +1,5 @@
 use super::single_frame::ImageFrame;
 use super::cropping_utils::CornerPoints;
-use super::super::super::neuron_state::neuron_data::{CorticalMappedNeuronPotentialCollectionXYZ};
 use std::cmp;
 
 /// Properties defining the center region of a segmented vision frame
@@ -303,7 +302,7 @@ impl SegmentedVisionFrame {
     }
      */
 
-    pub fn direct_export_as_byte_neuron_potential_categorical_XYZ(&self, camera_index: u8) -> Result<Vec<u8>, &'static str> {
+    pub fn direct_export_as_byte_neuron_potential_categorical_xyz(&self, camera_index: u8) -> Result<Vec<u8>, &'static str> {
 
         const BYTE_STRUCT_ID: u8 = 11;
         const BYTE_STRUCT_VERSION: u8 = 1;
@@ -319,20 +318,20 @@ impl SegmentedVisionFrame {
         &self.upper_left, &self.upper_middle, &self.upper_right, &self.middle_right, &self.lower_right,
         &self.lower_middle];
 
-        let mut cortical_IDs: [String; 9] = [String::from("iv00_C"),
+        let mut cortical_ids: [String; 9] = [String::from("iv00_C"),
             String::from("iv00BL"), String::from("iv00ML"), String::from("iv00TL"),
             String::from("iv00TM"), String::from("iv00TR"), String::from("iv00MR"),
             String::from("iv00BR"), String::from("iv00BM")]; // same order as other struct members
         if self.center.get_color_channel_count() > 1 {
             // Ensure we aren't using grays scale cortical area ID if we are doing things in color
-            cortical_IDs[0] = String::from("iv00CC")
+            cortical_ids[0] = String::from("iv00CC")
         }
         let replacement_chars = self.u8_to_hex_chars(camera_index);
-        for cortical_ID_string in cortical_IDs.iter_mut(){
-            cortical_ID_string.replace_range(2..4, &format!("{}{}", replacement_chars.0, replacement_chars.1));
+        for cortical_id_string in cortical_ids.iter_mut(){
+            cortical_id_string.replace_range(2..4, &format!("{}{}", replacement_chars.0, replacement_chars.1));
         }
 
-        let number_bytes_per_segment: [usize; 9] = ordered_refs.map(|s| s.get_number_of_bytes_needed_to_hold_XYZP_uncompressed());
+        let number_bytes_per_segment: [usize; 9] = ordered_refs.map(|s| s.get_number_of_bytes_needed_to_hold_xyzp_uncompressed());
         
         let byte_array_length: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE +
             (CORTICAL_AREA_COUNT as usize * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE) +
@@ -351,13 +350,13 @@ impl SegmentedVisionFrame {
         let mut data_write_index: u32 = 4 + (CORTICAL_AREA_COUNT as u32 * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
         
         for cortical_index in 0..CORTICAL_AREA_COUNT as usize {
-            let cortical_ID_bytes = (&cortical_IDs[cortical_index]).as_bytes(); // We know this to be ascii
+            let cortical_id_bytes = (&cortical_ids[cortical_index]).as_bytes(); // We know this to be ascii
             let reading_start_index: u32 = data_write_index;
             let reading_start_index_bytes: [u8; 4] = reading_start_index.to_le_bytes();
             let reading_length: u32 = number_bytes_per_segment[cortical_index] as u32;
             let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
 
-            output[header_write_index..header_write_index + 4].copy_from_slice(cortical_ID_bytes);
+            output[header_write_index..header_write_index + 4].copy_from_slice(cortical_id_bytes);
             output[header_write_index + 4.. header_write_index + 8].copy_from_slice(&reading_start_index_bytes);
             output[header_write_index + 8.. header_write_index + 12].copy_from_slice(&reading_length_bytes);
             
@@ -368,7 +367,7 @@ impl SegmentedVisionFrame {
         // fill in data
         let data_write_index: usize = 4 + (CORTICAL_AREA_COUNT as usize * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE);
         for cortical_index in 0..CORTICAL_AREA_COUNT as usize {
-            let data_length: usize = ordered_refs[cortical_index].get_number_of_bytes_needed_to_hold_XYZP_uncompressed();
+            let data_length: usize = ordered_refs[cortical_index].get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
             let relevant_slice: &mut [u8] = &mut output[data_write_index..data_write_index + data_length];
             let result = ordered_refs[cortical_index].to_bytes_in_place(relevant_slice);
             if result.is_err() {

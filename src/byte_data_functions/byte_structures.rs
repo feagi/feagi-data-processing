@@ -1,7 +1,4 @@
 use super::{FeagiByteStructureType, confirm_feagi_byte_structure_is_as_expected};
-use super::super::cortical_area_state::cortical_data::{CorticalID};
-use std::collections::HashMap;
-use ndarray::{ ArrayView1};
 
 const GLOBAL_HEADER_SIZE_IN_BYTES: u32 = 2;
 const MULTISTRUCT_HEADER_SIZE_CONTAINED_NUMBER_OF_BYTE_STRUCTS: u32 = 1;
@@ -28,7 +25,7 @@ pub fn from_multi_structure_holder_get_sub_structures(bytes: &[u8]) -> Result<Ve
         return Err("The input byte array is smaller than specified by MultiStructHolder Sub Header 1!");
     }
 
-    let mut output: Vec<(&[u8])> = Vec::with_capacity(number_contained_structs as usize);
+    let mut output: Vec<&[u8]> = Vec::with_capacity(number_contained_structs as usize);
     let largest_possible_index = length_of_input_bytes as usize - 8; // Minus 2 * u32 size
 
     for reading_struct_index in 0..number_contained_structs {

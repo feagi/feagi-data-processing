@@ -443,14 +443,14 @@ impl ImageFrame {
         Ok(())
     }
 
-    pub fn get_number_of_bytes_needed_to_hold_XYZP_uncompressed(& self) -> usize {
+    pub fn get_number_of_bytes_needed_to_hold_xyzp_uncompressed(& self) -> usize {
         const NUMBER_BYTES_PER_VOXEL: usize = 16;
         let dimensions = self.pixels.shape(); // we know its 3 elements
         dimensions[0] * dimensions[1] * dimensions[2] * NUMBER_BYTES_PER_VOXEL
     }
 
     pub fn to_bytes(& self) -> Vec<u8> {
-        let mut output: Vec<u8> = Vec::with_capacity(self.get_number_of_bytes_needed_to_hold_XYZP_uncompressed());
+        let mut output: Vec<u8> = Vec::with_capacity(self.get_number_of_bytes_needed_to_hold_xyzp_uncompressed());
         let mut index: usize = 0;
         for ((x,y,c), color_val) in self.pixels.indexed_iter() {
             let x_bytes: [u8; 4] = (x as u32).to_le_bytes();
@@ -468,7 +468,7 @@ impl ImageFrame {
     }
     
     pub fn to_bytes_in_place(& self, bytes_writing_to: &mut [u8]) -> Result<(), &'static str> {
-        let required_capacity: usize = self.get_number_of_bytes_needed_to_hold_XYZP_uncompressed();
+        let required_capacity: usize = self.get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
         if bytes_writing_to.len() < required_capacity {
             return Err("Given buffer is too small!");
         };
