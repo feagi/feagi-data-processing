@@ -1,4 +1,4 @@
-use super::{FeagiByteStructureType, confirm_feagi_byte_structure_type};
+use super::{FeagiByteStructureType, confirm_feagi_byte_structure_is_as_expected};
 
 const GLOBAL_HEADER_SIZE_IN_BYTES: u32 = 2;
 use byteorder::{ByteOrder, LittleEndian};
@@ -8,7 +8,7 @@ pub fn from_multi_structure_holder_get_boundaries(bytes: &[u8]) -> Result<Vec<(u
     
     let length_of_input_bytes: u32 = bytes.len() as u32;
     
-    let check_if_multi_struct = confirm_feagi_byte_structure_type(bytes, &start_end_index, FeagiByteStructureType::MultiStructHolder, 3);
+    let check_if_multi_struct = confirm_feagi_byte_structure_is_as_expected(bytes, FeagiByteStructureType::MultiStructHolder);
     
     if check_if_multi_struct.is_err() {
         return Err(check_if_multi_struct.unwrap_err());
@@ -44,7 +44,7 @@ pub fn from_multi_structure_holder_get_boundaries(bytes: &[u8]) -> Result<Vec<(u
         output.push(start_and_length);
 
     };
-    return Ok(output);\
+    return Ok(output);
     
 }
 

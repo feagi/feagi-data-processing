@@ -1,7 +1,7 @@
 mod byte_structures;
 
 use std::cmp::PartialEq;
-
+use std::io::Bytes;
 
 #[derive(Debug, PartialEq)]
 pub enum FeagiByteStructureType {
@@ -31,17 +31,10 @@ pub fn infer_feagi_byte_structure_type_region(bytes: &[u8], start_end_index: &(u
     infer_feagi_byte_structure_type(&bytes[start_end_index.0 .. start_end_index.1])
 }
 
-/// Generic function for checking if the basics of a byte structure are sound
-fn confirm_feagi_byte_structure_type(bytes: &[u8], start_end_index: &(usize, usize), inferred_types: FeagiByteStructureType, minimum_length: usize) -> Result<(), &'static str> {
-    if bytes.len() < minimum_length {
-        return Err("The byte array cannot be shorter than the minimum length!");
-    }
-    let calculated_type = infer_feagi_byte_structure_type_region(bytes, start_end_index);
+pub fn confirm_feagi_byte_structure_is_as_expected(bytes: &[u8], confirming_type: FeagiByteStructureType) -> Result<bool, &'static str> {
+    let calculated_type = infer_feagi_byte_structure_type(bytes);
     if calculated_type.is_err() {
-        return Err(&calculated_type.unwrap_err());
+        return Err(calculated_type.unwrap_err());
     }
-    if calculated_type.unwrap() == inferred_types {
-        return Ok(());
-    }
-    Err("Inferred types are not the same!")
+    Ok(calculated_type.unwrap() == confirming_type)
 }
