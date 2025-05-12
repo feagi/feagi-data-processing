@@ -1,4 +1,7 @@
 use super::{FeagiByteStructureType, confirm_feagi_byte_structure_is_as_expected};
+use super::super::cortical_area_state::cortical_data::{CorticalID};
+use std::collections::HashMap;
+use ndarray::{ ArrayView1};
 
 const GLOBAL_HEADER_SIZE_IN_BYTES: u32 = 2;
 const MULTISTRUCT_HEADER_SIZE_CONTAINED_NUMBER_OF_BYTE_STRUCTS: u32 = 1;
@@ -92,3 +95,6 @@ pub fn from_multi_structure_holder_get_boundaries(bytes: &[u8]) -> Result<Vec<(u
     };
     Ok(output)
 }
+
+
+

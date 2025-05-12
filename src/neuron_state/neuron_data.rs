@@ -1,4 +1,8 @@
+use std::collections::HashMap;
 use ndarray::{Array1};
+use crate::cortical_area_state::cortical_data::CorticalID;
+
+pub type CorticalMappedNeuronPotentialCollectionXYZ = HashMap<CorticalID, NeuronPotentialCollectionXYZ>;
 
 /// Represents a single neuron with its 3D coordinates and potential value
 ///

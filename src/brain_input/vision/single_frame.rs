@@ -443,6 +443,51 @@ impl ImageFrame {
         Ok(())
     }
 
+    pub fn get_number_of_bytes_needed_to_hold_XYZP_uncompressed(& self) -> usize {
+        const NUMBER_BYTES_PER_VOXEL: usize = 16;
+        let dimensions = self.pixels.shape(); // we know its 3 elements
+        dimensions[0] * dimensions[1] * dimensions[2] * NUMBER_BYTES_PER_VOXEL
+    }
+
+    pub fn to_bytes(& self) -> Vec<u8> {
+        let mut output: Vec<u8> = Vec::with_capacity(self.get_number_of_bytes_needed_to_hold_XYZP_uncompressed());
+        let mut index: usize = 0;
+        for ((x,y,c), color_val) in self.pixels.indexed_iter() {
+            let x_bytes: [u8; 4] = (x as u32).to_le_bytes();
+            let y_bytes: [u8; 4] = (y as u32).to_le_bytes();
+            let c_bytes: [u8; 4] = (c as u32).to_le_bytes();
+            let p_bytes: [u8; 4] = color_val.to_le_bytes();
+
+            output[index .. index + 4].copy_from_slice(&x_bytes);
+            output[index + 4 .. index + 8].copy_from_slice(&y_bytes);
+            output[index + 8 .. index + 12].copy_from_slice(&c_bytes);
+            output[index + 12 .. index + 16].copy_from_slice(&p_bytes);
+            index += 16;
+        };
+        output
+    }
+    
+    pub fn to_bytes_in_place(& self, bytes_writing_to: &mut [u8]) -> Result<(), &'static str> {
+        let required_capacity: usize = self.get_number_of_bytes_needed_to_hold_XYZP_uncompressed();
+        if bytes_writing_to.len() < required_capacity {
+            return Err("Given buffer is too small!");
+        };
+        let mut index: usize = 0;
+        for ((x,y,c), color_val) in self.pixels.indexed_iter() {
+            let x_bytes: [u8; 4] = (x as u32).to_le_bytes();
+            let y_bytes: [u8; 4] = (y as u32).to_le_bytes();
+            let c_bytes: [u8; 4] = (c as u32).to_le_bytes();
+            let p_bytes: [u8; 4] = color_val.to_le_bytes();
+
+            bytes_writing_to[index .. index + 4].copy_from_slice(&x_bytes);
+            bytes_writing_to[index + 4 .. index + 8].copy_from_slice(&y_bytes);
+            bytes_writing_to[index + 8 .. index + 12].copy_from_slice(&c_bytes);
+            bytes_writing_to[index + 12 .. index + 16].copy_from_slice(&p_bytes);
+            index += 16;
+        };
+        Ok(())
+    }
+
 
 
 }
