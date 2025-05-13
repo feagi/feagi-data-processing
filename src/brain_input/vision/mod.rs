@@ -314,7 +314,7 @@ pub mod tests {
         use cropping_utils::CornerPoints;
 
         // Create a source frame
-        let source_frame = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
+        let source_frame = ImageFrame::new(&ChannelFormat::RGB, &(40, 40)); // create exact size to avoid resizing
         
         // Create center properties (center at middle, 20% size)
         let center_props = SegmentedVisionCenterProperties::new(
@@ -358,17 +358,17 @@ pub mod tests {
         for i in 0..cortical_count {
             let header_offset = header_start + (i as usize * header_size);
             
-            // Verify cortical ID (first 4 bytes)
-            let id_bytes = &bytes[header_offset..header_offset + 4];
+            // Verify cortical ID (first 6 bytes)
+            let id_bytes = &bytes[header_offset..header_offset + 6];
             let id = String::from_utf8_lossy(id_bytes);
             assert!(id.starts_with("iv00"));
 
             // Verify start index (next 4 bytes)
-            let start_index = u32::from_le_bytes(bytes[header_offset + 4..header_offset + 8].try_into().unwrap());
+            let start_index = u32::from_le_bytes(bytes[header_offset + 6..header_offset + 10].try_into().unwrap());
             assert_eq!(start_index, data_start as u32);
 
             // Verify length (last 4 bytes)
-            let length = u32::from_le_bytes(bytes[header_offset + 8..header_offset + 12].try_into().unwrap());
+            let length = u32::from_le_bytes(bytes[header_offset + 10..header_offset + 14].try_into().unwrap());
             assert!(length > 0);
 
             // Update data start for next segment
@@ -389,5 +389,8 @@ pub mod tests {
             let id = String::from_utf8_lossy(id_bytes);
             assert!(id.starts_with("iv2A")); // 42 in hex is 2A
         }
+
+
+        
     }
 }
