@@ -443,12 +443,34 @@ impl ImageFrame {
         Ok(())
     }
 
+    /// Calculates the number of bytes needed to store the XYZP (coordinates and potential) data.
+    ///
+    /// Each voxel (pixel) requires 16 bytes of storage:
+    /// - 4 bytes for X coordinate (u32)
+    /// - 4 bytes for Y coordinate (u32)
+    /// - 4 bytes for Z coordinate (u32)
+    /// - 4 bytes for potential value (f32)
+    ///
+    /// # Returns
+    ///
+    /// The total number of bytes needed to store all voxel data
     pub fn get_number_of_bytes_needed_to_hold_xyzp_uncompressed(& self) -> usize {
         const NUMBER_BYTES_PER_VOXEL: usize = 16;
         let dimensions = self.pixels.shape(); // we know its 3 elements
         dimensions[0] * dimensions[1] * dimensions[2] * NUMBER_BYTES_PER_VOXEL
     }
 
+    /// Converts the image frame into a byte array containing XYZP data.
+    ///
+    /// The output array contains interleaved XYZP data for each voxel:
+    /// - X coordinates (u32) for all voxels
+    /// - Y coordinates (u32) for all voxels
+    /// - Z coordinates (u32) for all voxels
+    /// - Potential values (f32) for all voxels
+    ///
+    /// # Returns
+    ///
+    /// A Vec<u8> containing the serialized XYZP data
     pub fn to_bytes(& self) -> Vec<u8> {
         let required_number_elements = self.get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
         let mut output: Vec<u8> = Vec::with_capacity(required_number_elements);
@@ -476,6 +498,30 @@ impl ImageFrame {
         output
     }
     
+    /// Writes the image frame's XYZP data into a provided byte buffer.
+    ///
+    /// This is an in-place version of `to_bytes()` that writes directly into
+    /// a pre-allocated buffer instead of creating a new Vec.
+    ///
+    /// # Arguments
+    ///
+    /// * `bytes_writing_to` - A mutable slice where the XYZP data will be written
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// - Ok(()) if the operation was successful
+    /// - Err(&'static str) if the provided buffer is too small
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::{ImageFrame, ChannelFormat};
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
+    /// let mut buffer = vec![0u8; frame.get_number_of_bytes_needed_to_hold_xyzp_uncompressed()];
+    /// frame.to_bytes_in_place(&mut buffer).unwrap();
+    /// ```
     pub fn to_bytes_in_place(& self, bytes_writing_to: &mut [u8]) -> Result<(), &'static str> {
         let required_capacity: usize = self.get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
         if bytes_writing_to.len() < required_capacity {
