@@ -450,19 +450,28 @@ impl ImageFrame {
     }
 
     pub fn to_bytes(& self) -> Vec<u8> {
-        let mut output: Vec<u8> = Vec::with_capacity(self.get_number_of_bytes_needed_to_hold_xyzp_uncompressed());
-        let mut index: usize = 0;
+        let required_number_elements = self.get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
+        let mut output: Vec<u8> = Vec::with_capacity(required_number_elements);
+        
+        let mut x_offset: usize = 0;
+        let mut y_offset: usize = required_number_elements / 4;
+        let mut c_offset: usize = y_offset * 2;
+        let mut p_offset: usize = y_offset * 3;
+        
         for ((x,y,c), color_val) in self.pixels.indexed_iter() {
             let x_bytes: [u8; 4] = (x as u32).to_le_bytes();
             let y_bytes: [u8; 4] = (y as u32).to_le_bytes();
             let c_bytes: [u8; 4] = (c as u32).to_le_bytes();
             let p_bytes: [u8; 4] = color_val.to_le_bytes();
 
-            output[index .. index + 4].copy_from_slice(&x_bytes);
-            output[index + 4 .. index + 8].copy_from_slice(&y_bytes);
-            output[index + 8 .. index + 12].copy_from_slice(&c_bytes);
-            output[index + 12 .. index + 16].copy_from_slice(&p_bytes);
-            index += 16;
+            output[x_offset .. x_offset + 4].copy_from_slice(&x_bytes);
+            output[y_offset .. y_offset + 4].copy_from_slice(&y_bytes);
+            output[c_offset .. c_offset + 4].copy_from_slice(&c_bytes);
+            output[p_offset .. p_offset + 4].copy_from_slice(&p_bytes);
+            x_offset += 4;
+            y_offset += 4;
+            c_offset += 4;
+            p_offset += 4;
         };
         output
     }
@@ -472,18 +481,26 @@ impl ImageFrame {
         if bytes_writing_to.len() < required_capacity {
             return Err("Given buffer is too small!");
         };
-        let mut index: usize = 0;
+
+        let mut x_offset: usize = 0;
+        let mut y_offset: usize = required_capacity / 4;
+        let mut c_offset: usize = y_offset * 2;
+        let mut p_offset: usize = y_offset * 3;
+        
         for ((x,y,c), color_val) in self.pixels.indexed_iter() {
             let x_bytes: [u8; 4] = (x as u32).to_le_bytes();
             let y_bytes: [u8; 4] = (y as u32).to_le_bytes();
             let c_bytes: [u8; 4] = (c as u32).to_le_bytes();
             let p_bytes: [u8; 4] = color_val.to_le_bytes();
 
-            bytes_writing_to[index .. index + 4].copy_from_slice(&x_bytes);
-            bytes_writing_to[index + 4 .. index + 8].copy_from_slice(&y_bytes);
-            bytes_writing_to[index + 8 .. index + 12].copy_from_slice(&c_bytes);
-            bytes_writing_to[index + 12 .. index + 16].copy_from_slice(&p_bytes);
-            index += 16;
+            bytes_writing_to[x_offset .. x_offset + 4].copy_from_slice(&x_bytes);
+            bytes_writing_to[y_offset .. y_offset + 4].copy_from_slice(&y_bytes);
+            bytes_writing_to[c_offset .. c_offset + 4].copy_from_slice(&c_bytes);
+            bytes_writing_to[p_offset .. p_offset + 4].copy_from_slice(&p_bytes);
+            x_offset += 4;
+            y_offset += 4;
+            c_offset += 4;
+            p_offset += 4;
         };
         Ok(())
     }
