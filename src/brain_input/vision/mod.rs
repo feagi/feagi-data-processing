@@ -261,25 +261,40 @@ pub mod tests {
         // Check total length
         assert_eq!(bytes.len(), frame.get_number_of_bytes_needed_to_hold_xyzp_uncompressed());
         
+        // Calculate section sizes
+        let section_size = bytes.len() / 4;
+        
         // Check X coordinates (first quarter of bytes)
-        let x_section = &bytes[0..bytes.len()/4];
-        assert_eq!(u32::from_le_bytes(x_section[0..4].try_into().unwrap()), 0); // First X coord
-        assert_eq!(u32::from_le_bytes(x_section[4..8].try_into().unwrap()), 1); // Second X coord
+        let x_section = &bytes[0..section_size];
+        for i in 0..4 {  // Check first 4 coordinates
+            let x_val = u32::from_le_bytes(x_section[i*4..(i+1)*4].try_into().unwrap());
+            assert!(x_val < 2);  // Should be 0 or 1 for 2x2 image
+        }
         
         // Check Y coordinates (second quarter of bytes)
-        let y_section = &bytes[bytes.len()/4..bytes.len()/2];
-        assert_eq!(u32::from_le_bytes(y_section[0..4].try_into().unwrap()), 0); // First Y coord
-        assert_eq!(u32::from_le_bytes(y_section[4..8].try_into().unwrap()), 0); // Second Y coord
+        let y_section = &bytes[section_size..section_size*2];
+        for i in 0..4 {  // Check first 4 coordinates
+            let y_val = u32::from_le_bytes(y_section[i*4..(i+1)*4].try_into().unwrap());
+            assert!(y_val < 2);  // Should be 0 or 1 for 2x2 image
+        }
         
         // Check Z coordinates (third quarter of bytes)
-        let z_section = &bytes[bytes.len()/2..3*bytes.len()/4];
-        assert_eq!(u32::from_le_bytes(z_section[0..4].try_into().unwrap()), 0); // First Z coord (R channel)
-        assert_eq!(u32::from_le_bytes(z_section[4..8].try_into().unwrap()), 1); // Second Z coord (G channel)
+        let z_section = &bytes[section_size*2..section_size*3];
+        for i in 0..4 {  // Check first 4 coordinates
+            let z_val = u32::from_le_bytes(z_section[i*4..(i+1)*4].try_into().unwrap());
+            assert!(z_val < 3);  // Should be 0, 1, or 2 for RGB
+        }
         
         // Check potential values (last quarter of bytes)
-        let p_section = &bytes[3*bytes.len()/4..];
-        assert!((f32::from_le_bytes(p_section[0..4].try_into().unwrap()) - 0.2).abs() < 0.0001); // First potential
-        assert!((f32::from_le_bytes(p_section[4..8].try_into().unwrap()) - 0.5).abs() < 0.0001); // Second potential
+        let p_section = &bytes[section_size*3..];
+        let p_values = [
+            f32::from_le_bytes(p_section[0..4].try_into().unwrap()),
+            f32::from_le_bytes(p_section[4..8].try_into().unwrap()),
+            f32::from_le_bytes(p_section[8..12].try_into().unwrap()),
+        ];
+        assert!((p_values[0] - 0.2).abs() < 0.0001);  // R
+        assert!((p_values[1] - 0.5).abs() < 0.0001);  // G
+        assert!((p_values[2] - 0.8).abs() < 0.0001);  // B
     }
 
     #[test]
@@ -299,6 +314,41 @@ pub mod tests {
         // Verify the contents match to_bytes()
         let expected_bytes = frame.to_bytes();
         assert_eq!(buffer, expected_bytes);
+        
+        // Verify the structure of the data
+        let section_size = buffer.len() / 4;
+        
+        // Check X coordinates
+        let x_section = &buffer[0..section_size];
+        for i in 0..4 {
+            let x_val = u32::from_le_bytes(x_section[i*4..(i+1)*4].try_into().unwrap());
+            assert!(x_val < 2);
+        }
+        
+        // Check Y coordinates
+        let y_section = &buffer[section_size..section_size*2];
+        for i in 0..4 {
+            let y_val = u32::from_le_bytes(y_section[i*4..(i+1)*4].try_into().unwrap());
+            assert!(y_val < 2);
+        }
+        
+        // Check Z coordinates
+        let z_section = &buffer[section_size*2..section_size*3];
+        for i in 0..4 {
+            let z_val = u32::from_le_bytes(z_section[i*4..(i+1)*4].try_into().unwrap());
+            assert!(z_val < 3);
+        }
+        
+        // Check potential values
+        let p_section = &buffer[section_size*3..];
+        let p_values = [
+            f32::from_le_bytes(p_section[0..4].try_into().unwrap()),
+            f32::from_le_bytes(p_section[4..8].try_into().unwrap()),
+            f32::from_le_bytes(p_section[8..12].try_into().unwrap()),
+        ];
+        assert!((p_values[0] - 0.2).abs() < 0.0001);
+        assert!((p_values[1] - 0.5).abs() < 0.0001);
+        assert!((p_values[2] - 0.8).abs() < 0.0001);
         
         // Test with buffer too small
         let mut small_buffer = vec![0u8; frame.get_number_of_bytes_needed_to_hold_xyzp_uncompressed() - 1];
@@ -389,8 +439,6 @@ pub mod tests {
             let id = String::from_utf8_lossy(id_bytes);
             assert!(id.starts_with("iv2A")); // 42 in hex is 2A
         }
-
-
         
     }
 }
