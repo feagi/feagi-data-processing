@@ -6,7 +6,7 @@ use std::cmp;
 /// 
 /// This structure defines the coordinates and size of the central region
 /// in a normalized coordinate space (0.0 to 1.0).
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub struct SegmentedVisionCenterProperties {
     /// Center point coordinates in normalized space (0.0-1.0)
     center_coordinates_normalized: (f32, f32), // Scaled from 0 to 1
@@ -76,7 +76,7 @@ impl SegmentedVisionCenterProperties {
 ///
 /// This structure stores the desired output resolution for each of the segments
 /// in a grid arrangement (3x3): corners, edges, and center.
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone, Copy)]
 pub struct SegmentedVisionTargetResolutions {
     /// Resolution for lower-left segment as (width, height)
     lower_left: (usize, usize),

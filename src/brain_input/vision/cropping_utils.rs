@@ -1,5 +1,5 @@
 /// Holds pixel coordinates for cropping. Inclusive on the bottom left, exclusive on the top right
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CornerPoints {
     /// The bottom-left corner coordinate as (x, y)
     pub lower_left: (usize, usize),

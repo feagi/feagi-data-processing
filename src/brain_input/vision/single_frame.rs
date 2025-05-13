@@ -34,6 +34,7 @@ pub enum ChannelFormat {
 /// // Get the image resolution
 /// assert_eq!(frame.get_xy_resolution(), resolution);
 /// ```
+#[derive(Clone)]
 pub struct ImageFrame {
     pixels: Array3<f32>,
     channel_format: ChannelFormat,
