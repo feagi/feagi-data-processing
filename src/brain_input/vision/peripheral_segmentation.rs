@@ -302,6 +302,28 @@ impl SegmentedVisionFrame {
     }
      */
 
+    /// Exports the segmented vision frame as a byte array containing neuron potential data. See FEAGI byte Structure 11 for more details.
+    ///
+    /// This function converts the segmented vision frame into a binary forma. The output includes 
+    /// headers and data for all nine segments (center and peripheral regions), with each segment's 
+    /// data containing XYZ coordinates and potential values.
+    ///
+    /// # Arguments
+    ///
+    /// * `camera_index` - An 8-bit identifier for the camera source (0-255)
+    ///
+    /// # Returns
+    ///
+    /// * `Result<Vec<u8>, &'static str>` - A byte vector containing the formatted data or an error message
+    ///
+    /// # Format
+    ///
+    /// The output byte array follows this structure:
+    /// - Global header (2 bytes): Structure ID and version (11, 1)
+    /// - Cortical count header (2 bytes): Number of cortical areas (u16)
+    /// - Per-cortical headers (14 bytes each): ID, start index, and length for each segment
+    /// - Data section: XYZP (X,Y,Z coordinates and potential) values for each segment
+    /// ```
     pub fn direct_export_as_byte_neuron_potential_categorical_xyz(&self, camera_index: u8) -> Result<Vec<u8>, &'static str> {
 
         const BYTE_STRUCT_ID: u8 = 11;
@@ -344,7 +366,7 @@ impl SegmentedVisionFrame {
         output[1] = BYTE_STRUCT_VERSION;
         
         let count_bytes: [u8; 2] = CORTICAL_AREA_COUNT.to_le_bytes();
-        output[2..3].copy_from_slice(&count_bytes);
+        output[2..4].copy_from_slice(&count_bytes);
         
         let mut header_write_index: usize = 4;
         let mut data_write_index: u32 = 4 + (CORTICAL_AREA_COUNT as u32 * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
@@ -356,9 +378,9 @@ impl SegmentedVisionFrame {
             let reading_length: u32 = number_bytes_per_segment[cortical_index] as u32;
             let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
 
-            output[header_write_index..header_write_index + 4].copy_from_slice(cortical_id_bytes);
-            output[header_write_index + 4.. header_write_index + 8].copy_from_slice(&reading_start_index_bytes);
-            output[header_write_index + 8.. header_write_index + 12].copy_from_slice(&reading_length_bytes);
+            output[header_write_index..header_write_index + 6].copy_from_slice(cortical_id_bytes);
+            output[header_write_index + 6.. header_write_index + 10].copy_from_slice(&reading_start_index_bytes);
+            output[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
             
             header_write_index += PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
             data_write_index += reading_length;
@@ -377,7 +399,7 @@ impl SegmentedVisionFrame {
         Ok(output)
     }
 
-    fn u8_to_hex_chars(& self, n: u8) -> (char, char) {
+    fn u8_to_hex_chars(& self, n: u8) -> (char, char) { // TODO this should be moved elsewhere
         const HEX_CHARS: &[u8; 16] = b"0123456789ABCDEF";
         let high = HEX_CHARS[(n >> 4) as usize] as char;
         let low = HEX_CHARS[(n & 0x0F) as usize] as char;

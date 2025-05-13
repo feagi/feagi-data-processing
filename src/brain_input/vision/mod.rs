@@ -306,4 +306,88 @@ pub mod tests {
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "Given buffer is too small!");
     }
+
+    #[test]
+    fn test_direct_export_as_byte_neuron_potential_categorical_xyz() {
+        use peripheral_segmentation::{SegmentedVisionFrame, SegmentedVisionCenterProperties, SegmentedVisionTargetResolutions};
+        use single_frame::{ImageFrame, ChannelFormat};
+        use cropping_utils::CornerPoints;
+
+        // Create a source frame
+        let source_frame = ImageFrame::new(&ChannelFormat::RGB, &(100, 100));
+        
+        // Create center properties (center at middle, 20% size)
+        let center_props = SegmentedVisionCenterProperties::new(
+            (0.5, 0.5),  // center coordinates
+            (0.2, 0.2)   // center size
+        ).unwrap();
+
+        // Create target resolutions for all segments
+        let resolutions = SegmentedVisionTargetResolutions::new(
+            (10, 10),  // lower_left
+            (10, 10),  // middle_left
+            (10, 10),  // upper_left
+            (10, 10),  // upper_middle
+            (10, 10),  // upper_right
+            (10, 10),  // middle_right
+            (10, 10),  // lower_right
+            (10, 10),  // lower_middle
+            (20, 20),  // center (higher resolution)
+        ).unwrap();
+
+        // Create the segmented frame
+        let frame = SegmentedVisionFrame::new(&source_frame, &center_props, resolutions).unwrap();
+
+        // Test with camera index 0
+        let bytes = frame.direct_export_as_byte_neuron_potential_categorical_xyz(0).unwrap();
+
+        // Verify global header
+        assert_eq!(bytes[0], 11);  // Structure ID
+        assert_eq!(bytes[1], 1);   // Version
+
+        // Verify cortical count
+        let cortical_count = u16::from_le_bytes([bytes[2], bytes[3]]);
+        assert_eq!(cortical_count, 9);
+
+        // Verify cortical headers
+        let header_start = 4;
+        let header_size = 14;
+        let mut data_start = header_start + (cortical_count as usize * header_size);
+
+        // Check each cortical area header
+        for i in 0..cortical_count {
+            let header_offset = header_start + (i as usize * header_size);
+            
+            // Verify cortical ID (first 4 bytes)
+            let id_bytes = &bytes[header_offset..header_offset + 4];
+            let id = String::from_utf8_lossy(id_bytes);
+            assert!(id.starts_with("iv00"));
+
+            // Verify start index (next 4 bytes)
+            let start_index = u32::from_le_bytes(bytes[header_offset + 4..header_offset + 8].try_into().unwrap());
+            assert_eq!(start_index, data_start as u32);
+
+            // Verify length (last 4 bytes)
+            let length = u32::from_le_bytes(bytes[header_offset + 8..header_offset + 12].try_into().unwrap());
+            assert!(length > 0);
+
+            // Update data start for next segment
+            data_start += length as usize;
+        }
+
+        // Verify total length matches expected
+        let expected_length = 4 + (9 * 14) + data_start - (header_start + (9 * header_size));
+        assert_eq!(bytes.len(), expected_length);
+
+        // Test with different camera index
+        let bytes2 = frame.direct_export_as_byte_neuron_potential_categorical_xyz(42).unwrap();
+        
+        // Verify cortical IDs are updated with new camera index
+        for i in 0..cortical_count {
+            let header_offset = header_start + (i as usize * header_size);
+            let id_bytes = &bytes2[header_offset..header_offset + 4];
+            let id = String::from_utf8_lossy(id_bytes);
+            assert!(id.starts_with("iv2A")); // 42 in hex is 2A
+        }
+    }
 }

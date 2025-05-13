@@ -474,6 +474,7 @@ impl ImageFrame {
     pub fn to_bytes(& self) -> Vec<u8> {
         let required_number_elements = self.get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
         let mut output: Vec<u8> = Vec::with_capacity(required_number_elements);
+        output.resize(required_number_elements, 0x00);
         
         let mut x_offset: usize = 0;
         let mut y_offset: usize = required_number_elements / 4;
