@@ -3,6 +3,7 @@ pub mod byte_data_functions;
 pub mod brain_input;
 pub mod cortical_area_state;
 pub mod brain_output;
+mod Error;
 
 #[cfg(test)]
 mod tests {

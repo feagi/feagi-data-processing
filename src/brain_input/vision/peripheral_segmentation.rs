@@ -375,7 +375,7 @@ impl SegmentedVisionFrame {
             let cortical_id_bytes = (&cortical_ids[cortical_index]).as_bytes(); // We know this to be ascii
             let reading_start_index: u32 = data_write_index;
             let reading_start_index_bytes: [u8; 4] = reading_start_index.to_le_bytes();
-            let reading_length: u32 = number_bytes_per_segment[cortical_index] as u32;
+            let reading_length: u32 = number_bytes_per_segment[cortical_index] as u32; // TODO divide by 4
             let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
 
             output[header_write_index..header_write_index + 6].copy_from_slice(cortical_id_bytes);

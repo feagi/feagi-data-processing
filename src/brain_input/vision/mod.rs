@@ -3,10 +3,7 @@
 pub mod peripheral_segmentation;
 pub mod cropping_utils;
 pub mod single_frame;
-
-
-
-
+mod single_frame_processing;
 
 #[cfg(test)]
 pub mod tests {
