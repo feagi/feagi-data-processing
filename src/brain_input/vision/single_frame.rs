@@ -11,7 +11,7 @@ use super::single_frame_processing::*;
 /// # Examples
 ///
 /// ```
-/// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::{ImageFrame};
+/// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
 /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
 ///
 /// // Create a new RGB image frame
@@ -32,16 +32,28 @@ impl ImageFrame {
     
     // region: common constructors
     
-    /// Creates a new ImageFrame with the specified channel format and resolution.
+    /// Creates a new ImageFrame with the specified channel format, color space, and resolution.
     ///
     /// # Arguments
     ///
-    /// * `channel_format` - The color channel format for the image
+    /// * `channel_format` - The color channel format for the image (GrayScale, RG, RGB, or RGBA)
+    /// * `color_space` - The color space of the image (Linear or Gamma)
     /// * `xy_resolution` - The resolution of the image as a tuple of (width, height)
     ///
     /// # Returns
     ///
     /// A new ImageFrame instance with all pixels initialized to zero.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
+    /// assert_eq!(frame.get_xy_resolution(), (640, 480));
+    /// assert_eq!(frame.get_color_channel_count(), 3);
+    /// ```
     pub fn new(channel_format: &ChannelFormat, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> ImageFrame {
         ImageFrame {
             pixels: match channel_format {
@@ -55,17 +67,18 @@ impl ImageFrame {
         }
     }
 
-    /// Creates an ImageFrame from an existing ndarray.
+    /// Creates an ImageFrame from an existing ndarray with the specified color space.
     ///
     /// # Arguments
     ///
+    /// * `color_space` - The color space of the image (Linear or Gamma)
     /// * `input` - A 3D array of f32 values representing the image pixels
     ///
     /// # Returns
     ///
     /// A Result containing either:
     /// - Ok(ImageFrame) if the input array has a valid number of color channels (1-4)
-    /// - Err(&'static str) if the number of color channels is invalid
+    /// - Err(DataProcessingError) if the number of color channels is invalid
     ///
     /// # Examples
     ///
@@ -76,6 +89,7 @@ impl ImageFrame {
     ///
     /// let array = Array3::<f32>::zeros((100, 100, 3)); // RGB image
     /// let frame = ImageFrame::from_array(ColorSpace::Gamma, array).unwrap();
+    /// assert_eq!(frame.get_color_channel_count(), 3);
     /// ```
     pub fn from_array(color_space: ColorSpace, input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
         let number_color_channels: usize = input.shape()[2];
@@ -92,7 +106,36 @@ impl ImageFrame {
         })
     }
     
-    pub fn from_array_with_processing(color_space: ColorSpace, image_processing: FrameProcessingParameters,input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
+    /// Creates an ImageFrame from an existing ndarray with optional processing steps.
+    ///
+    /// This function allows creating an ImageFrame with a series of optional processing steps
+    /// such as cropping, resizing, brightness adjustment, and contrast adjustment.
+    ///
+    /// # Arguments
+    ///
+    /// * `color_space` - The color space of the image (Linear or Gamma)
+    /// * `image_processing` - Parameters defining the processing steps to apply
+    /// * `input` - A 3D array of f32 values representing the image pixels
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// - Ok(ImageFrame) if all processing steps were successful
+    /// - Err(DataProcessingError) if any processing step fails
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ndarray::Array3;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let array = Array3::<f32>::zeros((100, 100, 3));
+    /// let mut params = FrameProcessingParameters::new();
+    /// params.set_multiply_brightness_by(1.5).unwrap();
+    /// let frame = ImageFrame::from_array_with_processing(ColorSpace::Gamma, params, array).unwrap();
+    /// ```
+    pub fn from_array_with_processing(color_space: ColorSpace, image_processing: FrameProcessingParameters, input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
         let processing_steps_required = image_processing.process_steps_required_to_run();
         
         // there are 6! (720) permutations of these bools. I ain't writing them all out here. Let us stick to the most common ones
@@ -140,40 +183,135 @@ impl ImageFrame {
     
     // region: get properties
     
-    /// Returns true if 2 ImageFrames have the same channel count, resolution, and color space
+    /// Returns true if two ImageFrames have the same channel count, resolution, and color space.
+    ///
+    /// # Arguments
+    ///
+    /// * `a` - First ImageFrame to compare
+    /// * `b` - Second ImageFrame to compare
+    ///
+    /// # Returns
+    ///
+    /// True if both frames have identical channel count, resolution, and color space.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame1 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let frame2 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// assert!(ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&frame1, &frame2));
+    /// ```
     pub fn do_resolutions_channel_depth_and_color_spaces_match(a: &ImageFrame, b: &ImageFrame) -> bool {
         a.get_color_channel_count() == b.get_color_channel_count() && a.get_xy_resolution() == b.get_xy_resolution() && a.color_space == b.color_space
     }
     
     /// Returns a reference to the channel format of this image.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the ChannelFormat enum value representing the image's color channel format.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// assert_eq!(*frame.get_channel_format(), ChannelFormat::RGB);
+    /// ```
     pub fn get_channel_format(&self) -> &ChannelFormat {
         &self.channel_format
     }
 
     /// Returns a reference to the color space of this image.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the ColorSpace enum value representing the image's color space.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// assert_eq!(*frame.get_color_space(), ColorSpace::Gamma);
+    /// ```
     pub fn get_color_space(&self) -> &ColorSpace {
         &self.color_space
     }
     
-    /// Returns the number of color channels of this ImageFrame
+    /// Returns the number of color channels in this ImageFrame.
+    ///
+    /// # Returns
+    ///
+    /// The number of color channels as a usize:
+    /// - 1 for GrayScale
+    /// - 2 for RG
+    /// - 3 for RGB
+    /// - 4 for RGBA
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// assert_eq!(frame.get_color_channel_count(), 3);
+    /// ```
     pub fn get_color_channel_count(&self) -> usize {
         self.channel_format as usize
     }
 
-    /// Returns a view of the pixel data.
+    /// Returns a read-only view of the pixel data.
     ///
-    /// This provides read-only access to the underlying pixel array.
+    /// This provides access to the underlying 3D ndarray of pixel values.
+    ///
+    /// # Returns
+    ///
+    /// An ArrayView3<f32> containing the pixel data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let view = frame.get_pixels_view();
+    /// assert_eq!(view.shape(), [100, 100, 3]);
+    /// ```
     pub fn get_pixels_view(&self) -> ArrayView3<f32> {
         self.pixels.view()
     }
 
-    /// Returns the resolution of the image as a tuple of (width, height).
+    /// Returns the resolution of the image.
+    ///
+    /// # Returns
+    ///
+    /// A tuple of (width, height) representing the image dimensions in pixels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
+    /// assert_eq!(frame.get_xy_resolution(), (640, 480));
+    /// ```
     pub fn get_xy_resolution(&self) -> (usize, usize) {
         let shape: &[usize] =  self.pixels.shape();
         (shape[0], shape[1])
     }
 
-    /// Calculates the number of bytes needed to store the XYZP (coordinates and potential) data.
+    /// Calculates the number of bytes needed to store the XYZP data.
     ///
     /// Each voxel (pixel) requires 16 bytes of storage:
     /// - 4 bytes for X coordinate (u32)
@@ -183,7 +321,18 @@ impl ImageFrame {
     ///
     /// # Returns
     ///
-    /// The total number of bytes needed to store all voxel data
+    /// The total number of bytes needed to store all voxel data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let bytes_needed = frame.get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
+    /// assert_eq!(bytes_needed, 100 * 100 * 3 * 16); // width * height * channels * bytes_per_voxel
+    /// ```
     pub fn get_number_of_bytes_needed_to_hold_xyzp_uncompressed(& self) -> usize {
         const NUMBER_BYTES_PER_VOXEL: usize = 16;
         let dimensions = self.pixels.shape(); // we know its 3 elements
@@ -196,20 +345,22 @@ impl ImageFrame {
 
     /// Adjusts the brightness of the image by multiplying each pixel value by a positive factor.
     ///
+    /// This method modifies the image in-place by scaling all pixel values by the given factor.
+    /// Values are clamped to the range [0.0, 1.0] after multiplication.
+    ///
     /// # Arguments
     ///
-    /// * `brightness_factor` - The factor to multiply each pixel value by
+    /// * `brightness_factor` - The factor to multiply each pixel value by (must be positive)
     ///
     /// # Returns
     ///
     /// A Result containing either:
     /// - Ok(()) if the operation was successful
-    /// - Err(&'static str) if the brightness factor is negative
+    /// - Err(DataProcessingError) if the brightness factor is negative
     ///
     /// # Examples
     ///
     /// ```
-    /// use ndarray::Array3;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
@@ -232,7 +383,7 @@ impl ImageFrame {
     /// Adjusts the contrast of the image using a contrast factor.
     ///
     /// The contrast adjustment is performed using a standard contrast adjustment algorithm
-    /// that preserves the middle gray value (128) while stretching or compressing the
+    /// that preserves the middle gray value (0.5) while stretching or compressing the
     /// dynamic range of the image.
     ///
     /// # Arguments
@@ -246,19 +397,17 @@ impl ImageFrame {
     ///
     /// A Result containing either:
     /// - Ok(()) if the operation was successful
-    /// - Err(&'static str) if the contrast factor is outside the valid range of -1 to 1
+    /// - Err(DataProcessingError) if the contrast factor is outside the valid range of -1 to 1
     ///
     /// # Examples
     ///
     /// ```
-    /// use ndarray::Array3;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// frame.change_contrast(0.5).unwrap();  // Increase contrast
     /// frame.change_contrast(-0.3).unwrap(); // Decrease contrast
-    /// frame.change_contrast(0.0).unwrap(); // Do nothing (0 is the starting point)
     /// ```
     pub fn change_contrast(&mut self, contrast_factor: f32) -> Result<(), DataProcessingError> {
         if contrast_factor < -1.0 || contrast_factor > 1.0 {
@@ -279,6 +428,32 @@ impl ImageFrame {
     
     // region: mutate structure (non-in-place)
     
+    /// Crops the image to the specified region.
+    ///
+    /// This method modifies the image in-place by cropping it to the specified region
+    /// defined by CornerPoints.
+    ///
+    /// # Arguments
+    ///
+    /// * `corners_crop` - The CornerPoints defining the region to crop
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// - Ok(&mut Self) if the crop operation was successful
+    /// - Err(DataProcessingError) if the crop region would not fit in the image
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let corners = CornerPoints::new((10, 10), (50, 50)).unwrap();
+    /// frame.allocate_crop_to(&corners).unwrap();
+    /// assert_eq!(frame.get_xy_resolution(), (40, 40));
+    /// ```
     pub fn allocate_crop_to(&mut self, corners_crop: &CornerPoints) -> Result<&mut Self, DataProcessingError> {
         if !corners_crop.does_fit_in_frame_of_resolution(self.get_xy_resolution()) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()));
@@ -290,7 +465,9 @@ impl ImageFrame {
     
     /// Resizes the image using nearest neighbor. Low quality, but fast.
     ///
-    /// Color channel information is preserved.
+    /// This method modifies the image in-place by resizing it to the target resolution
+    /// using nearest neighbor interpolation. While this is a fast method, it may result
+    /// in lower quality compared to other interpolation methods.
     ///
     /// # Arguments
     ///
@@ -299,18 +476,18 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A Result containing either:
-    /// - Ok(()) if the operation was successful
-    /// - Err(&'static str) if the target resolution is invalid (zero or negative)
+    /// - Ok(&mut Self) if the resize operation was successful
+    /// - Err(DataProcessingError) if the target resolution is invalid (zero or negative)
     ///
     /// # Examples
     ///
     /// ```
-    /// use ndarray::Array3;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// frame.allocate_resize_nearest_neighbor(&(50, 50)).unwrap(); // Half the resolution
+    /// frame.allocate_resize_nearest_neighbor(&(50, 50)).unwrap();
+    /// assert_eq!(frame.get_xy_resolution(), (50, 50));
     /// ```
     pub fn allocate_resize_nearest_neighbor(&mut self, target_resolution: &(usize, usize)) -> Result<&mut Self, DataProcessingError> {
         if target_resolution.0 <= 0 || target_resolution.1 <= 0 {
@@ -346,7 +523,18 @@ impl ImageFrame {
     ///
     /// # Returns
     ///
-    /// A Vec<u8> containing the serialized XYZP data
+    /// A Vec<u8> containing the serialized XYZP data.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let bytes = frame.to_bytes();
+    /// assert_eq!(bytes.len(), frame.get_number_of_bytes_needed_to_hold_xyzp_uncompressed());
+    /// ```
     pub fn to_bytes(& self) -> Vec<u8> {
         let required_number_elements = self.get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
         let mut output: Vec<u8> = Vec::with_capacity(required_number_elements);
@@ -388,16 +576,15 @@ impl ImageFrame {
     ///
     /// A Result containing either:
     /// - Ok(()) if the operation was successful
-    /// - Err(&'static str) if the provided buffer is too small
+    /// - Err(DataProcessingError) if the provided buffer is too small
     ///
     /// # Examples
     ///
     /// ```
-    /// use ndarray::Array3;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
-    /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// let mut buffer = vec![0u8; frame.get_number_of_bytes_needed_to_hold_xyzp_uncompressed()];
     /// frame.to_bytes_in_place(&mut buffer).unwrap();
     /// ```
