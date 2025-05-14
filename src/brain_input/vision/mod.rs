@@ -1,9 +1,10 @@
 // Module for image data structures for FEAGI. Essentially pixel data stored uncompressed in ndarrays
 
 pub mod peripheral_segmentation;
-pub mod cropping_utils;
 pub mod single_frame;
-mod single_frame_processing;
+pub mod single_frame_processing;
+
+
 
 #[cfg(test)]
 pub mod tests {
@@ -164,7 +165,7 @@ pub mod tests {
         let mut frame = ImageFrame::from_array(test_array).unwrap();
         
         // Resize to 4x4
-        frame.resize_nearest_neighbor(&(4, 4)).unwrap();
+        frame.allocate_resize_nearest_neighbor(&(4, 4)).unwrap();
         
         // Check the new dimensions
         assert_eq!(frame.get_xy_resolution(), (4, 4));
@@ -177,7 +178,7 @@ pub mod tests {
         assert_eq!(view[[3, 3, 0]], 0.0);  // Duplicated pixel
         
         // Test invalid resolution
-        let result = frame.resize_nearest_neighbor(&(0, 4));
+        let result = frame.allocate_resize_nearest_neighbor(&(0, 4));
         assert!(result.is_err());
         assert_eq!(result.unwrap_err(), "The resolution factor cannot be zero or negative!");
     }

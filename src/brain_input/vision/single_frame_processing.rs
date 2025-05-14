@@ -4,7 +4,7 @@ use crate::Error::DataProcessingError;
 #[derive(PartialEq, Clone, Copy)]
 pub struct FrameProcessingParameters {
     cropping_from: Option<CornerPoints>,
-    resizing_to: Option<CornerPoints>,
+    resizing_to: Option<(usize, usize)>,
     multiply_brightness_by: Option<f32>,
     change_contrast_by: Option<f32>,
     convert_to_grayscale: bool, // TODO
@@ -22,7 +22,7 @@ impl FrameProcessingParameters {
             convert_color_space_to: None,
         }
     }
-    
+
     pub fn clear_all_settings(&mut self) {
         self.cropping_from = None;
         self.resizing_to = None;
@@ -31,17 +31,17 @@ impl FrameProcessingParameters {
         self.convert_to_grayscale = false;
         self.convert_color_space_to = None;
     }
-    
+
     pub fn set_cropping_from(&mut self, cropping_from: CornerPoints) -> &mut Self {
         self.cropping_from = Some(cropping_from);
         self
     }
-    
-    pub fn set_resizing_to(&mut self, resizing_to: CornerPoints) -> &mut Self {
+
+    pub fn set_resizing_to(&mut self, resizing_to: (usize, usize)) -> &mut Self {
         self.resizing_to = Some(resizing_to);
         self
     }
-    
+
     pub fn set_multiply_brightness_by(&mut self, multiply_brightness_by: f32) -> Result<&mut Self, DataProcessingError> {
         if multiply_brightness_by < 0.0 {
             return Err(DataProcessingError::InvalidInputBounds("Multiply brightness by must be positive!".into()));
@@ -49,7 +49,7 @@ impl FrameProcessingParameters {
         self.multiply_brightness_by = Some(multiply_brightness_by);
         Ok(self)
     }
-    
+
     pub fn set_change_contrast_by(&mut self, change_contrast_by: f32) -> Result<&mut Self, DataProcessingError> {
         if change_contrast_by < -1.0 || change_contrast_by > 1.0 {
             return Err(DataProcessingError::InvalidInputBounds("The contrast factor must be between -1.0 and 1.0!".into()));
@@ -57,15 +57,50 @@ impl FrameProcessingParameters {
         self.change_contrast_by = Some(change_contrast_by);
         Ok(self)
     }
-    
+
     pub fn enable_convert_to_grayscale(&mut self) -> &mut Self {
         self.convert_to_grayscale = true;
         self
     }
-    
+
     pub fn enable_convert_to_color_space_to(&mut self, color_space: ColorSpace) -> &mut Self {
         self.convert_color_space_to = Some(color_space);
         self
+    }
+    
+    pub fn get_cropping_from(&self) -> Option<CornerPoints> {
+        self.cropping_from
+    }
+    
+    pub fn get_resizing_to(&self) -> Option<(usize, usize)> {
+        self.resizing_to
+    }
+    
+    pub fn get_multiply_brightness_by(&self) -> Option<f32> {
+        self.multiply_brightness_by
+    }
+    
+    pub fn get_change_contrast_by(&self) -> Option<f32> {
+        self.change_contrast_by
+    }
+    
+    pub fn get_convert_to_grayscale(&self) -> bool {
+        self.convert_to_grayscale
+    }
+    
+    pub fn get_convert_to_color_space_to(&self) -> Option<ColorSpace> {
+        self.convert_color_space_to
+    }
+    
+    pub fn process_steps_required_to_run(&self) -> (bool, bool, bool, bool, bool, bool) { // Yandredev moment
+        (
+            self.cropping_from.is_some(),
+            self.resizing_to.is_some(),
+            self.multiply_brightness_by.is_some(),
+            self.change_contrast_by.is_some(),
+            self.convert_to_grayscale,
+            self.convert_color_space_to.is_some(),
+            )
     }
 }
 
@@ -125,7 +160,7 @@ impl CornerPoints {
     pub fn upper_right(&self) -> (usize, usize) {
         self.upper_right
     }
-    
+
     /// Gets the coordinates of the lower-right corner (Lower Inclusive, Right Exclusive)
     ///
     /// # Returns
@@ -143,8 +178,8 @@ impl CornerPoints {
     pub fn upper_left(&self) -> (usize, usize) {
         (self.lower_left.0, self.upper_right.0)
     }
-    
-    
+
+
     /// Checks if the defined region fits within a source frame of the given resolution
     ///
     /// # Arguments
@@ -166,11 +201,26 @@ impl CornerPoints {
     pub fn enclosed_area(&self) -> (usize, usize) {
         (self.upper_right.0 - self.lower_left.0, self.upper_right.1 - self.lower_left.1)
     }
-    
+
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ColorSpace{
     Linear,
     Gamma
+}
+
+/// Represents the color channel format of an image.
+///
+/// This enum defines the possible color channel configurations for an image:
+/// - GrayScale: Single channel (grayscale, or red)
+/// - RG: Two channels (red, green)
+/// - RGB: Three channels (red, green, blue)
+/// - RGBA: Four channels (red, green, blue, alpha)
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum ChannelFormat {
+    GrayScale = 1, // R
+    RG = 2,
+    RGB = 3,
+    RGBA = 4,
 }
