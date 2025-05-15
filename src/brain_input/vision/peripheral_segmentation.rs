@@ -60,6 +60,7 @@ impl SegmentedVisionFrame {
         let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_resolution)?;
         let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame_resolution, inner_corners)?;
         
+        /*
         // For all the following, we know the crops are safe
         Ok(SegmentedVisionFrame{
             lower_left: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.lower_left, &segment_resolutions.lower_left)?,
@@ -73,6 +74,20 @@ impl SegmentedVisionFrame {
             center: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.center, &segment_resolutions.center)?,
             original_source_resolution: source_frame_resolution,
             segment_corner_points
+        })
+        */
+        Ok(SegmentedVisionFrame{
+            lower_left: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
+            middle_left: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
+            upper_left: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
+            upper_middle: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
+            upper_right: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
+            middle_right: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
+            lower_right: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
+            lower_middle: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
+            center: ImageFrame::from_array(ColorSpace::Gamma, source_array.clone())?,
+            original_source_resolution: source_frame_resolution,
+            segment_corner_points: segment_corner_points,
         })
     }
     
