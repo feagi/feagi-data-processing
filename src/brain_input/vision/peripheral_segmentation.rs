@@ -254,6 +254,10 @@ impl SegmentedVisionFrame {
         };
         Ok(output)
     }
+    
+    pub fn get_center_image_frame(&self) -> &ImageFrame {
+        &self.center
+    }
 
     fn u8_to_hex_chars(& self, n: u8) -> (char, char) { // TODO this should be moved elsewhere
         const HEX_CHARS: &[u8; 16] = b"0123456789ABCDEF";
@@ -336,7 +340,7 @@ impl SegmentedVisionCenterProperties {
         let top_pixel: usize = cmp::min(source_frame_resolution.1 - 1, (( self.center_coordinates_normalized.1 + center_size_normalized_half.1) * source_frame_resolution_f.1).ceil() as usize);
         let left_pixel: usize = cmp::max(1, ((self.center_coordinates_normalized.0 - center_size_normalized_half.0) * source_frame_resolution_f.0).floor() as usize);
         let right_pixel: usize = cmp::min(source_frame_resolution.0 - 1, (( self.center_coordinates_normalized.0 + center_size_normalized_half.0) * source_frame_resolution_f.0).ceil() as usize);
-        let corner_points: CornerPoints = CornerPoints::new((left_pixel, bottom_pixel), (right_pixel, top_pixel)).unwrap(); // We know that this input will not fail due to earlier checks
+        let corner_points: CornerPoints = CornerPoints::new((left_pixel, bottom_pixel), (right_pixel, top_pixel))?; // We know that this input will not fail due to earlier checks
         Ok(corner_points)
     }
 
