@@ -664,14 +664,15 @@ impl ImageFrame {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
         }
 
-        let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32);
+        //let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32);
         let crop_resolution_f: (f32, f32) = (new_resolution.0 as f32, new_resolution.1 as f32);
+        let new_resolution_f: (f32, f32) = (new_resolution.0 as f32, new_resolution.1 as f32);
         let mut writing_array: Array3<f32> = Array3::<f32>::zeros((new_resolution.0, new_resolution.1, channel as usize));
 
         for ((x,y,c), color_val) in writing_array.indexed_iter_mut() {
-            let nearest_neighbor_coordinate_x: usize = (((x as f32) / crop_resolution_f.0) * source_resolution_f.0).floor() as usize;
-            let nearest_neighbor_coordinate_y: usize = (((y as f32) / crop_resolution_f.1) * source_resolution_f.1).floor() as usize;
-            let nearest_neighbor_channel_value: f32 = input[(nearest_neighbor_coordinate_x + corners_crop.lower_left().0, nearest_neighbor_coordinate_y + corners_crop.lower_left().0, c)];
+            let nearest_neighbor_coordinate_x: usize = (((x as f32) / new_resolution_f.0) * crop_resolution_f.0).floor() as usize;
+            let nearest_neighbor_coordinate_y: usize = (((y as f32) / new_resolution_f.1) * crop_resolution_f.1).floor() as usize;
+            let nearest_neighbor_channel_value: f32 = input[(nearest_neighbor_coordinate_x + corners_crop.lower_left().0, nearest_neighbor_coordinate_y + corners_crop.lower_left().1, c)];
             *color_val = nearest_neighbor_channel_value;
         };
         Ok(ImageFrame {
