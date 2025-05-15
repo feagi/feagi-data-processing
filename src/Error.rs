@@ -4,6 +4,7 @@ use std::fmt;
 pub enum DataProcessingError {
     InvalidInputBounds(String),
     IncompatibleInplace(String),
+    IncompatibleInputArray(String),
 }
 
 impl fmt::Display for DataProcessingError {
@@ -11,6 +12,7 @@ impl fmt::Display for DataProcessingError {
         match self{
             DataProcessingError::InvalidInputBounds(e) => write!(f, "Invalid Bounds! {}", e),
             DataProcessingError::IncompatibleInplace(e) => write!(f, "Unable to perform inplace operation! {}", e),
+            DataProcessingError::IncompatibleInputArray(e) => write!(f, "Incompatible input array for images! {}", e),
         }
     }
 }

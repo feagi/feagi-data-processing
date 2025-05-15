@@ -96,13 +96,7 @@ impl ImageFrame {
         Ok(ImageFrame {
             pixels: input,
             color_space: color_space,
-            channel_format: match number_color_channels {
-                1 => ChannelFormat::GrayScale,
-                2 => ChannelFormat::RG,
-                3 => ChannelFormat::RGB,
-                4 => ChannelFormat::RGBA,
-                _ => return Err(DataProcessingError::InvalidInputBounds("The number of color channels must be at least 1 and not exceed the 4!".into()))
-            }
+            channel_format: usize_to_channel_format(number_color_channels)?
         })
     }
     
@@ -135,19 +129,26 @@ impl ImageFrame {
     /// params.set_multiply_brightness_by(1.5).unwrap();
     /// let frame = ImageFrame::from_array_with_processing(ColorSpace::Gamma, params, array).unwrap();
     /// ```
-    pub fn from_array_with_processing(color_space: ColorSpace, image_processing: FrameProcessingParameters, input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
+    pub fn from_array_with_processing(source_color_space: ColorSpace, image_processing: FrameProcessingParameters, input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
         let processing_steps_required = image_processing.process_steps_required_to_run();
         
         // there are 6! (720) permutations of these bools. I ain't writing them all out here. Let us stick to the most common ones
+        // bool order is cropping_from, resizing_to, multiply_brightness, contrast, to_grayscale, color_space
         match processing_steps_required { // I can't believe this isn't Yandresim!
             (false, false, false, false, false, false) => {
                 // No processing steps specified
-                return ImageFrame::from_array(color_space, input)
+                return ImageFrame::from_array(source_color_space, input)
             }
+
+            (true, true, false, false, false, false) => {
+                // crop from and resize to
+                return ImageFrame::create_from_source_array_crop_and_resize(&input, source_color_space, &image_processing.get_cropping_from().unwrap(), &image_processing.get_resizing_to().unwrap())
+            }
+            
             
             _ => {
                 // We do not have an optimized pathway, just do this sequentially (although this is considerably slower)
-                let mut frame = ImageFrame::from_array(color_space, input)?;
+                let mut frame = ImageFrame::from_array(source_color_space, input)?;
                 
                 if image_processing.get_cropping_from().is_some(){
                     let corner_points_cropping = &image_processing.get_cropping_from().unwrap();
@@ -206,6 +207,17 @@ impl ImageFrame {
     /// ```
     pub fn do_resolutions_channel_depth_and_color_spaces_match(a: &ImageFrame, b: &ImageFrame) -> bool {
         a.get_color_channel_count() == b.get_color_channel_count() && a.get_xy_resolution() == b.get_xy_resolution() && a.color_space == b.color_space
+    }
+    
+    pub fn is_array_valid_for_image_frame(array: &Array3<f32>) -> bool {
+        let shape: &[usize] =  array.shape();
+        if shape[2] > 4 || shape[2] == 0{
+            return false;
+        }
+        if shape[0] == 0 || shape[1] == 0{
+            return false;
+        }
+        true
     }
     
     /// Returns a reference to the channel format of this image.
@@ -425,7 +437,7 @@ impl ImageFrame {
     }
     
     // endregion
-    
+
     // region: mutate structure (non-in-place)
     
     /// Crops the image to the specified region.
@@ -619,8 +631,55 @@ impl ImageFrame {
     
     // endregion
 
-    // region: private specialized constructors
-    // These are called from the FrameProcessingParameters constructor
+    // region: specialized constructors
+    // These are called from the FrameProcessingParameters constructors
+
+    /// Creates a new ImageFrame by cropping a region from a source frame, followed by a resize
+    /// to the given resolution
+    ///
+    /// This function first crops the specified region from the source frame, then resizes
+    /// the cropped region to the target resolution using nearest neighbor interpolation.
+    ///
+    /// # Arguments
+    ///
+    /// * `source_frame` - The source ImageFrame to crop from
+    /// * `corners_crop` - The CornerPoints defining the region to crop
+    /// * `new_resolution` - The target resolution as a tuple of (width, height)
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// - Ok(ImageFrame) if the crop region is valid and fits within the source frame
+    /// - Err(&'static str) if the crop region would not fit in the source frame
+    ///
+    /// ```
+    pub fn create_from_source_array_crop_and_resize(input: &Array3<f32>, color_space: ColorSpace, corners_crop: &CornerPoints, new_resolution: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
+        if !ImageFrame::is_array_valid_for_image_frame(input) {
+            return Err(DataProcessingError::IncompatibleInputArray("The given array does not have a valid number of channels!!".into()))
+        }
+        
+        let channel = usize_to_channel_format(input.shape()[2])?;
+        let source_resolution = (input.shape()[0], input.shape()[1]);
+        if !corners_crop.does_fit_in_frame_of_resolution(source_resolution) {
+            return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
+        }
+
+        let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32);
+        let crop_resolution_f: (f32, f32) = (new_resolution.0 as f32, new_resolution.1 as f32);
+        let mut writing_array: Array3<f32> = Array3::<f32>::zeros((new_resolution.0, new_resolution.1, channel as usize));
+
+        for ((x,y,c), color_val) in writing_array.indexed_iter_mut() {
+            let nearest_neighbor_coordinate_x: usize = (((x as f32) / crop_resolution_f.0) * source_resolution_f.0).floor() as usize;
+            let nearest_neighbor_coordinate_y: usize = (((y as f32) / crop_resolution_f.1) * source_resolution_f.1).floor() as usize;
+            let nearest_neighbor_channel_value: f32 = input[(nearest_neighbor_coordinate_x + corners_crop.lower_left().0, nearest_neighbor_coordinate_y + corners_crop.lower_left().0, c)];
+            *color_val = nearest_neighbor_channel_value;
+        };
+        Ok(ImageFrame {
+            pixels: writing_array,
+            channel_format: channel,
+            color_space
+        })
+    }
     
     
     // endregion

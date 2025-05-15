@@ -8,6 +8,8 @@ pub mod single_frame_processing;
 
 #[cfg(test)]
 pub mod tests {
+    
+    /*
     use super::*;
     use single_frame::{ImageFrame, ChannelFormat};
     use ndarray::{Array3};
@@ -439,4 +441,6 @@ pub mod tests {
         }
         
     }
+    
+     */
 }

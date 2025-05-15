@@ -224,3 +224,13 @@ pub enum ChannelFormat {
     RGB = 3,
     RGBA = 4,
 }
+
+pub fn usize_to_channel_format(number: usize) -> Result<ChannelFormat, DataProcessingError> {
+    match number { 
+        1 => Ok(ChannelFormat::GrayScale),
+        2 => Ok(ChannelFormat::RG),
+        3 => Ok(ChannelFormat::RGB),
+        4 => Ok(ChannelFormat::RGBA),
+        _ => return Err(DataProcessingError::InvalidInputBounds("The number of color channels must be at least 1 and not exceed the 4!".into()))
+    }
+}
