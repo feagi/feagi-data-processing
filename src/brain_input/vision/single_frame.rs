@@ -6,7 +6,8 @@ use super::single_frame_processing::*;
 /// A structure representing an image frame with pixel data and channel format information.
 ///
 /// Various functions exist for processing images for use with FEAGI
-/// Internally, uses a 3D ndarray of f32 values from 0-1
+/// Internally, uses a 3D ndarray of f32 values from 0-1, stored in
+/// row major ordering (Heights Widths Channels)
 ///
 /// # Examples
 ///
@@ -29,6 +30,8 @@ pub struct ImageFrame {
 }
 
 impl ImageFrame {
+    
+    const INTERNAL_MEMORY_LAYOUT: MemoryOrderLayout = MemoryOrderLayout::HeightsWidthsChannels;
     
     // region: common constructors
     
@@ -56,14 +59,9 @@ impl ImageFrame {
     /// ```
     pub fn new(channel_format: &ChannelFormat, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> ImageFrame {
         ImageFrame {
-            pixels: match channel_format {
-                ChannelFormat::GrayScale => Array3::<f32>::zeros((xy_resolution.0, xy_resolution.1, 1)),
-                ChannelFormat::RG => Array3::<f32>::zeros((xy_resolution.0, xy_resolution.1, 2)),
-                ChannelFormat::RGB => Array3::<f32>::zeros((xy_resolution.0, xy_resolution.1, 3)),
-                ChannelFormat::RGBA => Array3::<f32>::zeros((xy_resolution.0, xy_resolution.1, 4)),
-            },
             channel_format: *channel_format,
             color_space: *color_space,
+            pixels: Array3::<f32>::zeros((xy_resolution.1, xy_resolution.0, *channel_format as usize)),
         }
     }
 
@@ -88,14 +86,14 @@ impl ImageFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
     /// let array = Array3::<f32>::zeros((100, 100, 3)); // RGB image
-    /// let frame = ImageFrame::from_array(ColorSpace::Gamma, array).unwrap();
+    /// let frame: ImageFrame = ImageFrame::from_array(array, ColorSpace::Gamma, MemoryOrderLayout::HeightsWidthsChannels).unwrap();
     /// assert_eq!(frame.get_color_channel_count(), 3);
     /// ```
-    pub fn from_array(color_space: ColorSpace, input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
+    pub fn from_array(input: Array3<f32>, color_space: ColorSpace, source_memory_order: MemoryOrderLayout) -> Result<ImageFrame, DataProcessingError> {
         let number_color_channels: usize = input.shape()[2];
         Ok(ImageFrame {
-            pixels: input,
-            color_space: color_space,
+            pixels: ImageFrame::change_memory_order_to_row_major(input, source_memory_order),
+            color_space,
             channel_format: usize_to_channel_format(number_color_channels)?
         })
     }
@@ -126,10 +124,13 @@ impl ImageFrame {
     ///
     /// let array = Array3::<f32>::zeros((100, 100, 3));
     /// let mut params = FrameProcessingParameters::new();
-    /// params.set_multiply_brightness_by(1.5).unwrap();
+    /// params.set_multiply_brightness_by(1.5).unwrap().set_change_contrast_by(0.5).unwrap();
     /// let frame = ImageFrame::from_array_with_processing(ColorSpace::Gamma, params, array).unwrap();
     /// ```
     pub fn from_array_with_processing(source_color_space: ColorSpace, image_processing: FrameProcessingParameters, input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
+        // Lets set the memory order correct first, this has 0 cost
+        let processed_input = ImageFrame::change_memory_order_to_row_major(input, image_processing.get_memory_ordering_of_source());
+        
         let processing_steps_required = image_processing.process_steps_required_to_run();
         
         // there are 6! (720) permutations of these bools. I ain't writing them all out here. Let us stick to the most common ones
@@ -137,27 +138,28 @@ impl ImageFrame {
         match processing_steps_required { // I can't believe this isn't Yandresim!
             (false, false, false, false, false, false) => {
                 // No processing steps specified
-                return ImageFrame::from_array(source_color_space, input)
+                return ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT)
             }
 
             (true, true, false, false, false, false) => {
                 // crop from and resize to
-                return ImageFrame::create_from_source_array_crop_and_resize(&input, source_color_space, &image_processing.get_cropping_from().unwrap(), &image_processing.get_resizing_to().unwrap())
+                let source_frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT);
+                return ImageFrame::create_from_source_array_crop_and_resize(&source_frame?, &image_processing.get_cropping_from().unwrap(), &image_processing.get_resizing_to().unwrap());
             }
             
             
             _ => {
                 // We do not have an optimized pathway, just do this sequentially (although this is considerably slower)
-                let mut frame = ImageFrame::from_array(source_color_space, input)?;
+                let mut frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT)?;
                 
                 if image_processing.get_cropping_from().is_some(){
                     let corner_points_cropping = &image_processing.get_cropping_from().unwrap();
-                    let _ = frame.allocate_crop_to(corner_points_cropping)?;
+                    let _ = frame.crop_to(corner_points_cropping)?;
                 };
                 
                 if image_processing.get_resizing_to().is_some(){
                     let corner_points_resizing = &image_processing.get_resizing_to().unwrap();
-                    let _ = frame.allocate_resize_nearest_neighbor(corner_points_resizing)?;
+                    let _ = frame.resize_nearest_neighbor(corner_points_resizing)?;
                 };
                 
                 if image_processing.get_multiply_brightness_by().is_some(){
@@ -303,7 +305,7 @@ impl ImageFrame {
         self.pixels.view()
     }
 
-    /// Returns the resolution of the image.
+    /// Returns the resolution of the image in cartesian space
     ///
     /// # Returns
     ///
@@ -320,7 +322,7 @@ impl ImageFrame {
     /// ```
     pub fn get_xy_resolution(&self) -> (usize, usize) {
         let shape: &[usize] =  self.pixels.shape();
-        (shape[0], shape[1])
+        (shape[1], shape[0]) // because nd array is row major, where coords are yx
     }
 
     /// Calculates the number of bytes needed to store the XYZP data.
@@ -436,6 +438,8 @@ impl ImageFrame {
         Ok(())
     }
     
+    // TODO Color Space Transformations
+    
     // endregion
 
     // region: mutate structure (non-in-place)
@@ -443,7 +447,8 @@ impl ImageFrame {
     /// Crops the image to the specified region.
     ///
     /// This method modifies the image in-place by cropping it to the specified region
-    /// defined by CornerPoints.
+    /// defined by CornerPoints. This operation is not done inplace and
+    /// instead allocates a new array.
     ///
     /// # Arguments
     ///
@@ -463,10 +468,10 @@ impl ImageFrame {
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// let corners = CornerPoints::new((10, 10), (50, 50)).unwrap();
-    /// frame.allocate_crop_to(&corners).unwrap();
+    /// frame.crop_to(&corners).unwrap();
     /// assert_eq!(frame.get_xy_resolution(), (40, 40));
     /// ```
-    pub fn allocate_crop_to(&mut self, corners_crop: &CornerPoints) -> Result<&mut Self, DataProcessingError> {
+    pub fn crop_to(&mut self, corners_crop: &CornerPoints) -> Result<&mut Self, DataProcessingError> {
         if !corners_crop.does_fit_in_frame_of_resolution(self.get_xy_resolution()) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()));
         }
@@ -479,7 +484,8 @@ impl ImageFrame {
     ///
     /// This method modifies the image in-place by resizing it to the target resolution
     /// using nearest neighbor interpolation. While this is a fast method, it may result
-    /// in lower quality compared to other interpolation methods.
+    /// in lower quality compared to other interpolation methods. This operation is not
+    /// done in place and instead allocates a new array.
     ///
     /// # Arguments
     ///
@@ -498,10 +504,10 @@ impl ImageFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// frame.allocate_resize_nearest_neighbor(&(50, 50)).unwrap();
+    /// frame.resize_nearest_neighbor(&(50, 50)).unwrap();
     /// assert_eq!(frame.get_xy_resolution(), (50, 50));
     /// ```
-    pub fn allocate_resize_nearest_neighbor(&mut self, target_resolution: &(usize, usize)) -> Result<&mut Self, DataProcessingError> {
+    pub fn resize_nearest_neighbor(&mut self, target_resolution: &(usize, usize)) -> Result<&mut Self, DataProcessingError> {
         if target_resolution.0 <= 0 || target_resolution.1 <= 0 {
             return Err(DataProcessingError::InvalidInputBounds("The resolution factor cannot be zero or negative!".into()))
         }
@@ -520,6 +526,8 @@ impl ImageFrame {
         self.pixels = sized_array;
         Ok(self)
     }
+    
+    // TODO to grayscale
     
     // endregion
     
@@ -639,6 +647,7 @@ impl ImageFrame {
     ///
     /// This function first crops the specified region from the source frame, then resizes
     /// the cropped region to the target resolution using nearest neighbor interpolation.
+    /// This function assumes HeightsWidthsChannels ordering!
     ///
     /// # Arguments
     ///
@@ -653,40 +662,62 @@ impl ImageFrame {
     /// - Err(&'static str) if the crop region would not fit in the source frame
     ///
     /// ```
-    pub fn create_from_source_array_crop_and_resize(input: &Array3<f32>, color_space: ColorSpace, corners_crop: &CornerPoints, new_resolution: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
-        if !ImageFrame::is_array_valid_for_image_frame(input) {
-            return Err(DataProcessingError::IncompatibleInputArray("The given array does not have a valid number of channels!!".into()))
-        }
+    pub fn create_from_source_array_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_resolution: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
         
-        let channel = usize_to_channel_format(input.shape()[2])?;
-        let source_resolution = (input.shape()[0], input.shape()[1]);
+        let source_resolution = source_frame.get_xy_resolution();
         if !corners_crop.does_fit_in_frame_of_resolution(source_resolution) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
         }
 
         //let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32);
+        let pixels_source = source_frame.get_pixels_view();
         let crop_resolution_f: (f32, f32) = (new_resolution.0 as f32, new_resolution.1 as f32);
         let new_resolution_f: (f32, f32) = (new_resolution.0 as f32, new_resolution.1 as f32);
-        let mut writing_array: Array3<f32> = Array3::<f32>::zeros((new_resolution.0, new_resolution.1, channel as usize));
+        let mut writing_array: Array3<f32> = Array3::<f32>::zeros((new_resolution.0, new_resolution.1, source_frame.get_color_channel_count()));
 
         for ((x,y,c), color_val) in writing_array.indexed_iter_mut() {
             let nearest_neighbor_coordinate_x: usize = (((x as f32) / new_resolution_f.0) * crop_resolution_f.0).floor() as usize;
             let nearest_neighbor_coordinate_y: usize = (((y as f32) / new_resolution_f.1) * crop_resolution_f.1).floor() as usize;
-            let nearest_neighbor_channel_value: f32 = input[(nearest_neighbor_coordinate_x + corners_crop.lower_left().0, nearest_neighbor_coordinate_y + corners_crop.lower_left().1, c)];
+            let nearest_neighbor_channel_value: f32 = pixels_source[(nearest_neighbor_coordinate_x + corners_crop.lower_left().0, nearest_neighbor_coordinate_y + corners_crop.lower_left().1, c)];
             *color_val = nearest_neighbor_channel_value;
         };
         Ok(ImageFrame {
             pixels: writing_array,
-            channel_format: channel,
-            color_space
+            channel_format: source_frame.channel_format,
+            color_space: source_frame.color_space,
         })
     }
+    
     
     
     // endregion
 
 
+    // region: internal functions
     
+    fn change_memory_order_to_row_major(input: Array3<f32>, source_memory_order: MemoryOrderLayout) -> Array3<f32> {
+        match source_memory_order {
+            MemoryOrderLayout::HeightsWidthsChannels => input, // Nothing needed, we store in this format anyway
+            MemoryOrderLayout::ChannelsHeightsWidths => input.permuted_axes([2, 0, 1]),
+            MemoryOrderLayout::WidthsHeightsChannels => input.permuted_axes([1, 0, 2]),
+            MemoryOrderLayout::HeightsChannelsWidths => input.permuted_axes([0, 2, 1]),
+            MemoryOrderLayout::ChannelsWidthsHeights => input.permuted_axes([2, 1, 0]),
+            MemoryOrderLayout::WidthsChannelsHeights => input.permuted_axes([1, 2, 0]),
+        }
+    }
+    
+    fn change_memory_order_from_row_major(input: Array3<f32>, target_memory_order: MemoryOrderLayout) -> Array3<f32> {
+        match target_memory_order {
+            MemoryOrderLayout::HeightsWidthsChannels => input, // Nothing needed, we store in this format anyway
+            MemoryOrderLayout::ChannelsHeightsWidths => input.permuted_axes([1, 2, 0]),
+            MemoryOrderLayout::WidthsHeightsChannels => input.permuted_axes([1, 0, 2]),
+            MemoryOrderLayout::HeightsChannelsWidths => input.permuted_axes([0, 2, 1]),
+            MemoryOrderLayout::ChannelsWidthsHeights => input.permuted_axes([2, 1, 0]),
+            MemoryOrderLayout::WidthsChannelsHeights => input.permuted_axes([2, 0, 1]),
+        }
+    }
+    
+    // endregion
     
     
 

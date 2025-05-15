@@ -7,6 +7,7 @@ pub struct FrameProcessingParameters {
     resizing_to: Option<(usize, usize)>,
     multiply_brightness_by: Option<f32>,
     change_contrast_by: Option<f32>,
+    memory_ordering_of_source: MemoryOrderLayout,
     convert_to_grayscale: bool, // TODO
     convert_color_space_to: Option<ColorSpace>, // TODO
 }
@@ -18,6 +19,7 @@ impl FrameProcessingParameters {
             resizing_to: None,
             multiply_brightness_by: None,
             change_contrast_by: None,
+            memory_ordering_of_source: MemoryOrderLayout::HeightsWidthsChannels,
             convert_to_grayscale: false,
             convert_color_space_to: None,
         }
@@ -57,6 +59,11 @@ impl FrameProcessingParameters {
         self.change_contrast_by = Some(change_contrast_by);
         Ok(self)
     }
+    
+    pub fn set_source_array_ordering(&mut self, new_source_array_ordering: MemoryOrderLayout) -> Result<&mut Self, DataProcessingError> {
+        self.memory_ordering_of_source = new_source_array_ordering;
+        Ok(self)
+    }
 
     pub fn enable_convert_to_grayscale(&mut self) -> &mut Self {
         self.convert_to_grayscale = true;
@@ -82,6 +89,10 @@ impl FrameProcessingParameters {
     
     pub fn get_change_contrast_by(&self) -> Option<f32> {
         self.change_contrast_by
+    }
+    
+    pub fn get_memory_ordering_of_source(&self) -> MemoryOrderLayout {
+        self.memory_ordering_of_source
     }
     
     pub fn get_convert_to_grayscale(&self) -> bool {
@@ -225,6 +236,16 @@ pub enum ChannelFormat {
     RGBA = 4,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum MemoryOrderLayout {
+    HeightsWidthsChannels, // default, also called row major
+    ChannelsHeightsWidths, // common in machine learning
+    WidthsHeightsChannels, // cartesian, the best one
+    HeightsChannelsWidths,
+    ChannelsWidthsHeights,
+    WidthsChannelsHeights,
+}
+
 pub fn usize_to_channel_format(number: usize) -> Result<ChannelFormat, DataProcessingError> {
     match number { 
         1 => Ok(ChannelFormat::GrayScale),
@@ -234,3 +255,4 @@ pub fn usize_to_channel_format(number: usize) -> Result<ChannelFormat, DataProce
         _ => return Err(DataProcessingError::InvalidInputBounds("The number of color channels must be at least 1 and not exceed the 4!".into()))
     }
 }
+
