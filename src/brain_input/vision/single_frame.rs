@@ -12,9 +12,9 @@ pub struct ImageFrame {
 }
 
 impl ImageFrame {
-    
+
     const INTERNAL_MEMORY_LAYOUT: MemoryOrderLayout = MemoryOrderLayout::HeightsWidthsChannels;
-    
+
     // region: common constructors
     
     /// Creates a new ImageFrame with the specified channel format, color space, and resolution.
@@ -114,7 +114,7 @@ impl ImageFrame {
     pub fn from_array_with_processing(source_color_space: ColorSpace, image_processing: FrameProcessingParameters, input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
         // Lets set the memory order correct first, this has 0 cost
         let processed_input = ImageFrame::change_memory_order_to_row_major(input, image_processing.get_memory_ordering_of_source());
-        
+
         let processing_steps_required = image_processing.process_steps_required_to_run();
         
         // there are 6! (720) permutations of these bools. I ain't writing them all out here. Let us stick to the most common ones
@@ -130,8 +130,8 @@ impl ImageFrame {
                 let source_frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT);
                 return ImageFrame::create_from_source_frame_crop_and_resize(&source_frame?, &image_processing.get_cropping_from().unwrap(), &image_processing.get_resizing_to().unwrap());
             }
-            
-            
+
+
             _ => {
                 // We do not have an optimized pathway, just do this sequentially (although this is considerably slower)
                 let mut frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT)?;
@@ -194,7 +194,7 @@ impl ImageFrame {
     pub fn do_resolutions_channel_depth_and_color_spaces_match(a: &ImageFrame, b: &ImageFrame) -> bool {
         a.get_internal_shape() == b.get_internal_shape() && a.color_space == b.color_space
     }
-    
+
     pub fn is_array_valid_for_image_frame(array: &Array3<f32>) -> bool {
         let shape: &[usize] =  array.shape();
         if shape[2] > 4 || shape[2] == 0{
@@ -205,7 +205,7 @@ impl ImageFrame {
         }
         true
     }
-    
+
     /// Returns a reference to the channel format of this image.
     ///
     /// # Returns
@@ -308,18 +308,18 @@ impl ImageFrame {
         let shape: &[usize] =  self.pixels.shape();
         (shape[1], shape[0]) // because nd array is row major, where coords are yx
     }
-    
+
     pub fn get_internal_resolution(&self) -> (usize, usize) {
         let shape: &[usize] =  self.pixels.shape();
         (shape[0], shape[1])
     }
-    
-    
+
+
     pub fn get_internal_shape(&self) -> (usize, usize, usize) {
         let shape: &[usize] =  self.pixels.shape();
         (shape[0], shape[1], shape[2])
     }
-    
+
     /// Calculates the number of bytes needed to store the XYZP data.
     ///
     /// Each voxel (pixel) requires 16 bytes of storage:
@@ -432,9 +432,9 @@ impl ImageFrame {
         });
         Ok(())
     }
-    
+
     // TODO Color Space Transformations
-    
+
     // endregion
 
     // region: mutate structure (non-in-place)
@@ -471,8 +471,8 @@ impl ImageFrame {
         if !corners_crop.does_fit_in_frame_of_width_height(self.get_cartesian_width_height()) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()));
         }
-        let sliced_array_view: ArrayView3<f32> = 
-            self.pixels.slice(s![corners_crop.upper_right_row_major().0 .. corners_crop.lower_left_row_major().0, 
+        let sliced_array_view: ArrayView3<f32> =
+            self.pixels.slice(s![corners_crop.upper_right_row_major().0 .. corners_crop.lower_left_row_major().0,
                 corners_crop.lower_left_row_major().1 .. corners_crop.upper_right_row_major().1 ,
                 0..self.get_color_channel_count()]);
         self.pixels = sliced_array_view.into_owned();
@@ -525,9 +525,9 @@ impl ImageFrame {
         self.pixels = sized_array;
         Ok(self)
     }
-    
+
     // TODO to grayscale
-    
+
     // endregion
     
     // region: byte data
@@ -662,12 +662,12 @@ impl ImageFrame {
     ///
     /// ```
     pub fn create_from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
-        
+
         let source_resolution = source_frame.get_internal_resolution(); // Y X
         if !corners_crop.does_fit_in_frame_of_width_height(source_resolution) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
         }
-        
+
         let pixels_source = source_frame.get_pixels_view();
         let crop_resolution_f: (f32, f32) = (new_width_height.1 as f32, new_width_height.0 as f32); // Y X
         let new_resolution_f: (f32, f32) = (new_width_height.1 as f32, new_width_height.0 as f32); // Y X
@@ -686,14 +686,14 @@ impl ImageFrame {
             color_space: source_frame.color_space,
         })
     }
-    
-    
+
+
     
     // endregion
 
 
     // region: internal functions
-    
+
     fn change_memory_order_to_row_major(input: Array3<f32>, source_memory_order: MemoryOrderLayout) -> Array3<f32> {
         match source_memory_order {
             MemoryOrderLayout::HeightsWidthsChannels => input, // Nothing needed, we store in this format anyway
@@ -704,7 +704,7 @@ impl ImageFrame {
             MemoryOrderLayout::WidthsChannelsHeights => input.permuted_axes([1, 2, 0]),
         }
     }
-    
+
     fn change_memory_order_from_row_major(input: Array3<f32>, target_memory_order: MemoryOrderLayout) -> Array3<f32> {
         match target_memory_order {
             MemoryOrderLayout::HeightsWidthsChannels => input, // Nothing needed, we store in this format anyway
@@ -715,7 +715,7 @@ impl ImageFrame {
             MemoryOrderLayout::WidthsChannelsHeights => input.permuted_axes([2, 0, 1]),
         }
     }
-    
+
     // endregion
     
     
