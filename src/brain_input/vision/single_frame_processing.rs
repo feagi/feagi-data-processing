@@ -117,77 +117,80 @@ impl FrameProcessingParameters {
 
 
 
-/// Holds pixel coordinates for cropping. Inclusive on the bottom left, exclusive on the top right
+/// Holds pixel coordinates for cropping. Inclusive on the bottom left, exclusive on the top right. Holds in Row Major order
+/// Corners are labeled as if the row major pixels are arranged such that 0,0 is in the top left
+/// corner, and Y increases downward and x increases rightward
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct CornerPoints {
-    /// The bottom-left corner coordinate as (x, y)
+    /// The bottom-left corner coordinate as (y, x), where the top left is towards (0,0)
     lower_left: (usize, usize),
-    /// The top-right corner coordinate as (x, y)
+    /// The top-right corner coordinate as (y, x), where the top left is towards (0,0)
     upper_right: (usize, usize),
 }
 
 impl CornerPoints {
-    /// Creates a new CornerPoints instance
-    ///
-    /// # Arguments
-    ///
-    /// * `lower_left` - Coordinate pair (x, y) for the bottom-left corner (inclusive)
-    /// * `upper_right` - Coordinate pair (x, y) for the top-right corner (exclusive)
-    ///
-    /// # Returns
-    ///
-    /// * `Result<CornerPoints, &'static str>` - A Result containing either the constructed CornerPoints
-    ///   or an error message if the input coordinates are invalid
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the relative positions of the points are invalid
-    pub fn new(lower_left: (usize, usize), upper_right: (usize, usize)) -> Result<CornerPoints,  DataProcessingError> {
-        if lower_left.1 >= upper_right.1 || lower_left.0 >= upper_right.0
-        {
-            return Err(DataProcessingError::InvalidInputBounds("Lower left point must be below and to the left of the upper right point!".into()));
-        }
 
+    pub fn new_from_row_major_where_origin_top_left(lower_left: (usize, usize), upper_right: (usize, usize)) -> Result<CornerPoints,  DataProcessingError> {
+        if lower_left.1 <= upper_right.1 || lower_left.0 >= upper_right.0 {
+            return Err(DataProcessingError::InvalidInputBounds("The lower left point must have a greater Y index and a smaller X index than the upper right point!".into()));
+        };
         Ok(CornerPoints {
             lower_left,
             upper_right
         })
     }
 
-    /// Gets the coordinates of the lower-left corner (Lower Inclusive, Left Inclusive)
+    pub fn new_from_cartesian_where_origin_bottom_left(
+        left_lower_cartesian: (usize, usize), right_upper_cartesian: (usize, usize),
+        total_resolution_width_height: (usize, usize))
+        -> Result<CornerPoints,  DataProcessingError> {
+        if left_lower_cartesian.0 > total_resolution_width_height.0 || right_upper_cartesian.0 > total_resolution_width_height.0 ||
+            left_lower_cartesian.1 > total_resolution_width_height.1 || right_upper_cartesian.1 > total_resolution_width_height.1 {
+            return Err(DataProcessingError::InvalidInputBounds("Corner bounds must be within the total resolution!".into()));
+        }
+        
+        Ok(CornerPoints {
+            lower_left: (total_resolution_width_height.1 - left_lower_cartesian.1, left_lower_cartesian.0),
+            upper_right: (total_resolution_width_height.1 - right_upper_cartesian.1, right_upper_cartesian.0)
+        })
+    }
+    
+    
+
+    /// Gets the row major coordinates of the lower-left corner (Lower Exclusive, Left Inclusive)
     ///
     /// # Returns
     ///
-    /// * `(usize, usize)` - Coordinate pair (x, y) for the lower-left corner
-    pub fn lower_left(&self) -> (usize, usize) {
+    /// * `(usize, usize)` - Coordinate pair (y, x) for the lower-left corner
+    pub fn lower_left_row_major(&self) -> (usize, usize) {
         self.lower_left
     }
 
-    /// Gets the coordinates of the upper-right corner (Upper Exclusive, Right Exclusive)
+    /// Gets the row major coordinates of the upper-right corner (Upper Inclusive, Right Exclusive)
     ///
     /// # Returns
     ///
-    /// * `(usize, usize)` - Coordinate pair (x, y) for the upper-right corner
-    pub fn upper_right(&self) -> (usize, usize) {
+    /// * `(usize, usize)` - Coordinate pair (y, x) for the upper-right corner
+    pub fn upper_right_row_major(&self) -> (usize, usize) {
         self.upper_right
     }
 
-    /// Gets the coordinates of the lower-right corner (Lower Inclusive, Right Exclusive)
+    /// Gets the row major coordinates of the lower-right corner (Lower Exclusive, Right Exclusive)
     ///
     /// # Returns
     ///
-    /// * `(usize, usize)` - Coordinate pair (x, y) for the lower-right corner
-    pub fn lower_right(&self) -> (usize, usize) {
-        (self.upper_right.0, self.lower_left.1)
+    /// * `(usize, usize)` - Coordinate pair (y, x) for the lower-right corner
+    pub fn lower_right_row_major(&self) -> (usize, usize) {
+        (self.lower_left.0, self.upper_right.1)
     }
 
-    /// Gets the coordinates of the upper-left corner (Upper Exclusive, Left Inclusive)
+    /// Gets the row major coordinates of the upper-left corner (Upper Inclusive, Left Inclusive)
     ///
     /// # Returns
     ///
-    /// * `(usize, usize)` - Coordinate pair (x, y) for the upper-left corner
-    pub fn upper_left(&self) -> (usize, usize) {
-        (self.lower_left.0, self.upper_right.0)
+    /// * `(usize, usize)` - Coordinate pair (y, x) for the upper-left corner
+    pub fn upper_left_row_major(&self) -> (usize, usize) {
+        (self.upper_right.0, self.lower_left.1)
     }
 
 
@@ -200,8 +203,8 @@ impl CornerPoints {
     /// # Returns
     ///
     /// * `bool` - True if the region fits within the given resolution, false otherwise
-    pub fn does_fit_in_frame_of_resolution(&self, source_total_resolution: (usize, usize)) -> bool {
-        self.upper_right.0 <= source_total_resolution.0 || self.upper_right.1 <= source_total_resolution.1
+    pub fn does_fit_in_frame_of_resolution(&self, width_height: (usize, usize)) -> bool {
+        self.upper_right.1 <= width_height.0 || self.lower_left.0 <= width_height.1
     }
 
     /// Calculates the dimensions of the area enclosed by the corner points
@@ -209,8 +212,8 @@ impl CornerPoints {
     /// # Returns
     ///
     /// * `(usize, usize)` - The dimensions as (width, height) of the enclosed area
-    pub fn enclosed_area(&self) -> (usize, usize) {
-        (self.upper_right.0 - self.lower_left.0, self.upper_right.1 - self.lower_left.1)
+    pub fn enclosed_area_width_height(&self) -> (usize, usize) {
+        (self.upper_right.1 - self.lower_left.1, self.lower_left.0 - self.upper_right.0)
     }
 
 }
