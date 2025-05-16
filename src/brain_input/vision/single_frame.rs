@@ -618,14 +618,14 @@ impl ImageFrame {
         let mut c_offset: usize = y_offset * 2;
         let mut p_offset: usize = y_offset * 3;
 
-        for ((x,y,c), color_val) in self.pixels.indexed_iter() {
+        for ((y,x,c), color_val) in self.pixels.indexed_iter() {
             let x_bytes: [u8; 4] = (x as u32).to_le_bytes();
             let y_bytes: [u8; 4] = (y as u32).to_le_bytes();
             let c_bytes: [u8; 4] = (c as u32).to_le_bytes();
             let p_bytes: [u8; 4] = color_val.to_le_bytes();
 
-            bytes_writing_to[x_offset .. x_offset + 4].copy_from_slice(&y_bytes); // TODO make this more clear
-            bytes_writing_to[y_offset .. y_offset + 4].copy_from_slice(&x_bytes);
+            bytes_writing_to[x_offset .. x_offset + 4].copy_from_slice(&x_bytes);
+            bytes_writing_to[y_offset .. y_offset + 4].copy_from_slice(&y_bytes);
             bytes_writing_to[c_offset .. c_offset + 4].copy_from_slice(&c_bytes);
             bytes_writing_to[p_offset .. p_offset + 4].copy_from_slice(&p_bytes);
             x_offset += 4;
