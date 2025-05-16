@@ -17,10 +17,11 @@ use super::single_frame_processing::*;
 ///
 /// // Create a new RGB image frame
 /// let resolution = (640, 480);
+/// let row_major_resolution = (480, 640);
 /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &resolution);
 ///
 /// // Get the image resolution
-/// assert_eq!(frame.get_xy_resolution(), resolution);
+/// assert_eq!(frame.get_cartesian_width_height(), row_major_resolution);
 /// ```
 #[derive(Clone)]
 pub struct ImageFrame {
@@ -53,8 +54,10 @@ impl ImageFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
+    ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
-    /// assert_eq!(frame.get_xy_resolution(), (640, 480));
+    /// let row_major_resolution = (480, 640);
+    /// assert_eq!(frame.get_cartesian_width_height(), row_major_resolution);
     /// assert_eq!(frame.get_color_channel_count(), 3);
     /// ```
     pub fn new(channel_format: &ChannelFormat, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> ImageFrame {
@@ -208,7 +211,7 @@ impl ImageFrame {
     /// assert!(ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&frame1, &frame2));
     /// ```
     pub fn do_resolutions_channel_depth_and_color_spaces_match(a: &ImageFrame, b: &ImageFrame) -> bool {
-        a.get_color_channel_count() == b.get_color_channel_count() && a.get_xy_resolution() == b.get_xy_resolution() && a.color_space == b.color_space
+        a.get_internal_shape() == b.get_internal_shape() && a.color_space == b.color_space
     }
     
     pub fn is_array_valid_for_image_frame(array: &Array3<f32>) -> bool {
@@ -305,7 +308,7 @@ impl ImageFrame {
         self.pixels.view()
     }
 
-    /// Returns the resolution of the image in cartesian space
+    /// Returns the resolution of the image in cartesian space (width, height)
     ///
     /// # Returns
     ///
@@ -318,13 +321,24 @@ impl ImageFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
-    /// assert_eq!(frame.get_xy_resolution(), (640, 480));
+    /// assert_eq!(frame.get_cartesian_width_height(), (640, 480));
     /// ```
-    pub fn get_xy_resolution(&self) -> (usize, usize) {
+    pub fn get_cartesian_width_height(&self) -> (usize, usize) {
         let shape: &[usize] =  self.pixels.shape();
         (shape[1], shape[0]) // because nd array is row major, where coords are yx
     }
-
+    
+    pub fn get_internal_resolution(&self) -> (usize, usize) {
+        let shape: &[usize] =  self.pixels.shape();
+        (shape[0], shape[1])
+    }
+    
+    
+    pub fn get_internal_shape(&self) -> (usize, usize, usize) {
+        let shape: &[usize] =  self.pixels.shape();
+        (shape[0], shape[1], shape[2])
+    }
+    
     /// Calculates the number of bytes needed to store the XYZP data.
     ///
     /// Each voxel (pixel) requires 16 bytes of storage:
@@ -466,16 +480,20 @@ impl ImageFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
-    /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let corners = CornerPoints::new((10, 10), (50, 50)).unwrap();
+    /// let image_original_resolution = (100, 100);
+    /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &image_original_resolution);
+    /// let corners = CornerPoints::new_from_cartesian_where_origin_bottom_left((10, 10), (50, 50), image_original_resolution).unwrap();
     /// frame.crop_to(&corners).unwrap();
-    /// assert_eq!(frame.get_xy_resolution(), (40, 40));
+    /// assert_eq!(frame.get_cartesian_width_height(), (40, 40));
     /// ```
     pub fn crop_to(&mut self, corners_crop: &CornerPoints) -> Result<&mut Self, DataProcessingError> {
-        if !corners_crop.does_fit_in_frame_of_resolution(self.get_xy_resolution()) {
+        if !corners_crop.does_fit_in_frame_of_resolution(self.get_cartesian_width_height()) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()));
         }
-        let sliced_array_view: ArrayView3<f32> = self.pixels.slice(s![corners_crop.lower_left().0 .. corners_crop.upper_right().0, corners_crop.lower_left().1 .. corners_crop.upper_right().1 , 0..self.get_color_channel_count()]);
+        let sliced_array_view: ArrayView3<f32> = 
+            self.pixels.slice(s![corners_crop.upper_right_row_major().0 .. corners_crop.lower_left_row_major().0, 
+                corners_crop.lower_left_row_major().1 .. corners_crop.upper_right_row_major().1 ,
+                0..self.get_color_channel_count()]);
         self.pixels = sliced_array_view.into_owned();
         Ok(self)
     }
@@ -489,7 +507,7 @@ impl ImageFrame {
     ///
     /// # Arguments
     ///
-    /// * `target_resolution` - The desired resolution as a tuple of (width, height)
+    /// * `target_width_height` - The desired resolution as a tuple of (width, height)
     ///
     /// # Returns
     ///
@@ -505,21 +523,21 @@ impl ImageFrame {
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// frame.resize_nearest_neighbor(&(50, 50)).unwrap();
-    /// assert_eq!(frame.get_xy_resolution(), (50, 50));
+    /// assert_eq!(frame.get_cartesian_width_height(), (50, 50));
     /// ```
-    pub fn resize_nearest_neighbor(&mut self, target_resolution: &(usize, usize)) -> Result<&mut Self, DataProcessingError> {
-        if target_resolution.0 <= 0 || target_resolution.1 <= 0 {
-            return Err(DataProcessingError::InvalidInputBounds("The resolution factor cannot be zero or negative!".into()))
+    pub fn resize_nearest_neighbor(&mut self, target_width_height: &(usize, usize)) -> Result<&mut Self, DataProcessingError> {
+        if target_width_height.0 <= 0 || target_width_height.1 <= 0 {
+            return Err(DataProcessingError::InvalidInputBounds("The target resize width or height cannot be zero or negative!".into()))
         }
-        let source_resolution: (usize, usize) = self.get_xy_resolution();
-        let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32);
+        let source_resolution: (usize, usize) = self.get_internal_resolution();
+        let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32); // Y X order
         let number_color_channels: usize = self.get_color_channel_count();
 
-        let mut sized_array: Array3<f32> = Array3::zeros((target_resolution.0, target_resolution.1, number_color_channels));
-        let target_resolution_f: (f32, f32) = (target_resolution.0 as f32, target_resolution.1 as f32);
-        for ((x,y,c), color_val) in sized_array.indexed_iter_mut() {
-            let nearest_neighbor_coordinate_x: usize = (((x as f32) / target_resolution_f.0) * source_resolution_f.0).floor() as usize;
-            let nearest_neighbor_coordinate_y: usize = (((y as f32) / target_resolution_f.1) * source_resolution_f.1).floor() as usize;
+        let mut sized_array: Array3<f32> = Array3::zeros((target_width_height.1, target_width_height.0, number_color_channels));
+        let target_width_height_f: (f32, f32) = (target_width_height.0 as f32, target_width_height.1 as f32);
+        for ((y,x,c), color_val) in sized_array.indexed_iter_mut() {
+            let nearest_neighbor_coordinate_y: usize = (((y as f32) / source_resolution_f.0) * target_width_height_f.1).floor() as usize;
+            let nearest_neighbor_coordinate_x: usize = (((x as f32) / source_resolution_f.1) * target_width_height_f.0).floor() as usize;
             let nearest_neighbor_channel_value: f32 = self.pixels[(nearest_neighbor_coordinate_x, nearest_neighbor_coordinate_y, c)];
             *color_val = nearest_neighbor_channel_value;
         };
@@ -653,7 +671,7 @@ impl ImageFrame {
     ///
     /// * `source_frame` - The source ImageFrame to crop from
     /// * `corners_crop` - The CornerPoints defining the region to crop
-    /// * `new_resolution` - The target resolution as a tuple of (width, height)
+    /// * `new_width_height` - The target cartesian resolution as a tuple of (width, height)
     ///
     /// # Returns
     ///
@@ -662,23 +680,23 @@ impl ImageFrame {
     /// - Err(&'static str) if the crop region would not fit in the source frame
     ///
     /// ```
-    pub fn create_from_source_array_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_resolution: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
+    pub fn create_from_source_array_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
         
-        let source_resolution = source_frame.get_xy_resolution();
+        let source_resolution = source_frame.get_internal_resolution(); // Y X
         if !corners_crop.does_fit_in_frame_of_resolution(source_resolution) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
         }
-
-        //let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32);
+        
         let pixels_source = source_frame.get_pixels_view();
-        let crop_resolution_f: (f32, f32) = (new_resolution.0 as f32, new_resolution.1 as f32);
-        let new_resolution_f: (f32, f32) = (new_resolution.0 as f32, new_resolution.1 as f32);
-        let mut writing_array: Array3<f32> = Array3::<f32>::zeros((new_resolution.0, new_resolution.1, source_frame.get_color_channel_count()));
+        let crop_resolution_f: (f32, f32) = (new_width_height.1 as f32, new_width_height.0 as f32); // Y X
+        let new_resolution_f: (f32, f32) = (new_width_height.1 as f32, new_width_height.0 as f32); // Y X
+        let lower_left_offset = corners_crop.lower_left_row_major(); // Y X
+        let mut writing_array: Array3<f32> = Array3::<f32>::zeros((new_width_height.0, new_width_height.1, source_frame.get_color_channel_count()));
 
-        for ((x,y,c), color_val) in writing_array.indexed_iter_mut() {
-            let nearest_neighbor_coordinate_x: usize = (((x as f32) / new_resolution_f.0) * crop_resolution_f.0).floor() as usize;
-            let nearest_neighbor_coordinate_y: usize = (((y as f32) / new_resolution_f.1) * crop_resolution_f.1).floor() as usize;
-            let nearest_neighbor_channel_value: f32 = pixels_source[(nearest_neighbor_coordinate_x + corners_crop.lower_left().0, nearest_neighbor_coordinate_y + corners_crop.lower_left().1, c)];
+        for ((y,x,c), color_val) in writing_array.indexed_iter_mut() {
+            let nearest_neighbor_coordinate_y: usize = lower_left_offset.0 - (((y as f32) / crop_resolution_f.0) * new_resolution_f.0).floor() as usize;
+            let nearest_neighbor_coordinate_x: usize = lower_left_offset.1 + (((x as f32) / crop_resolution_f.1) * new_resolution_f.1).floor() as usize;
+            let nearest_neighbor_channel_value: f32 = pixels_source[(nearest_neighbor_coordinate_y, nearest_neighbor_coordinate_x, c)];
             *color_val = nearest_neighbor_channel_value;
         };
         Ok(ImageFrame {
