@@ -52,30 +52,26 @@ impl SegmentedVisionFrame {
     /// Returns an error if:
     /// * Calculation of center corner points fails
     /// * Creation of segment corner points fails
-    pub fn new(source_array: &Array3<f32>, color_space: ColorSpace, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
-        if !ImageFrame::is_array_valid_for_image_frame(source_array) {
-            return Err(DataProcessingError::IncompatibleInputArray("The given array does not have a valid number of channels!!".into()))
-        }
-        let source_frame_resolution: (usize, usize) = (source_array.shape()[0], source_array.shape()[1]);
-        let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_resolution)?;
-        let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame_resolution, inner_corners)?;
+    pub fn new(source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
+        let source_frame_width_height: (usize, usize) = source_frame.get_internal_resolution();
+        let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
+        let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame_width_height, inner_corners)?;
         
-        /*
         // For all the following, we know the crops are safe
         Ok(SegmentedVisionFrame{
-            lower_left: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.lower_left, &segment_resolutions.lower_left)?,
-            middle_left: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.middle_left, &segment_resolutions.middle_left)?,
-            upper_left: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.upper_left, &segment_resolutions.upper_left)?,
-            upper_middle: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.upper_middle, &segment_resolutions.upper_middle)?,
-            upper_right: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.upper_right, &segment_resolutions.upper_right)?,
-            middle_right: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.middle_right, &segment_resolutions.middle_right)?,
-            lower_right: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.lower_right, &segment_resolutions.lower_right)?,
-            lower_middle: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.lower_middle, &segment_resolutions.lower_middle)?,
-            center: ImageFrame::create_from_source_array_crop_and_resize(source_array, color_space, &segment_corner_points.center, &segment_resolutions.center)?,
-            original_source_resolution: source_frame_resolution,
+            lower_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_left, &segment_resolutions.lower_left)?,
+            middle_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.middle_left, &segment_resolutions.middle_left)?,
+            upper_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_left, &segment_resolutions.upper_left)?,
+            upper_middle: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_middle, &segment_resolutions.upper_middle)?,
+            upper_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_right, &segment_resolutions.upper_right)?,
+            middle_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.middle_right, &segment_resolutions.middle_right)?,
+            lower_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_right, &segment_resolutions.lower_right)?,
+            lower_middle: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_middle, &segment_resolutions.lower_middle)?,
+            center: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.center, &segment_resolutions.center)?,
+            original_source_resolution: source_frame_width_height,
             segment_corner_points
         })
-        */
+        /*
         Ok(SegmentedVisionFrame{
             lower_left: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
             middle_left: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
@@ -89,8 +85,9 @@ impl SegmentedVisionFrame {
             original_source_resolution: source_frame_resolution,
             segment_corner_points: segment_corner_points,
         })
+        */
     }
-    
+
     /*
     /// Updates the segmentation with a new focus point while using the same source frame
     ///
@@ -178,8 +175,8 @@ impl SegmentedVisionFrame {
 
     /// Exports the segmented vision frame as a byte array containing neuron potential data. See FEAGI byte Structure 11 for more details.
     ///
-    /// This function converts the segmented vision frame into a binary forma. The output includes 
-    /// headers and data for all nine segments (center and peripheral regions), with each segment's 
+    /// This function converts the segmented vision frame into a binary forma. The output includes
+    /// headers and data for all nine segments (center and peripheral regions), with each segment's
     /// data containing XYZ coordinates and potential values.
     ///
     /// # Arguments
@@ -269,7 +266,7 @@ impl SegmentedVisionFrame {
         };
         Ok(output)
     }
-    
+
     pub fn get_center_image_frame(&self) -> &ImageFrame {
         &self.center
     }
@@ -292,10 +289,10 @@ impl SegmentedVisionFrame {
 /// in a normalized coordinate space (0.0 to 1.0).
 #[derive(PartialEq, Clone, Copy)]
 pub struct SegmentedVisionCenterProperties {
-    /// Center point coordinates in normalized space (0.0-1.0)
-    center_coordinates_normalized: (f32, f32), // Scaled from 0 to 1
+    /// Center point coordinates in normalized space (0.0-1.0), from the top left
+    center_coordinates_normalized_yx: (f32, f32), // Scaled from 0 to 1
     /// Size of the center region in normalized space (0.0-1.0)
-    center_size_normalized: (f32, f32), // ditto
+    center_size_normalized_yx: (f32, f32), // ditto
 }
 
 impl SegmentedVisionCenterProperties {
@@ -313,28 +310,34 @@ impl SegmentedVisionCenterProperties {
     /// # Errors
     ///
     /// Returns an error if any coordinate or size value is outside the range [0.0, 1.0]
-    pub fn new(center_coordinates_normalized: (f32, f32), center_size_normalized: (f32, f32)) -> Result<SegmentedVisionCenterProperties, DataProcessingError> {
-        if center_coordinates_normalized.0 < 0.0 || center_coordinates_normalized.1 < 0.0 || center_coordinates_normalized.0 > 1.0 || center_coordinates_normalized.1 > 1.0 {
+    pub fn new_row_major_where_origin_top_left(center_coordinates_normalized_yx_rm_tl: (f32, f32), center_size_yx_normalized: (f32, f32)) -> Result<SegmentedVisionCenterProperties, DataProcessingError> {
+        if center_coordinates_normalized_yx_rm_tl.0 < 0.0 || center_coordinates_normalized_yx_rm_tl.1 < 0.0 || center_coordinates_normalized_yx_rm_tl.0 > 1.0 || center_coordinates_normalized_yx_rm_tl.1 > 1.0 {
             return Err(DataProcessingError::InvalidInputBounds("Coordinates are to be normalized and must be between 0 and 1!".into()))
         }
-        if center_size_normalized.0 < 0.0 || center_size_normalized.1 < 0.0 || center_size_normalized.0 > 1.0 || center_size_normalized.1 > 1.0 {
+        if center_size_yx_normalized.0 < 0.0 || center_size_yx_normalized.1 < 0.0 || center_size_yx_normalized.0 > 1.0 || center_size_yx_normalized.1 > 1.0 {
             return Err(DataProcessingError::InvalidInputBounds("Central vision size is to be normalized and must be between 0 and 1!".into()))
         }
         Ok(SegmentedVisionCenterProperties {
-            center_coordinates_normalized,
-            center_size_normalized,
+            center_coordinates_normalized_yx: center_coordinates_normalized_yx_rm_tl,
+            center_size_normalized_yx: center_size_yx_normalized,
         })
     }
-    
-    pub fn create_default_centered() -> SegmentedVisionCenterProperties {
-        SegmentedVisionCenterProperties::new((0.5, 0.5), (0.5, 0.5)).unwrap()
+
+    pub fn cartesian_where_origin_bottom_left(center_coordinates_normalized_cartesian_yx: (f32, f32), center_size_normalized_yx: (f32, f32)) -> Result<SegmentedVisionCenterProperties, DataProcessingError> {
+        SegmentedVisionCenterProperties::new_row_major_where_origin_top_left(
+            (1.0 - center_coordinates_normalized_cartesian_yx.0, center_coordinates_normalized_cartesian_yx.1),
+            center_size_normalized_yx)
     }
-    
+
+    pub fn create_default_centered() -> SegmentedVisionCenterProperties {
+        SegmentedVisionCenterProperties::new_row_major_where_origin_top_left((0.5, 0.5), (0.5, 0.5)).unwrap()
+    }
+
     /// Returns an instance of CornerPoints that defines the region of the center region by pixel index
     ///
     /// # Arguments
     ///
-    /// * `source_frame_resolution` - The total resolution (width, height) of the source frame in pixels
+    /// * `source_frame_width_height` - The total resolution (width, height) of the source frame in pixels
     ///
     /// # Returns
     ///
@@ -342,20 +345,28 @@ impl SegmentedVisionCenterProperties {
     ///
     /// # Errors
     ///
-    /// Returns an error if the source resolution is less than 3x3 pixels
-    pub fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_resolution: (usize, usize)) -> Result<CornerPoints, DataProcessingError> {
-        if source_frame_resolution.0 < 3 || source_frame_resolution.1 < 3 {
+    /// Returns an error if the source width or height is less than 3 pixels
+    pub fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_width_height: (usize, usize)) -> Result<CornerPoints, DataProcessingError> {
+        if source_frame_width_height.0 < 3 || source_frame_width_height.1 < 3 {
             return Err(DataProcessingError::InvalidInputBounds("Source resolution must be 3 pixels or greater in the X and Y directions!".into()));
         }
-        let source_frame_resolution_f: (f32, f32) = (source_frame_resolution.0 as f32, source_frame_resolution.1 as f32);
-        let center_size_normalized_half: (f32, f32) = (self.center_size_normalized.0 / 2.0, self.center_size_normalized.1 / 2.0);
+        let source_frame_width_height_f: (f32, f32) = (source_frame_width_height.0 as f32, source_frame_width_height.1 as f32);
+        let center_size_normalized_half_yx: (f32, f32) = (self.center_size_normalized_yx.0 / 2.0, self.center_size_normalized_yx.1 / 2.0);
 
         // We use max / min to ensure that there is always a 1 pixel buffer along all edges for use in peripheral vision (since we cannot use a resolution of 0)
-        let bottom_pixel: usize = cmp::max(1, ((self.center_coordinates_normalized.1 - center_size_normalized_half.1) * source_frame_resolution_f.1).floor() as usize);
-        let top_pixel: usize = cmp::min(source_frame_resolution.1 - 1, (( self.center_coordinates_normalized.1 + center_size_normalized_half.1) * source_frame_resolution_f.1).ceil() as usize);
-        let left_pixel: usize = cmp::max(1, ((self.center_coordinates_normalized.0 - center_size_normalized_half.0) * source_frame_resolution_f.0).floor() as usize);
-        let right_pixel: usize = cmp::min(source_frame_resolution.0 - 1, (( self.center_coordinates_normalized.0 + center_size_normalized_half.0) * source_frame_resolution_f.0).ceil() as usize);
-        let corner_points: CornerPoints = CornerPoints::new((left_pixel, bottom_pixel), (right_pixel, top_pixel))?; // We know that this input will not fail due to earlier checks
+        let bottom_pixel: usize = cmp::min(source_frame_width_height.0 - 1,
+                                           ((self.center_coordinates_normalized_yx.0 + center_size_normalized_half_yx.0) * source_frame_width_height_f.1).ceil() as usize);
+        let top_pixel: usize = cmp::max(1,
+                                        (( self.center_coordinates_normalized_yx.0 - center_size_normalized_half_yx.0) * source_frame_width_height_f.1).floor() as usize);
+        let left_pixel: usize = cmp::max(1,
+                                         ((self.center_coordinates_normalized_yx.1 - center_size_normalized_half_yx.1) * source_frame_width_height_f.0).floor() as usize);
+        let right_pixel: usize = cmp::min(source_frame_width_height.0 - 1,
+                                          (( self.center_coordinates_normalized_yx.1 + center_size_normalized_half_yx.1) * source_frame_width_height_f.0).ceil() as usize);
+
+        let corner_points: CornerPoints = CornerPoints::new_from_row_major_where_origin_top_left(
+            (bottom_pixel, left_pixel),
+            (top_pixel, right_pixel)
+        )?;
         Ok(corner_points)
     }
 
@@ -430,14 +441,14 @@ impl SegmentedVisionTargetResolutions {
             center,
         })
     }
-    
-    pub fn create_with_same_sized_peripheral(center_size: (usize, usize), peripheral_size: (usize, usize)) -> Result<SegmentedVisionTargetResolutions, DataProcessingError> {
-        return SegmentedVisionTargetResolutions::new(peripheral_size, peripheral_size, 
-                                                     peripheral_size, peripheral_size, 
-                                                     peripheral_size, peripheral_size, 
-                                                     peripheral_size, peripheral_size, center_size);
+
+    pub fn create_with_same_sized_peripheral(center_width_height: (usize, usize), peripheral_width_height: (usize, usize)) -> Result<SegmentedVisionTargetResolutions, DataProcessingError> {
+        return SegmentedVisionTargetResolutions::new(peripheral_width_height, peripheral_width_height,
+                                                     peripheral_width_height, peripheral_width_height,
+                                                     peripheral_width_height, peripheral_width_height,
+                                                     peripheral_width_height, peripheral_width_height, center_width_height);
     }
-    
+
 }
 
 /// Stores the corner points for each segment of a segmented vision frame
@@ -485,19 +496,19 @@ impl SegmentedCornerPoints {
     /// # Errors
     ///
     /// Returns an error if the center corner points don't fit within the source resolution
-    pub fn from_source_and_center_corner_points(source_full_resolution: (usize, usize), center_corner_points: CornerPoints) -> Result<SegmentedCornerPoints, DataProcessingError> {
-        if !center_corner_points.does_fit_in_frame_of_resolution(source_full_resolution){
+    pub fn from_source_and_center_corner_points(source_width_height: (usize, usize), center_corner_points: CornerPoints) -> Result<SegmentedCornerPoints, DataProcessingError> {
+        if !center_corner_points.does_fit_in_frame_of_width_height(source_width_height){
             return Err(DataProcessingError::InvalidInputBounds("The corner points cannot exceed the range of the full resolution!".into()));
         }
         Ok(SegmentedCornerPoints{
-            lower_left: CornerPoints::new((0,0), center_corner_points.lower_left())?,
-            middle_left: CornerPoints::new((0,center_corner_points.lower_left().1), center_corner_points.upper_left())?,
-            upper_left: CornerPoints::new((0,center_corner_points.upper_left().1), (center_corner_points.upper_left().0, source_full_resolution.1))?,
-            upper_middle: CornerPoints::new(center_corner_points.upper_left(), (center_corner_points.upper_right().0, source_full_resolution.1))?,
-            upper_right: CornerPoints::new(center_corner_points.upper_right(), source_full_resolution)?,
-            middle_right: CornerPoints::new(center_corner_points.lower_right(), (source_full_resolution.0, center_corner_points.upper_right().1))?,
-            lower_right: CornerPoints::new((center_corner_points.lower_right().0, 0), (source_full_resolution.0, center_corner_points.lower_right().1))?,
-            lower_middle: CornerPoints::new((center_corner_points.lower_left().0, 0), center_corner_points.lower_right())?,
+            lower_left: CornerPoints::new_from_row_major_where_origin_top_left((source_width_height.1,0), center_corner_points.lower_left_row_major())?,
+            middle_left: CornerPoints::new_from_row_major_where_origin_top_left((center_corner_points.lower_left_row_major().0, 0), center_corner_points.upper_left_row_major())?,
+            upper_left: CornerPoints::new_from_row_major_where_origin_top_left((center_corner_points.upper_right_row_major().0,0), (0, center_corner_points.lower_left_row_major().1))?,
+            upper_middle: CornerPoints::new_from_row_major_where_origin_top_left(center_corner_points.upper_left_row_major(), (0, center_corner_points.upper_right_row_major().1))?,
+            upper_right: CornerPoints::new_from_row_major_where_origin_top_left(center_corner_points.upper_right_row_major(), (0, source_width_height.0))?,
+            middle_right: CornerPoints::new_from_row_major_where_origin_top_left(center_corner_points.lower_right_row_major(), (center_corner_points.upper_right_row_major().0, source_width_height.0))?,
+            lower_right: CornerPoints::new_from_row_major_where_origin_top_left((source_width_height.1, center_corner_points.upper_right_row_major().1), (center_corner_points.lower_left_row_major().1, source_width_height.0))?,
+            lower_middle: CornerPoints::new_from_row_major_where_origin_top_left((source_width_height.1, center_corner_points.lower_left_row_major().1), center_corner_points.lower_right_row_major())?,
             center: center_corner_points
         })
     }

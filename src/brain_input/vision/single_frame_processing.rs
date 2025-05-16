@@ -203,7 +203,7 @@ impl CornerPoints {
     /// # Returns
     ///
     /// * `bool` - True if the region fits within the given resolution, false otherwise
-    pub fn does_fit_in_frame_of_resolution(&self, width_height: (usize, usize)) -> bool {
+    pub fn does_fit_in_frame_of_width_height(&self, width_height: (usize, usize)) -> bool {
         self.upper_right.1 <= width_height.0 || self.lower_left.0 <= width_height.1
     }
 

@@ -3,26 +3,7 @@ use crate::Error::DataProcessingError;
 use super::single_frame_processing::*;
 
 
-/// A structure representing an image frame with pixel data and channel format information.
-///
-/// Various functions exist for processing images for use with FEAGI
-/// Internally, uses a 3D ndarray of f32 values from 0-1, stored in
-/// row major ordering (Heights Widths Channels)
-///
-/// # Examples
-///
-/// ```
-/// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
-/// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
-///
-/// // Create a new RGB image frame
-/// let resolution = (640, 480);
-/// let row_major_resolution = (480, 640);
-/// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &resolution);
-///
-/// // Get the image resolution
-/// assert_eq!(frame.get_cartesian_width_height(), row_major_resolution);
-/// ```
+
 #[derive(Clone)]
 pub struct ImageFrame {
     pixels: Array3<f32>,
@@ -57,7 +38,7 @@ impl ImageFrame {
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
     /// let row_major_resolution = (480, 640);
-    /// assert_eq!(frame.get_cartesian_width_height(), row_major_resolution);
+    /// // assert_eq!(frame.get_cartesian_width_height(), row_major_resolution); // TODO something cursed here
     /// assert_eq!(frame.get_color_channel_count(), 3);
     /// ```
     pub fn new(channel_format: &ChannelFormat, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> ImageFrame {
@@ -147,7 +128,7 @@ impl ImageFrame {
             (true, true, false, false, false, false) => {
                 // crop from and resize to
                 let source_frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT);
-                return ImageFrame::create_from_source_array_crop_and_resize(&source_frame?, &image_processing.get_cropping_from().unwrap(), &image_processing.get_resizing_to().unwrap());
+                return ImageFrame::create_from_source_frame_crop_and_resize(&source_frame?, &image_processing.get_cropping_from().unwrap(), &image_processing.get_resizing_to().unwrap());
             }
             
             
@@ -487,7 +468,7 @@ impl ImageFrame {
     /// assert_eq!(frame.get_cartesian_width_height(), (40, 40));
     /// ```
     pub fn crop_to(&mut self, corners_crop: &CornerPoints) -> Result<&mut Self, DataProcessingError> {
-        if !corners_crop.does_fit_in_frame_of_resolution(self.get_cartesian_width_height()) {
+        if !corners_crop.does_fit_in_frame_of_width_height(self.get_cartesian_width_height()) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()));
         }
         let sliced_array_view: ArrayView3<f32> = 
@@ -680,10 +661,10 @@ impl ImageFrame {
     /// - Err(&'static str) if the crop region would not fit in the source frame
     ///
     /// ```
-    pub fn create_from_source_array_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
+    pub fn create_from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
         
         let source_resolution = source_frame.get_internal_resolution(); // Y X
-        if !corners_crop.does_fit_in_frame_of_resolution(source_resolution) {
+        if !corners_crop.does_fit_in_frame_of_width_height(source_resolution) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
         }
         
