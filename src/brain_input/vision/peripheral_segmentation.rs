@@ -30,8 +30,8 @@ pub struct SegmentedVisionFrame {
     center: ImageFrame,
     /// Resolution of the original source frame
     original_source_resolution: (usize, usize),
-    /// Corner points defining the boundaries of each segment
-    segment_corner_points: SegmentedCornerPoints,
+    // /// Corner points defining the boundaries of each segment
+    //segment_corner_points: SegmentedCornerPoints,
 }
 
 impl SegmentedVisionFrame {
@@ -54,8 +54,8 @@ impl SegmentedVisionFrame {
     /// * Creation of segment corner points fails
     pub fn new(source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
         let source_frame_width_height: (usize, usize) = source_frame.get_internal_resolution();
-        let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
-        let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame_width_height, inner_corners)?;
+        //let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
+        //let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame_width_height, inner_corners)?;
         
         /*
         // For all the following, we know the crops are safe
@@ -86,7 +86,6 @@ impl SegmentedVisionFrame {
             lower_middle: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
             center: source_frame.clone(),
             original_source_resolution: source_frame_width_height,
-            segment_corner_points: segment_corner_points,
         })
         
     }
