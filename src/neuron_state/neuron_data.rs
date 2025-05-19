@@ -2,6 +2,25 @@ use std::collections::HashMap;
 use ndarray::{Array1};
 use crate::cortical_area_state::cortical_data::CorticalID;
 
+pub type NeuronYXCCoordinate = (u32, u32, u32);
+pub type NeuronYXCP = (NeuronYXCCoordinate, f32);
+
+pub type NeuronYXCPArray<'a> = (&'a [u32], &'a[u32], &'a[u32], &'a[f32]); // All array lengths are equal
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub type CorticalMappedNeuronPotentialCollectionXYZ = HashMap<CorticalID, NeuronPotentialCollectionXYZ>;
 
 /// Represents a single neuron with its 3D coordinates and potential value

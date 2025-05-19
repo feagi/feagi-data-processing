@@ -1,6 +1,7 @@
 use ndarray::{s, Array3, ArrayView3};
 use crate::Error::DataProcessingError;
 use super::single_frame_processing::*;
+use crate::neuron_state::neuron_data::NeuronYXCPArray;
 
 
 
@@ -12,11 +13,10 @@ pub struct ImageFrame {
 }
 
 impl ImageFrame {
-
     const INTERNAL_MEMORY_LAYOUT: MemoryOrderLayout = MemoryOrderLayout::HeightsWidthsChannels;
 
     // region: common constructors
-    
+
     /// Creates a new ImageFrame with the specified channel format, color space, and resolution.
     ///
     /// # Arguments
@@ -46,6 +46,7 @@ impl ImageFrame {
             channel_format: *channel_format,
             color_space: *color_space,
             pixels: Array3::<f32>::zeros((xy_resolution.1, xy_resolution.0, *channel_format as usize)),
+            cache_processing_byte_neuron_data: None,
         }
     }
 
@@ -79,10 +80,11 @@ impl ImageFrame {
         Ok(ImageFrame {
             pixels: ImageFrame::change_memory_order_to_row_major(input, source_memory_order),
             color_space,
-            channel_format: usize_to_channel_format(number_color_channels)?
+            channel_format: usize_to_channel_format(number_color_channels)?,
+            cache_processing_byte_neuron_data: None,
         })
     }
-    
+
     /// Creates an ImageFrame from an existing ndarray with optional processing steps.
     ///
     /// This function allows creating an ImageFrame with a series of optional processing steps
@@ -117,7 +119,7 @@ impl ImageFrame {
         let processed_input = ImageFrame::change_memory_order_to_row_major(input, image_processing.get_memory_ordering_of_source());
 
         let processing_steps_required = image_processing.process_steps_required_to_run();
-        
+
         // there are 6! (720) permutations of these bools. I ain't writing them all out here. Let us stick to the most common ones
         // bool order is {cropping_from, resizing_to, multiply_brightness, contrast, to_grayscale, color_space}
         match processing_steps_required { // I can't believe this isn't Yandresim!
@@ -161,14 +163,12 @@ impl ImageFrame {
                 Ok(frame)
             }
         }
-        
-        
     }
-    
+
     // endregion
-    
+
     // region: get properties
-    
+
     /// Returns true if two ImageFrames have the same channel count, resolution, and color space.
     ///
     /// # Arguments
@@ -221,11 +221,11 @@ impl ImageFrame {
     /// assert!(!ImageFrame::is_array_valid_for_image_frame(&invalid_array));
     /// ```
     pub fn is_array_valid_for_image_frame(array: &Array3<f32>) -> bool {
-        let shape: &[usize] =  array.shape();
-        if shape[2] > 4 || shape[2] == 0{
+        let shape: &[usize] = array.shape();
+        if shape[2] > 4 || shape[2] == 0 {
             return false;
         }
-        if shape[0] == 0 || shape[1] == 0{
+        if shape[0] == 0 || shape[1] == 0 {
             return false;
         }
         true
@@ -268,7 +268,7 @@ impl ImageFrame {
     pub fn get_color_space(&self) -> &ColorSpace {
         &self.color_space
     }
-    
+
     /// Returns the number of color channels in this ImageFrame.
     ///
     /// # Returns
@@ -330,7 +330,7 @@ impl ImageFrame {
     /// assert_eq!(frame.get_cartesian_width_height(), (640, 480));
     /// ```
     pub fn get_cartesian_width_height(&self) -> (usize, usize) {
-        let shape: &[usize] =  self.pixels.shape();
+        let shape: &[usize] = self.pixels.shape();
         (shape[1], shape[0]) // because nd array is row major, where coords are yx
     }
 
@@ -353,7 +353,7 @@ impl ImageFrame {
     /// assert_eq!(frame.get_internal_resolution(), (480, 640));
     /// ```
     pub fn get_internal_resolution(&self) -> (usize, usize) {
-        let shape: &[usize] =  self.pixels.shape();
+        let shape: &[usize] = self.pixels.shape();
         (shape[0], shape[1])
     }
 
@@ -377,7 +377,7 @@ impl ImageFrame {
     /// assert_eq!(frame.get_internal_shape(), (480, 640, 3));
     /// ```
     pub fn get_internal_shape(&self) -> (usize, usize, usize) {
-        let shape: &[usize] =  self.pixels.shape();
+        let shape: &[usize] = self.pixels.shape();
         (shape[0], shape[1], shape[2])
     }
 
@@ -388,7 +388,7 @@ impl ImageFrame {
     /// - 4 bytes for Y coordinate (u32)
     /// - 4 bytes for Z coordinate (u32)
     /// - 4 bytes for potential value (f32)
-    /// 
+    ///
     /// Assuming every pixel potential value is over the threshold (this is rarely the case)
     ///
     /// # Returns
@@ -405,14 +405,14 @@ impl ImageFrame {
     /// let bytes_needed = frame.get_number_of_max_number_bytes_needed_to_hold_xyzp_uncompressed();
     /// assert_eq!(bytes_needed, 100 * 100 * 3 * 16); // width * height * channels * bytes_per_voxel
     /// ```
-    pub fn get_number_of_max_number_bytes_needed_to_hold_xyzp_uncompressed(& self) -> usize {
+    pub fn get_number_of_max_number_bytes_needed_to_hold_xyzp_uncompressed(&self) -> usize {
         const NUMBER_BYTES_PER_VOXEL: usize = 16;
         let dimensions = self.pixels.shape(); // we know its 3 elements
         dimensions[0] * dimensions[1] * dimensions[2] * NUMBER_BYTES_PER_VOXEL
     }
-    
+
     // endregion
-    
+
     // region: mutate structure (in place, no memory reallocations)
 
     /// Adjusts the brightness of the image by multiplying each pixel value by a positive factor.
@@ -488,10 +488,9 @@ impl ImageFrame {
         // Algo sourced from https://ie.nitk.ac.in/blog/2020/01/19/algorithms-for-adjusting-brightness-and-contrast-of-an-image/
         const CORRECTION_FACTOR: f32 = 1.015686; //  259 / 255
         self.pixels.mapv_inplace(|v| {
-            let factor: f32 =  (CORRECTION_FACTOR * (contrast_factor + 1.0)) / (CORRECTION_FACTOR - contrast_factor);
+            let factor: f32 = (CORRECTION_FACTOR * (contrast_factor + 1.0)) / (CORRECTION_FACTOR - contrast_factor);
             let pixel_val: f32 = (factor * (v - 0.5)) + 0.5;
             pixel_val.clamp(0.0, 1.0)
-
         });
         Ok(())
     }
@@ -501,7 +500,7 @@ impl ImageFrame {
     // endregion
 
     // region: mutate structure (non-in-place)
-    
+
     /// Crops the image to the specified region.
     ///
     /// This method modifies the image in-place by cropping it to the specified region
@@ -539,9 +538,13 @@ impl ImageFrame {
                 corners_crop.lower_left_row_major().1 .. corners_crop.upper_right_row_major().1 ,
                 0..self.get_color_channel_count()]);
         self.pixels = sliced_array_view.into_owned();
+        if self.cache_processing_byte_neuron_data.is_some() {
+            // Ensure these are resized
+            self.ensure_initialization_of_cache_for_neuron_byte_conversion();
+        };
         Ok(self)
     }
-    
+
     /// Resizes the image using nearest neighbor. Low quality, but fast.
     ///
     /// This method modifies the image in-place by resizing it to the target resolution
@@ -579,22 +582,52 @@ impl ImageFrame {
 
         let mut sized_array: Array3<f32> = Array3::zeros((target_width_height.1, target_width_height.0, number_color_channels));
         let target_width_height_f: (f32, f32) = (target_width_height.0 as f32, target_width_height.1 as f32);
-        for ((y,x,c), color_val) in sized_array.indexed_iter_mut() {
+        for ((y, x, c), color_val) in sized_array.indexed_iter_mut() {
             let nearest_neighbor_coordinate_y: usize = (((y as f32) / source_resolution_f.0) * target_width_height_f.1).floor() as usize;
             let nearest_neighbor_coordinate_x: usize = (((x as f32) / source_resolution_f.1) * target_width_height_f.0).floor() as usize;
             let nearest_neighbor_channel_value: f32 = self.pixels[(nearest_neighbor_coordinate_x, nearest_neighbor_coordinate_y, c)];
             *color_val = nearest_neighbor_channel_value;
         };
         self.pixels = sized_array;
+
+        if self.cache_processing_byte_neuron_data.is_some() {
+            // Ensure these are resized
+            self.ensure_initialization_of_cache_for_neuron_byte_conversion();
+        };
+        
         Ok(self)
     }
 
     // TODO to grayscale
 
     // endregion
-    
+
     // region: byte data
-    
+
+    pub fn get_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32) -> Result<NeuronYXCPArray, DataProcessingError> {
+        self.ensure_initialization_of_cache_for_neuron_byte_conversion();
+        let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
+        
+        let mut cache_processing_byte_neuron_data = self.cache_processing_byte_neuron_data.as_ref().unwrap();
+        
+        &cache_processing_byte_neuron_data.y.truncate(0);
+        
+        
+        let ( sending_x, sending_z, sending_c) = cache_processing_byte_neuron_data;
+
+        
+        for ((y, x, c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
+            if color_val.abs() > threshold {
+                sending_x.push(x.clone() as u32);
+                sending_y.push(y_flip_distance - y.clone() as u32); // flip y
+                sending_z.push(c.clone() as u32);
+                sending_c.push(*color_val);
+            }
+        };
+        
+    }
+
+
     /// Converts the image data to a byte array in XYZP format with thresholding.
     ///
     /// This method converts the image data into a compressed format where only pixels
@@ -627,9 +660,9 @@ impl ImageFrame {
         let mut sending_y: Vec<u32> = Vec::with_capacity(max_number_bytes_needed);
         let mut sending_z: Vec<u32> = Vec::with_capacity(max_number_bytes_needed);
         let mut sending_color: Vec<f32> = Vec::with_capacity(max_number_bytes_needed);
-        
-        for ((y,x,c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
-            if color_val.abs() > threshold{
+
+        for ((y, x, c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
+            if color_val.abs() > threshold {
                 sending_x.push(x.clone() as u32);
                 sending_y.push(y_flip_distance - y.clone() as u32); // flip y
                 sending_z.push(c.clone() as u32);
@@ -637,16 +670,16 @@ impl ImageFrame {
             }
         }
 
-        let mut output:Vec<u8> = Vec::with_capacity(sending_x.len() * 4 * 4); // 4 arrays, each element is 4 bytes
+        let mut output: Vec<u8> = Vec::with_capacity(sending_x.len() * 4 * 4); // 4 arrays, each element is 4 bytes
         output.extend(sending_x.iter().flat_map(|x| x.to_le_bytes()));
         output.extend(sending_y.iter().flat_map(|y| y.to_le_bytes()));
         output.extend(sending_z.iter().flat_map(|z| z.to_le_bytes()));
         output.extend(sending_color.iter().flat_map(|c| c.to_le_bytes()));
-        
+
         Ok(output)
     }
-    
-    
+
+
     // endregion
 
     // region: specialized constructors
@@ -682,7 +715,6 @@ impl ImageFrame {
     /// let resized = ImageFrame::create_from_source_frame_crop_and_resize(&source, &corners, &(200, 200)).unwrap();
     /// ```
     pub fn create_from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
-
         let source_resolution = source_frame.get_internal_resolution(); // Y X
         if !corners_crop.does_fit_in_frame_of_width_height(source_resolution) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
@@ -694,7 +726,7 @@ impl ImageFrame {
         let lower_left_offset = corners_crop.lower_left_row_major(); // Y X
         let mut writing_array: Array3<f32> = Array3::<f32>::zeros((new_width_height.0, new_width_height.1, source_frame.get_color_channel_count()));
 
-        for ((y,x,c), color_val) in writing_array.indexed_iter_mut() {
+        for ((y, x, c), color_val) in writing_array.indexed_iter_mut() {
             let nearest_neighbor_coordinate_y: usize = lower_left_offset.0 - (((y as f32) / crop_resolution_f.0) * new_resolution_f.0).floor() as usize;
             let nearest_neighbor_coordinate_x: usize = lower_left_offset.1 + (((x as f32) / crop_resolution_f.1) * new_resolution_f.1).floor() as usize;
             let nearest_neighbor_channel_value: f32 = pixels_source[(nearest_neighbor_coordinate_y, nearest_neighbor_coordinate_x, c)];
@@ -704,11 +736,11 @@ impl ImageFrame {
             pixels: writing_array,
             channel_format: source_frame.channel_format,
             color_space: source_frame.color_space,
+            cache_processing_byte_neuron_data: None,
         })
     }
 
 
-    
     // endregion
 
 
@@ -762,19 +794,38 @@ impl ImageFrame {
         }
     }
 
+    fn ensure_initialization_of_cache_for_neuron_byte_conversion(&mut self) {
+        let shape = self.get_internal_shape();
+        let max_length_of_vector_required = shape.0 * shape.1 * shape.2;
+        let processing_byte_data_cache = &self.cache_processing_byte_neuron_data;
+        if processing_byte_data_cache.is_none() {
+            self.cache_processing_byte_neuron_data = Some(XYZPNeuronData {
+                y: Vec::with_capacity(max_length_of_vector_required),
+                x: Vec::with_capacity(max_length_of_vector_required),
+                c: Vec::with_capacity(max_length_of_vector_required),
+                p: Vec::with_capacity(max_length_of_vector_required),
+            });
+        }
+    }
+
     // endregion
-    
-    
+
+}
+
+#[derive(Clone)]
+struct XYZPNeuronData{
+    y: Vec<u32>,
+    x: Vec<u32>,
+    c: Vec<u32>,
+    p: Vec<f32>,
+}
 
 
 
 
 
 
-
-
-
-    /*
+/*
     
     
         /// Creates a new ImageFrame by cropping a region from a source frame.
@@ -980,5 +1031,3 @@ impl ImageFrame {
     
     
      */
-
-}

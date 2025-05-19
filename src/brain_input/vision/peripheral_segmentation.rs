@@ -177,7 +177,7 @@ impl SegmentedVisionFrame {
 
     /// Exports the segmented vision frame as a byte array containing neuron potential data. See FEAGI byte Structure 11 for more details.
     ///
-    /// This function converts the segmented vision frame into a binary forma. The output includes
+    /// This function converts the segmented vision frame into a binary form. The output includes
     /// headers and data for all nine segments (center and peripheral regions), with each segment's
     /// data containing XYZ coordinates and potential values.
     ///
@@ -197,7 +197,7 @@ impl SegmentedVisionFrame {
     /// - Per-cortical headers (14 bytes each): ID, start index, and length for each segment
     /// - Data section: XYZP (X,Y,Z coordinates and potential) values for each segment
     /// ```
-    pub fn direct_export_as_byte_neuron_potential_categorical_xyz(&self, camera_index: u8) -> Result<Vec<u8>, DataProcessingError> {
+    pub fn direct_export_as_byte_neuron_potential_categorical_xyz(&self, camera_index: u8, pixel_abs_threshold: f32) -> Result<Vec<u8>, DataProcessingError> {
 
         const BYTE_STRUCT_ID: u8 = 11;
         const BYTE_STRUCT_VERSION: u8 = 1;
@@ -225,7 +225,23 @@ impl SegmentedVisionFrame {
         for cortical_id_string in cortical_ids.iter_mut(){
             cortical_id_string.replace_range(2..4, &format!("{}{}", replacement_chars.0, replacement_chars.1));
         }
-
+        let cortical_data_per_segment: [Vec<u8>; 9] = [
+            self.center.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
+            self.lower_left.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
+            self.middle_left.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
+            self.upper_left.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
+            self.upper_middle.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
+            self.upper_right.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
+            self.middle_right.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
+            self.lower_right.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
+            self.lower_middle.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
+        ];
+        
+        
+        
+        
+        
+        
         let number_bytes_per_segment: [usize; 9] = ordered_refs.map(|s| s.get_number_of_bytes_needed_to_hold_xyzp_uncompressed());
         
         let byte_array_length: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE +
