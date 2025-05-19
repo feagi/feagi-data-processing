@@ -53,8 +53,9 @@ impl ImageFrame {
     ///
     /// # Arguments
     ///
-    /// * `color_space` - The color space of the image (Linear or Gamma)
     /// * `input` - A 3D array of f32 values representing the image pixels
+    /// * `color_space` - The color space of the image (Linear or Gamma)
+    /// * `source_memory_order` - The memory layout of the input array
     ///
     /// # Returns
     ///
@@ -89,7 +90,7 @@ impl ImageFrame {
     ///
     /// # Arguments
     ///
-    /// * `color_space` - The color space of the image (Linear or Gamma)
+    /// * `source_color_space` - The color space of the input image (Linear or Gamma)
     /// * `image_processing` - Parameters defining the processing steps to apply
     /// * `input` - A 3D array of f32 values representing the image pixels
     ///
@@ -112,55 +113,53 @@ impl ImageFrame {
     /// let frame = ImageFrame::from_array_with_processing(ColorSpace::Gamma, params, array).unwrap();
     /// ```
     pub fn from_array_with_processing(source_color_space: ColorSpace, image_processing: FrameProcessingParameters, input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
-        // Lets set the memory order correct first, this has 0 cost
+        // Let us set the memory order correct first, this has 0 cost
         let processed_input = ImageFrame::change_memory_order_to_row_major(input, image_processing.get_memory_ordering_of_source());
 
         let processing_steps_required = image_processing.process_steps_required_to_run();
         
         // there are 6! (720) permutations of these bools. I ain't writing them all out here. Let us stick to the most common ones
-        // bool order is cropping_from, resizing_to, multiply_brightness, contrast, to_grayscale, color_space
+        // bool order is {cropping_from, resizing_to, multiply_brightness, contrast, to_grayscale, color_space}
         match processing_steps_required { // I can't believe this isn't Yandresim!
             (false, false, false, false, false, false) => {
                 // No processing steps specified
-                return ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT)
+                ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT)
             }
 
             (true, true, false, false, false, false) => {
                 // crop from and resize to
                 let source_frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT);
-                return ImageFrame::create_from_source_frame_crop_and_resize(&source_frame?, &image_processing.get_cropping_from().unwrap(), &image_processing.get_resizing_to().unwrap());
+                ImageFrame::create_from_source_frame_crop_and_resize(&source_frame?, &image_processing.get_cropping_from().unwrap(), &image_processing.get_resizing_to().unwrap())
             }
-
 
             _ => {
                 // We do not have an optimized pathway, just do this sequentially (although this is considerably slower)
                 let mut frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT)?;
-                
-                if image_processing.get_cropping_from().is_some(){
+
+                if image_processing.get_cropping_from().is_some() {
                     let corner_points_cropping = &image_processing.get_cropping_from().unwrap();
                     let _ = frame.crop_to(corner_points_cropping)?;
                 };
-                
-                if image_processing.get_resizing_to().is_some(){
+
+                if image_processing.get_resizing_to().is_some() {
                     let corner_points_resizing = &image_processing.get_resizing_to().unwrap();
                     let _ = frame.resize_nearest_neighbor(corner_points_resizing)?;
                 };
-                
-                if image_processing.get_multiply_brightness_by().is_some(){
+
+                if image_processing.get_multiply_brightness_by().is_some() {
                     let brightness = image_processing.get_multiply_brightness_by().unwrap();
                     let _ = frame.change_brightness_multiplicative(brightness)?;
                 };
-                
-                if image_processing.get_change_contrast_by().is_some(){
+
+                if image_processing.get_change_contrast_by().is_some() {
                     let change_contrast_by = image_processing.get_change_contrast_by().unwrap();
                     let _ = frame.change_contrast(change_contrast_by)?;
                 };
-                
+
                 // TODO grayscale conversions and color space conversions!
-                
-                return Ok(frame);
+
+                Ok(frame)
             }
-            
         }
         
         
@@ -195,6 +194,32 @@ impl ImageFrame {
         a.get_internal_shape() == b.get_internal_shape() && a.color_space == b.color_space
     }
 
+    /// Returns true if the given array has valid dimensions for an ImageFrame.
+    ///
+    /// An array is considered valid if:
+    /// - It has between 1 and 4 color channels
+    /// - It has non-zero width and height
+    ///
+    /// # Arguments
+    ///
+    /// * `array` - The array to validate
+    ///
+    /// # Returns
+    ///
+    /// True if the array dimensions are valid for an ImageFrame, false otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use ndarray::Array3;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    ///
+    /// let valid_array = Array3::<f32>::zeros((100, 100, 3)); // RGB image
+    /// assert!(ImageFrame::is_array_valid_for_image_frame(&valid_array));
+    ///
+    /// let invalid_array = Array3::<f32>::zeros((100, 100, 5)); // Too many channels
+    /// assert!(!ImageFrame::is_array_valid_for_image_frame(&invalid_array));
+    /// ```
     pub fn is_array_valid_for_image_frame(array: &Array3<f32>) -> bool {
         let shape: &[usize] =  array.shape();
         if shape[2] > 4 || shape[2] == 0{
@@ -248,7 +273,7 @@ impl ImageFrame {
     ///
     /// # Returns
     ///
-    /// The number of color channels as a usize:
+    /// The number of color channels as an usize:
     /// - 1 for GrayScale
     /// - 2 for RG
     /// - 3 for RGB
@@ -309,28 +334,66 @@ impl ImageFrame {
         (shape[1], shape[0]) // because nd array is row major, where coords are yx
     }
 
+    /// Returns the internal resolution of the image in row-major order (height, width).
+    ///
+    /// This returns the resolution in the internal storage format, which is row-major
+    /// (height, width) rather than cartesian (width, height).
+    ///
+    /// # Returns
+    ///
+    /// A tuple of (height, width) representing the image dimensions in pixels.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
+    /// assert_eq!(frame.get_internal_resolution(), (480, 640));
+    /// ```
     pub fn get_internal_resolution(&self) -> (usize, usize) {
         let shape: &[usize] =  self.pixels.shape();
         (shape[0], shape[1])
     }
 
 
+    /// Returns the internal shape of the image array in row-major order.
+    ///
+    /// The shape is returned as (height, width, channels) representing the dimensions
+    /// of the internal ndarray storage.
+    ///
+    /// # Returns
+    ///
+    /// A tuple of (height, width, channels) representing the array dimensions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
+    /// assert_eq!(frame.get_internal_shape(), (480, 640, 3));
+    /// ```
     pub fn get_internal_shape(&self) -> (usize, usize, usize) {
         let shape: &[usize] =  self.pixels.shape();
         (shape[0], shape[1], shape[2])
     }
 
-    /// Calculates the number of bytes needed to store the XYZP data.
+    /// Calculates the theoretical maximum number of bytes needed to store the XYZP data.
     ///
     /// Each voxel (pixel) requires 16 bytes of storage:
     /// - 4 bytes for X coordinate (u32)
     /// - 4 bytes for Y coordinate (u32)
     /// - 4 bytes for Z coordinate (u32)
     /// - 4 bytes for potential value (f32)
+    /// 
+    /// Assuming every pixel potential value is over the threshold (this is rarely the case)
     ///
     /// # Returns
     ///
-    /// The total number of bytes needed to store all voxel data.
+    /// The total number of bytes needed to store all voxel data in XYZP format.
     ///
     /// # Examples
     ///
@@ -339,10 +402,10 @@ impl ImageFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let bytes_needed = frame.get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
+    /// let bytes_needed = frame.get_number_of_max_number_bytes_needed_to_hold_xyzp_uncompressed();
     /// assert_eq!(bytes_needed, 100 * 100 * 3 * 16); // width * height * channels * bytes_per_voxel
     /// ```
-    pub fn get_number_of_bytes_needed_to_hold_xyzp_uncompressed(& self) -> usize {
+    pub fn get_number_of_max_number_bytes_needed_to_hold_xyzp_uncompressed(& self) -> usize {
         const NUMBER_BYTES_PER_VOXEL: usize = 16;
         let dimensions = self.pixels.shape(); // we know its 3 elements
         dimensions[0] * dimensions[1] * dimensions[2] * NUMBER_BYTES_PER_VOXEL
@@ -382,7 +445,7 @@ impl ImageFrame {
         }
 
         self.pixels.mapv_inplace(|v| {
-            let scaled = (v as f32) * brightness_factor;
+            let scaled = (v) * brightness_factor;
             scaled.clamp(0.0, 1.0) // Ensure that we do not exceed outside 0.0 and 1.0
         });
         Ok(())
@@ -531,71 +594,22 @@ impl ImageFrame {
     // endregion
     
     // region: byte data
-
-    /// Converts the image frame into a byte array containing XYZP data.
+    
+    /// Converts the image data to a byte array in XYZP format with thresholding.
     ///
-    /// The output array contains interleaved XYZP data for each voxel:
-    /// - X coordinates (u32) for all voxels
-    /// - Y coordinates (u32) for all voxels
-    /// - Z coordinates (u32) for all voxels
-    /// - Potential values (f32) for all voxels
-    ///
-    /// # Returns
-    ///
-    /// A Vec<u8> containing the serialized XYZP data.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let bytes = frame.to_bytes();
-    /// assert_eq!(bytes.len(), frame.get_number_of_bytes_needed_to_hold_xyzp_uncompressed());
-    /// ```
-    pub fn to_bytes(& self) -> Vec<u8> {
-        let required_number_elements = self.get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
-        let mut output: Vec<u8> = Vec::with_capacity(required_number_elements);
-        output.resize(required_number_elements, 0x00);
-
-        let mut x_offset: usize = 0;
-        let mut y_offset: usize = required_number_elements / 4;
-        let mut c_offset: usize = y_offset * 2;
-        let mut p_offset: usize = y_offset * 3;
-
-        for ((x,y,c), color_val) in self.pixels.indexed_iter() {
-            let x_bytes: [u8; 4] = (x as u32).to_le_bytes();
-            let y_bytes: [u8; 4] = (y as u32).to_le_bytes();
-            let c_bytes: [u8; 4] = (c as u32).to_le_bytes();
-            let p_bytes: [u8; 4] = color_val.to_le_bytes();
-
-            output[x_offset .. x_offset + 4].copy_from_slice(&x_bytes);
-            output[y_offset .. y_offset + 4].copy_from_slice(&y_bytes);
-            output[c_offset .. c_offset + 4].copy_from_slice(&c_bytes);
-            output[p_offset .. p_offset + 4].copy_from_slice(&p_bytes);
-            x_offset += 4;
-            y_offset += 4;
-            c_offset += 4;
-            p_offset += 4;
-        };
-        output
-    }
-
-    /// Writes the image frame's XYZP data into a provided byte buffer.
-    ///
-    /// This is an in-place version of `to_bytes()` that writes directly into
-    /// a pre-allocated buffer instead of creating a new Vec.
+    /// This method converts the image data into a compressed format where only pixels
+    /// exceeding the threshold value are included. The output is a byte array containing
+    /// the X, Y, Z coordinates and potential value for each significant pixel.
     ///
     /// # Arguments
     ///
-    /// * `bytes_writing_to` - A mutable slice where the XYZP data will be written
+    /// * `threshold` - The minimum absolute value a pixel must have to be included
     ///
     /// # Returns
     ///
     /// A Result containing either:
-    /// - Ok(()) if the operation was successful
-    /// - Err(DataProcessingError) if the provided buffer is too small
+    /// - Ok(Vec<u8>) containing the thresholded XYZP data
+    /// - Err(DataProcessingError) if the conversion fails
     ///
     /// # Examples
     ///
@@ -604,37 +618,34 @@ impl ImageFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let mut buffer = vec![0u8; frame.get_number_of_bytes_needed_to_hold_xyzp_uncompressed()];
-    /// frame.to_bytes_in_place(&mut buffer).unwrap();
+    /// let bytes = frame.as_thresholded_xyzp_byte_data(0.1).unwrap();
     /// ```
-    pub fn to_bytes_in_place(& self, bytes_writing_to: &mut [u8]) -> Result<(), DataProcessingError> {
-        let required_capacity: usize = self.get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
-        if bytes_writing_to.len() < required_capacity {
-            return Err(DataProcessingError::InvalidInputBounds("Given byte buffer is too small!".into()))
-        };
+    pub fn as_thresholded_xyzp_byte_data(&self, threshold: f32) -> Result<Vec<u8>, DataProcessingError> {
+        let max_number_bytes_needed = self.get_number_of_max_number_bytes_needed_to_hold_xyzp_uncompressed();
+        let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
+        let mut sending_x: Vec<u32> = Vec::with_capacity(max_number_bytes_needed);
+        let mut sending_y: Vec<u32> = Vec::with_capacity(max_number_bytes_needed);
+        let mut sending_z: Vec<u32> = Vec::with_capacity(max_number_bytes_needed);
+        let mut sending_color: Vec<f32> = Vec::with_capacity(max_number_bytes_needed);
+        
+        for ((y,x,c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
+            if color_val.abs() > threshold{
+                sending_x.push(x.clone() as u32);
+                sending_y.push(y_flip_distance - y.clone() as u32); // flip y
+                sending_z.push(c.clone() as u32);
+                sending_color.push(*color_val);
+            }
+        }
 
-        let mut x_offset: usize = 0;
-        let mut y_offset: usize = required_capacity / 4;
-        let mut c_offset: usize = y_offset * 2;
-        let mut p_offset: usize = y_offset * 3;
-
-        for ((y,x,c), color_val) in self.pixels.indexed_iter() {
-            let x_bytes: [u8; 4] = (x as u32).to_le_bytes();
-            let y_bytes: [u8; 4] = (y as u32).to_le_bytes();
-            let c_bytes: [u8; 4] = (c as u32).to_le_bytes();
-            let p_bytes: [u8; 4] = color_val.to_le_bytes();
-
-            bytes_writing_to[x_offset .. x_offset + 4].copy_from_slice(&x_bytes);
-            bytes_writing_to[y_offset .. y_offset + 4].copy_from_slice(&y_bytes);
-            bytes_writing_to[c_offset .. c_offset + 4].copy_from_slice(&c_bytes);
-            bytes_writing_to[p_offset .. p_offset + 4].copy_from_slice(&p_bytes);
-            x_offset += 4;
-            y_offset += 4;
-            c_offset += 4;
-            p_offset += 4;
-        };
-        Ok(())
+        let mut output:Vec<u8> = Vec::with_capacity(sending_x.len() * 4 * 4); // 4 arrays, each element is 4 bytes
+        output.extend(sending_x.iter().flat_map(|x| x.to_le_bytes()));
+        output.extend(sending_y.iter().flat_map(|y| y.to_le_bytes()));
+        output.extend(sending_z.iter().flat_map(|z| z.to_le_bytes()));
+        output.extend(sending_color.iter().flat_map(|c| c.to_le_bytes()));
+        
+        Ok(output)
     }
+    
     
     // endregion
 
@@ -642,24 +653,33 @@ impl ImageFrame {
     // These are called from the FrameProcessingParameters constructors
 
     /// Creates a new ImageFrame by cropping a region from a source frame, followed by a resize
-    /// to the given resolution
+    /// to the given resolution.
     ///
     /// This function first crops the specified region from the source frame, then resizes
     /// the cropped region to the target resolution using nearest neighbor interpolation.
-    /// This function assumes HeightsWidthsChannels ordering!
+    /// This function assumes HeightsWidthsChannels ordering.
     ///
     /// # Arguments
     ///
     /// * `source_frame` - The source ImageFrame to crop from
     /// * `corners_crop` - The CornerPoints defining the region to crop
-    /// * `new_width_height` - The target cartesian resolution as a tuple of (width, height)
+    /// * `new_width_height` - The target resolution as a tuple of (width, height)
     ///
     /// # Returns
     ///
     /// A Result containing either:
     /// - Ok(ImageFrame) if the crop region is valid and fits within the source frame
-    /// - Err(&'static str) if the crop region would not fit in the source frame
+    /// - Err(DataProcessingError) if the crop region would not fit in the source frame
     ///
+    /// # Examples
+    ///
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
+    ///
+    /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let corners = CornerPoints::new_from_cartesian_where_origin_bottom_left((10, 10), (50, 50), (100, 100)).unwrap();
+    /// let resized = ImageFrame::create_from_source_frame_crop_and_resize(&source, &corners, &(200, 200)).unwrap();
     /// ```
     pub fn create_from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
 
@@ -694,6 +714,19 @@ impl ImageFrame {
 
     // region: internal functions
 
+    /// Converts an array from any memory layout to row-major (HeightsWidthsChannels) format.
+    ///
+    /// This internal function handles the conversion of arrays between different memory
+    /// layouts, ensuring they are stored in the standard row-major format used internally.
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The input array to convert
+    /// * `source_memory_order` - The current memory layout of the input array
+    ///
+    /// # Returns
+    ///
+    /// The converted array in row-major format.
     fn change_memory_order_to_row_major(input: Array3<f32>, source_memory_order: MemoryOrderLayout) -> Array3<f32> {
         match source_memory_order {
             MemoryOrderLayout::HeightsWidthsChannels => input, // Nothing needed, we store in this format anyway
@@ -705,6 +738,19 @@ impl ImageFrame {
         }
     }
 
+    /// Converts an array from row-major format to any other memory layout.
+    ///
+    /// This internal function handles the conversion of arrays from the internal
+    /// row-major format to any other specified memory layout.
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The input array in row-major format
+    /// * `target_memory_order` - The desired memory layout for the output array
+    ///
+    /// # Returns
+    ///
+    /// The converted array in the target memory layout.
     fn change_memory_order_from_row_major(input: Array3<f32>, target_memory_order: MemoryOrderLayout) -> Array3<f32> {
         match target_memory_order {
             MemoryOrderLayout::HeightsWidthsChannels => input, // Nothing needed, we store in this format anyway
@@ -931,7 +977,6 @@ impl ImageFrame {
         };
         Ok(())
     }
-    
     
     
      */
