@@ -339,7 +339,7 @@ impl SegmentedVisionFrame {
         // TODO only center right now
         let mut output: CorticalMappedNeuronData = CorticalMappedNeuronData::new();
         let center_id: CorticalID = CorticalID::from_str(&"iv00CC")?;
-        let center_max_neurons = self.center.get_max_possible_number_of_neurons_out();
+        let center_max_neurons = self.center.get_max_capacity_neuron_count();
         let mut center_data: NeuronYXCPArrays = NeuronYXCPArrays::new(center_max_neurons)?;
         {
             self.center.write_thresholded_xyzp_neuron_arrays(10.0, &mut center_data);

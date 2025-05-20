@@ -4,7 +4,6 @@ use super::single_frame_processing::*;
 use crate::neuron_state::neuron_data::NeuronYXCPArrays;
 
 
-
 #[derive(Clone)]
 pub struct ImageFrame {
     pixels: Array3<f32>,
@@ -14,6 +13,7 @@ pub struct ImageFrame {
 
 impl ImageFrame {
     const INTERNAL_MEMORY_LAYOUT: MemoryOrderLayout = MemoryOrderLayout::HeightsWidthsChannels;
+    const NUMBER_BYTES_PER_NEURON: usize = 16;
 
     // region: common constructors
 
@@ -379,44 +379,14 @@ impl ImageFrame {
         (shape[0], shape[1], shape[2])
     }
 
-    pub fn get_max_possible_number_of_neurons_out(&self) -> usize {
+    pub fn get_max_capacity_neuron_count(&self) -> usize {
         self.pixels.shape()[0] * self.pixels.shape()[1] * self.pixels.shape()[2]
-    }
-
-    /// Calculates the theoretical maximum number of bytes needed to store the XYZP data.
-    ///
-    /// Each voxel (pixel) requires 16 bytes of storage:
-    /// - 4 bytes for X coordinate (u32)
-    /// - 4 bytes for Y coordinate (u32)
-    /// - 4 bytes for Z coordinate (u32)
-    /// - 4 bytes for potential value (f32)
-    ///
-    /// Assuming every pixel potential value is over the threshold (this is rarely the case)
-    ///
-    /// # Returns
-    ///
-    /// The total number of bytes needed to store all voxel data in XYZP format.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let bytes_needed = frame.get_number_of_max_number_bytes_needed_to_hold_xyzp_uncompressed();
-    /// assert_eq!(bytes_needed, 100 * 100 * 3 * 16); // width * height * channels * bytes_per_voxel
-    /// ```
-    pub fn get_number_of_max_number_bytes_needed_to_hold_xyzp_uncompressed(&self) -> usize {
-        const NUMBER_BYTES_PER_VOXEL: usize = 16;
-        let dimensions = self.pixels.shape(); // we know its 3 elements
-        dimensions[0] * dimensions[1] * dimensions[2] * NUMBER_BYTES_PER_VOXEL
     }
 
     // endregion
 
-    // region: mutate structure (in place, no memory reallocations)
-
+    // region: Modify frame
+    
     /// Adjusts the brightness of the image by multiplying each pixel value by a positive factor.
     ///
     /// This method modifies the image in-place by scaling all pixel values by the given factor.
@@ -499,9 +469,7 @@ impl ImageFrame {
 
     // TODO Color Space Transformations
 
-    // endregion
-
-    // region: mutate structure (non-in-place)
+    // TODO to grayscale
 
     /// Crops the image to the specified region.
     ///
@@ -591,7 +559,61 @@ impl ImageFrame {
         Ok(self)
     }
 
-    // TODO to grayscale
+    // TODO crop into self
+
+    // TODO resize into self
+
+    // TODO crop and resize into self
+    
+    // endregion
+
+    // region: Load Data in place
+
+    pub fn in_place_crop_and_nearest_neighbor_resize_to_self(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
+        let crop_resolution: (usize, usize) = source_cropping_points.enclosed_area_width_height();
+        if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&self, source) {
+            return Err(DataProcessingError::IncompatibleInplace("The incoming source data does not have compatible properties with the destination ImageFrame!".into()))
+        }
+
+        let resolution: (usize, usize) = self.get_internal_resolution();
+        let resolution_f: (f32, f32) = (resolution.0 as f32, resolution.1 as f32);
+        let crop_resolution_f: (f32, f32) = (crop_resolution.0 as f32, crop_resolution.1 as f32);
+
+        for ((y,x,c), color_val) in self.pixels.indexed_iter_mut() {
+            let nearest_neighbor_coordinate_y: usize = (((y as f32) / resolution_f.1) * crop_resolution_f.1).floor() as usize;
+            let nearest_neighbor_coordinate_x: usize = (((x as f32) / resolution_f.0) * crop_resolution_f.0).floor() as usize;
+            let nearest_neighbor_channel_value: f32 = source.pixels[(
+                nearest_neighbor_coordinate_x + source_cropping_points.lower_left_row_major().0,
+                nearest_neighbor_coordinate_y + source_cropping_points.lower_left_row_major().1,
+                c)];
+            *color_val = nearest_neighbor_channel_value;
+        };
+        Ok(())
+    }
+    
+    pub fn in_place_calculate_difference_thresholded(&mut self, previous_frame: &ImageFrame, next_frame: &ImageFrame, threshold: f32) -> Result<(), DataProcessingError> {
+        if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&previous_frame, next_frame) {
+            return Err(DataProcessingError::IncompatibleInplace("The two given frames do not have equivalent resolutions or channel counts!".into()))
+        }
+        if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(self, next_frame) {
+            return Err(DataProcessingError::IncompatibleInplace("This frame does not have equivalent resolutions or channel count to the given comparing frames!".into()))
+        }
+        if threshold > 1.0 || threshold < 0.0 {
+            return Err(DataProcessingError::InvalidInputBounds("The threshold value must be between 0 and 1!".into()))
+        }
+        for (coord, color_val) in self.pixels.indexed_iter_mut() {
+            let prev_frame_val: f32 = previous_frame.pixels[coord];
+            let next_frame_val: f32 = next_frame.pixels[coord];
+            let delta: f32 = (prev_frame_val - next_frame_val).abs();
+            if delta > threshold{
+                *color_val = delta;
+            }
+            else {
+                *color_val = 0.0;
+            }
+        };
+        Ok(())
+    }
 
     // endregion
 
@@ -599,7 +621,7 @@ impl ImageFrame {
 
     pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronYXCPArrays) -> Result<(), DataProcessingError> {
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
-        if write_target.get_max_possible_number_of_neurons_out() < self.get_max_possible_number_of_neurons_out() {
+        if write_target.get_max_possible_number_of_neurons_out() < self.get_max_capacity_neuron_count() {
             return Err(DataProcessingError::InternalError("Given NeuronXYZP structure is too small!".into()));
         }
 
@@ -616,13 +638,10 @@ impl ImageFrame {
                 writing_index += 1;
             }
         };
-        
+
         Ok(())
 
     }
-
-
-
     // endregion
 
     // region: specialized constructors
@@ -648,7 +667,7 @@ impl ImageFrame {
     /// - Err(DataProcessingError) if the crop region would not fit in the source frame
     ///
     /// ```
-    pub fn create_from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
+    fn create_from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
         let source_resolution = source_frame.get_internal_resolution(); // Y X
         if !corners_crop.does_fit_in_frame_of_width_height(source_resolution) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
@@ -673,10 +692,31 @@ impl ImageFrame {
         })
     }
 
+    fn create_from_source_frame_crop(source_frame: &ImageFrame, corners_crop: &CornerPoints) -> Result<ImageFrame, DataProcessingError> {
+        let source_resolution = source_frame.get_internal_resolution();
+        if !corners_crop.does_fit_in_frame_of_width_height(source_resolution) {
+            return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
+        }
+        
+        let channel_count: usize = source_frame.get_color_channel_count();
+        let sliced_array_view: ArrayView3<f32> = source_frame.pixels.slice(
+            s![corners_crop.lower_left_row_major().0 .. corners_crop.upper_right_row_major().0,
+                corners_crop.lower_left_row_major().1 .. corners_crop.upper_right_row_major().1 , 0..channel_count]
+        );
+        Ok(ImageFrame {
+            pixels: sliced_array_view.into_owned(),
+            channel_format: source_frame.channel_format,
+            color_space: source_frame.color_space,
+        })
+    }
+
+
+    
 
     // endregion
 
-
+    
+    
     // region: internal functions
 
     /// Converts an array from any memory layout to row-major (HeightsWidthsChannels) format.
@@ -730,214 +770,3 @@ impl ImageFrame {
     // endregion
 
 }
-
-
-
-
-
-/*
-    
-    
-        /// Creates a new ImageFrame by cropping a region from a source frame.
-    ///
-    /// # Arguments
-    ///
-    /// * `source_frame` - The source ImageFrame to crop from
-    /// * `corners_crop` - The CornerPoints defining the region to crop
-    ///
-    /// # Returns
-    ///
-    /// A Result containing either:
-    /// - Ok(ImageFrame) if the crop region is valid and fits within the source frame
-    /// - Err(&'static str) if the crop region would not fit in the source frame
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use ndarray::Array3;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
-    ///
-    /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let corners = CornerPoints::new((10, 10), (50, 50)).unwrap();
-    /// let cropped = ImageFrame::from_source_frame_crop(&source, &corners).unwrap();
-    /// ```
-    pub fn from_source_frame_crop(source_frame: &ImageFrame, corners_crop: &CornerPoints) -> Result<ImageFrame, DataProcessingError> {
-        let source_resolution = source_frame.get_xy_resolution();
-        if !corners_crop.does_fit_in_frame_of_resolution(source_resolution) {
-            return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
-        }
-        let channel_count: usize = source_frame.get_color_channel_count();
-        let sliced_array_view: ArrayView3<f32> = source_frame.pixels.slice(s![corners_crop.lower_left().0 .. corners_crop.upper_right().0, corners_crop.lower_left().1 .. corners_crop.upper_right().1 , 0..channel_count]);
-        Ok(ImageFrame {
-            pixels: sliced_array_view.into_owned(),
-            channel_format: source_frame.channel_format.clone()
-        })
-    }
-
-    /// Creates a new ImageFrame by cropping a region from a source frame, followed by a resize
-    /// to the given resolution
-    ///
-    /// This function first crops the specified region from the source frame, then resizes
-    /// the cropped region to the target resolution using nearest neighbor interpolation.
-    ///
-    /// # Arguments
-    ///
-    /// * `source_frame` - The source ImageFrame to crop from
-    /// * `corners_crop` - The CornerPoints defining the region to crop
-    /// * `new_resolution` - The target resolution as a tuple of (width, height)
-    ///
-    /// # Returns
-    ///
-    /// A Result containing either:
-    /// - Ok(ImageFrame) if the crop region is valid and fits within the source frame
-    /// - Err(&'static str) if the crop region would not fit in the source frame
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use ndarray::Array3;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
-    ///
-    /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let corners = CornerPoints::new((10, 10), (50, 50)).unwrap();
-    /// let resized = ImageFrame::from_source_frame_crop_and_resize(&source, &corners, &(200, 200)).unwrap();
-    /// ```
-    pub fn from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_resolution: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
-        let source_resolution = source_frame.get_xy_resolution();
-        if !corners_crop.does_fit_in_frame_of_resolution(source_resolution) {
-            return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
-        }
-        let channel_count: usize = source_frame.get_color_channel_count();
-
-        let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32);
-        let crop_resolution_f: (f32, f32) = (new_resolution.0 as f32, new_resolution.1 as f32);
-        let mut writing_array: Array3<f32> = Array3::<f32>::zeros((new_resolution.0, new_resolution.1, channel_count));
-
-        for ((x,y,c), color_val) in writing_array.indexed_iter_mut() {
-            let nearest_neighbor_coordinate_x: usize = (((x as f32) / source_resolution_f.0) * crop_resolution_f.0).floor() as usize;
-            let nearest_neighbor_coordinate_y: usize = (((y as f32) / source_resolution_f.1) * crop_resolution_f.1).floor() as usize;
-            let nearest_neighbor_channel_value: f32 = source_frame.pixels[(nearest_neighbor_coordinate_x + corners_crop.lower_left().0, nearest_neighbor_coordinate_y + corners_crop.lower_right().1, c)]; // TODO ???
-            *color_val = nearest_neighbor_channel_value;
-        };
-        Ok(ImageFrame {
-            pixels: writing_array,
-            channel_format: source_frame.channel_format.clone()
-        })
-    }
-    
-
-
-    /// Crops and resizes a region from a source frame directly into this frame.
-    ///
-    /// This method modifies this frame in-place by first cropping, then scaling the crop to fit
-    /// into this image frame.
-    /// The operation uses nearest neighbor interpolation for resizing.
-    ///
-    /// # Arguments
-    ///
-    /// * `source_cropping_points` - The CornerPoints defining the region to crop from the source
-    /// * `source` - The source ImageFrame to crop from
-    ///
-    /// # Returns
-    ///
-    /// A Result containing either:
-    /// - Ok(()) if the operation was successful
-    /// - Err(&'static str) if:
-    ///   - The source and target frames have different channel counts
-    ///   - The crop region would not fit in the source frame
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use ndarray::Array3;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
-    ///
-    /// let mut target = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(50, 50));
-    /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let corners = CornerPoints::new((10, 10), (50, 50)).unwrap();
-    /// target.in_place_crop_and_nearest_neighbor_resize_to_self(&corners, &source).unwrap();
-    /// ```
-    pub fn in_place_crop_and_nearest_neighbor_resize_to_self(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
-        let crop_resolution: (usize, usize) = source_cropping_points.enclosed_area();
-        if &source.get_color_channel_count() != &self.get_color_channel_count() {
-            return Err(DataProcessingError::IncompatibleInplace("The source and source do not have the same color channel count!".into()))
-        }
-        let source_full_resolution: (usize, usize) = source.get_xy_resolution();
-        if !source_cropping_points.does_fit_in_frame_of_resolution(source_full_resolution){
-            return Err(DataProcessingError::InvalidInputBounds("The upper left coordinate must be within the resolution range of the source image!".into()))
-        }
-
-        let resolution: (usize, usize) = self.get_xy_resolution();
-        let resolution_f: (f32, f32) = (resolution.0 as f32, resolution.1 as f32);
-        let crop_resolution_f: (f32, f32) = (crop_resolution.0 as f32, crop_resolution.1 as f32);
-
-        for ((x,y,c), color_val) in self.pixels.indexed_iter_mut() {
-            let nearest_neighbor_coordinate_x: usize = (((x as f32) / resolution_f.0) * crop_resolution_f.0).floor() as usize;
-            let nearest_neighbor_coordinate_y: usize = (((y as f32) / resolution_f.1) * crop_resolution_f.1).floor() as usize;
-            let nearest_neighbor_channel_value: f32 = source.pixels[(nearest_neighbor_coordinate_x + source_cropping_points.lower_left().0, nearest_neighbor_coordinate_y + source_cropping_points.lower_left().1, c)]; // TODO ???
-            *color_val = nearest_neighbor_channel_value;
-        };
-        Ok(())
-    }
-
-    /// Calculates the thresholded difference between two frames and stores the result in this frame.
-    ///
-    /// This method computes the absolute difference between corresponding pixels in `previous_frame` and `next_frame`.
-    /// If the difference exceeds the threshold, the pixel value is set to the difference value.
-    /// Otherwise, the pixel value is set to 0.0.
-    ///
-    /// # Arguments
-    ///
-    /// * `previous_frame` - The first frame to compare
-    /// * `next_frame` - The second frame to compare
-    /// * `threshold` - The threshold value between 0.0 and 1.0
-    ///
-    /// # Returns
-    ///
-    /// A Result containing either:
-    /// - Ok(()) if the operation was successful
-    /// - Err(&'static str) if:
-    ///   - The frames have different resolutions or channel counts
-    ///   - The threshold is outside the valid range [0.0, 1.0]
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use ndarray::Array3;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
-    ///
-    /// let mut diff_frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let prev_frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let next_frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// diff_frame.in_place_calculate_difference_thresholded(&prev_frame, &next_frame, 0.1).unwrap();
-    /// ```
-    pub fn in_place_calculate_difference_thresholded(&mut self, previous_frame: &ImageFrame, next_frame: &ImageFrame, threshold: f32) -> Result<(), DataProcessingError> {
-        if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&previous_frame, next_frame) {
-            return Err(DataProcessingError::IncompatibleInplace("The two given frames do not have equivalent resolutions or channel counts!".into()))
-        }
-        if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(self, next_frame) {
-            return Err(DataProcessingError::IncompatibleInplace("This frame does not have equivalent resolutions or channel count to the given comparing frames!".into()))
-        }
-        if threshold > 1.0 || threshold < 0.0 {
-            return Err(DataProcessingError::InvalidInputBounds("The threshold value must be between 0 and 1!".into()))
-        }
-        for (coord, color_val) in self.pixels.indexed_iter_mut() {
-            let prev_frame_val: f32 = previous_frame.pixels[coord];
-            let next_frame_val: f32 = next_frame.pixels[coord];
-            let delta: f32 = (prev_frame_val - next_frame_val).abs();
-            if delta > threshold{
-                *color_val = delta;
-            }
-            else {
-                *color_val = 0.0;
-            }
-        };
-        Ok(())
-    }
-    
-    
-     */
