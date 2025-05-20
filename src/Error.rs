@@ -5,6 +5,7 @@ pub enum DataProcessingError {
     InvalidInputBounds(String),
     IncompatibleInplace(String),
     IncompatibleInputArray(String),
+    InternalError(String),
 }
 
 impl fmt::Display for DataProcessingError {
@@ -13,6 +14,7 @@ impl fmt::Display for DataProcessingError {
             DataProcessingError::InvalidInputBounds(e) => write!(f, "Invalid Bounds! {}", e),
             DataProcessingError::IncompatibleInplace(e) => write!(f, "Unable to perform inplace operation! {}", e),
             DataProcessingError::IncompatibleInputArray(e) => write!(f, "Incompatible input array for images! {}", e),
+            DataProcessingError::InternalError(e) => write!(f, "Internal error! Please report this! {}", e),
         }
     }
 }

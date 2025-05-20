@@ -1,8 +1,10 @@
+use crate::Error::DataProcessingError;
+
 /// Length of Cortical Area ID As ASCII characters / bytes
 const CORTICAL_ID_LENGTH: usize = 6;
 
 /// Represents an ID for a cortical area in the brain
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct CorticalID {
     /// The raw byte representation of the cortical identifier
     id: [u8; CORTICAL_ID_LENGTH]
@@ -25,14 +27,14 @@ impl CorticalID {
     /// Returns an error if:
     /// * The input string length doesn't match CORTICAL_ID_LENGTH
     /// * The input string contains non-ASCII characters
-    pub fn from_str(id: &str) -> Result<CorticalID, &'static str> {
+    pub fn from_str(id: &str) -> Result<CorticalID, DataProcessingError> {
         if id.len() != CORTICAL_ID_LENGTH {
-            return Err("Cortical Area ID Incorrect Length!");
+            return Err(DataProcessingError::InvalidInputBounds("Cortical Area ID Incorrect Length!".into()));
         }
         let bytes = id.as_bytes();
         
         if !bytes.iter().all(|&b| b.is_ascii()) {
-            return Err("Cortical ID must contain only ASCII characters!");
+            return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));
         }
 
         let mut inner = [0u8; CORTICAL_ID_LENGTH];

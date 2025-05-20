@@ -1,8 +1,10 @@
 use super::single_frame::ImageFrame;
 use crate::Error::DataProcessingError;
 use super::single_frame_processing::*;
+use crate::neuron_state::neuron_data::{CorticalMappedNeuronData, NeuronYXCPArrays};
 use std::cmp;
 use ndarray::Array3;
+use crate::cortical_area_state::cortical_data::CorticalID;
 
 /// A frame divided into nine segments with different resolutions. Used for Peripheral vision in FEAGI
 ///
@@ -32,6 +34,8 @@ pub struct SegmentedVisionFrame {
     original_source_resolution: (usize, usize),
     // /// Corner points defining the boundaries of each segment
     //segment_corner_points: SegmentedCornerPoints,
+    cached_cortical_data: [NeuronYXCPArrays; 1]
+    
 }
 
 impl SegmentedVisionFrame {
@@ -86,6 +90,9 @@ impl SegmentedVisionFrame {
             lower_middle: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
             center: source_frame.clone(),
             original_source_resolution: source_frame_width_height,
+            cached_cortical_data: [
+                NeuronYXCPArrays::new_from_resolution((source_frame_width_height.0, source_frame_width_height.1, 3))?
+            ]
         })
         
     }
@@ -175,6 +182,7 @@ impl SegmentedVisionFrame {
     }
      */
 
+    /*
     /// Exports the segmented vision frame as a byte array containing neuron potential data. See FEAGI byte Structure 11 for more details.
     ///
     /// This function converts the segmented vision frame into a binary form. The output includes
@@ -225,6 +233,9 @@ impl SegmentedVisionFrame {
         for cortical_id_string in cortical_ids.iter_mut(){
             cortical_id_string.replace_range(2..4, &format!("{}{}", replacement_chars.0, replacement_chars.1));
         }
+        
+        
+        
         let cortical_data_per_segment: [Vec<u8>; 9] = [
             self.center.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
             self.lower_left.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
@@ -236,12 +247,12 @@ impl SegmentedVisionFrame {
             self.lower_right.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
             self.lower_middle.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
         ];
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
         let number_bytes_per_segment: [usize; 9] = ordered_refs.map(|s| s.get_number_of_bytes_needed_to_hold_xyzp_uncompressed());
         
         let byte_array_length: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE +
@@ -284,7 +295,44 @@ impl SegmentedVisionFrame {
         };
         Ok(output)
     }
+    
+     */
 
+    pub fn export_as_cortical_mapped_neuron_data(&mut self, camera_index: u8, ) -> Result<CorticalMappedNeuronData, DataProcessingError> {
+
+        let ordered_refs: [&ImageFrame; 9] = [&self.center, &self.lower_left, &self.middle_left,
+            &self.upper_left, &self.upper_middle, &self.upper_right, &self.middle_right, &self.lower_right,
+            &self.lower_middle];
+
+        let mut cortical_ids: [String; 9] = [String::from("iv00_C"),
+            String::from("iv00BL"), String::from("iv00ML"), String::from("iv00TL"),
+            String::from("iv00TM"), String::from("iv00TR"), String::from("iv00MR"),
+            String::from("iv00BR"), String::from("iv00BM")]; // same order as other struct members
+        if self.center.get_color_channel_count() > 1 {
+            // Ensure we aren't using grays scale cortical area ID if we are doing things in color
+            cortical_ids[0] = String::from("iv00CC")
+        }
+        let replacement_chars = self.u8_to_hex_chars(camera_index);
+        for cortical_id_string in cortical_ids.iter_mut(){
+            cortical_id_string.replace_range(2..4, &format!("{}{}", replacement_chars.0, replacement_chars.1));
+        };
+        
+        
+        // TODO only center right now
+        let mut output: CorticalMappedNeuronData = CorticalMappedNeuronData::new();
+        let center_id: CorticalID = CorticalID::from_str(&"iv00CC")?;
+        let center_max_neurons = self.center.get_max_possible_number_of_neurons_out();
+        let mut center_data: NeuronYXCPArrays = NeuronYXCPArrays::new(center_max_neurons)?;
+        {
+            self.center.write_thresholded_xyzp_neuron_arrays(10.0, &mut center_data);
+        }
+
+        output.insert(center_id, center_data);
+        
+        Ok(output)
+    }
+    
+    
     pub fn get_center_image_frame(&self) -> &ImageFrame {
         &self.center
     }
@@ -295,6 +343,8 @@ impl SegmentedVisionFrame {
         let low = HEX_CHARS[(n & 0x0F) as usize] as char;
         (high, low)
     }
+    
+    
     
 }
 

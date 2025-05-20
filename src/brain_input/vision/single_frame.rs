@@ -1,7 +1,7 @@
 use ndarray::{s, Array3, ArrayView3};
 use crate::Error::DataProcessingError;
 use super::single_frame_processing::*;
-use crate::neuron_state::neuron_data::NeuronYXCPArray;
+use crate::neuron_state::neuron_data::NeuronYXCPArrays;
 
 
 
@@ -46,7 +46,6 @@ impl ImageFrame {
             channel_format: *channel_format,
             color_space: *color_space,
             pixels: Array3::<f32>::zeros((xy_resolution.1, xy_resolution.0, *channel_format as usize)),
-            cache_processing_byte_neuron_data: None,
         }
     }
 
@@ -81,7 +80,6 @@ impl ImageFrame {
             pixels: ImageFrame::change_memory_order_to_row_major(input, source_memory_order),
             color_space,
             channel_format: usize_to_channel_format(number_color_channels)?,
-            cache_processing_byte_neuron_data: None,
         })
     }
 
@@ -381,6 +379,10 @@ impl ImageFrame {
         (shape[0], shape[1], shape[2])
     }
 
+    pub fn get_max_possible_number_of_neurons_out(&self) -> usize {
+        self.pixels.shape()[0] * self.pixels.shape()[1] * self.pixels.shape()[2]
+    }
+
     /// Calculates the theoretical maximum number of bytes needed to store the XYZP data.
     ///
     /// Each voxel (pixel) requires 16 bytes of storage:
@@ -538,10 +540,6 @@ impl ImageFrame {
                 corners_crop.lower_left_row_major().1 .. corners_crop.upper_right_row_major().1 ,
                 0..self.get_color_channel_count()]);
         self.pixels = sliced_array_view.into_owned();
-        if self.cache_processing_byte_neuron_data.is_some() {
-            // Ensure these are resized
-            self.ensure_initialization_of_cache_for_neuron_byte_conversion();
-        };
         Ok(self)
     }
 
@@ -590,11 +588,6 @@ impl ImageFrame {
         };
         self.pixels = sized_array;
 
-        if self.cache_processing_byte_neuron_data.is_some() {
-            // Ensure these are resized
-            self.ensure_initialization_of_cache_for_neuron_byte_conversion();
-        };
-        
         Ok(self)
     }
 
@@ -604,27 +597,28 @@ impl ImageFrame {
 
     // region: byte data
 
-    pub fn get_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32) -> Result<NeuronYXCPArray, DataProcessingError> {
-        self.ensure_initialization_of_cache_for_neuron_byte_conversion();
+    pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronYXCPArrays) -> Result<(), DataProcessingError> {
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
-        
-        let mut cache_processing_byte_neuron_data = self.cache_processing_byte_neuron_data.as_ref().unwrap();
-        
-        &cache_processing_byte_neuron_data.y.truncate(0);
-        
-        
-        let ( sending_x, sending_z, sending_c) = cache_processing_byte_neuron_data;
+        if write_target.get_max_possible_number_of_neurons_out() < self.get_max_possible_number_of_neurons_out() {
+            return Err(DataProcessingError::InternalError("Given NeuronXYZP structure is too small!".into()));
+        }
 
-        
+        write_target.reset_indexes();
+        let mut writing_index: usize = 0;
+        let (y_vec, x_vec, c_vec, p_vec) = write_target.get_yxcp_vectors();
+
         for ((y, x, c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
             if color_val.abs() > threshold {
-                sending_x.push(x.clone() as u32);
-                sending_y.push(y_flip_distance - y.clone() as u32); // flip y
-                sending_z.push(c.clone() as u32);
-                sending_c.push(*color_val);
+                x_vec.push(x as u32);
+                y_vec.push( y_flip_distance - y as u32);  // flip y
+                c_vec.push(c as u32);
+                p_vec.push(*color_val);
+                writing_index += 1;
             }
         };
         
+        Ok(())
+
     }
 
 
@@ -704,15 +698,6 @@ impl ImageFrame {
     /// - Ok(ImageFrame) if the crop region is valid and fits within the source frame
     /// - Err(DataProcessingError) if the crop region would not fit in the source frame
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
-    ///
-    /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let corners = CornerPoints::new_from_cartesian_where_origin_bottom_left((10, 10), (50, 50), (100, 100)).unwrap();
-    /// let resized = ImageFrame::create_from_source_frame_crop_and_resize(&source, &corners, &(200, 200)).unwrap();
     /// ```
     pub fn create_from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
         let source_resolution = source_frame.get_internal_resolution(); // Y X
@@ -736,7 +721,6 @@ impl ImageFrame {
             pixels: writing_array,
             channel_format: source_frame.channel_format,
             color_space: source_frame.color_space,
-            cache_processing_byte_neuron_data: None,
         })
     }
 
@@ -794,32 +778,9 @@ impl ImageFrame {
         }
     }
 
-    fn ensure_initialization_of_cache_for_neuron_byte_conversion(&mut self) {
-        let shape = self.get_internal_shape();
-        let max_length_of_vector_required = shape.0 * shape.1 * shape.2;
-        let processing_byte_data_cache = &self.cache_processing_byte_neuron_data;
-        if processing_byte_data_cache.is_none() {
-            self.cache_processing_byte_neuron_data = Some(XYZPNeuronData {
-                y: Vec::with_capacity(max_length_of_vector_required),
-                x: Vec::with_capacity(max_length_of_vector_required),
-                c: Vec::with_capacity(max_length_of_vector_required),
-                p: Vec::with_capacity(max_length_of_vector_required),
-            });
-        }
-    }
-
     // endregion
 
 }
-
-#[derive(Clone)]
-struct XYZPNeuronData{
-    y: Vec<u32>,
-    x: Vec<u32>,
-    c: Vec<u32>,
-    p: Vec<f32>,
-}
-
 
 
 

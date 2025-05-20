@@ -1,11 +1,52 @@
 use std::collections::HashMap;
 use ndarray::{Array1};
 use crate::cortical_area_state::cortical_data::CorticalID;
+use crate::Error::DataProcessingError;
 
-pub type NeuronYXCCoordinate = (u32, u32, u32);
-pub type NeuronYXCP = (NeuronYXCCoordinate, f32);
+pub type CorticalMappedNeuronData = HashMap<CorticalID, NeuronYXCPArrays>;
 
-pub type NeuronYXCPArray<'a> = (&'a [u32], &'a[u32], &'a[u32], &'a[f32]); // All array lengths are equal
+pub struct NeuronYXCPArrays{
+    x: Vec<u32>,
+    y: Vec<u32>,
+    c: Vec<u32>,
+    p: Vec<f32>,
+    max_number_neurons: usize,
+}
+
+impl NeuronYXCPArrays{
+    pub fn new(maximum_number_of_neurons_possibly_needed: usize) -> Result<Self, DataProcessingError> {
+        const NUMBER_BYTES_PER_NEURON: usize = 16;
+        if maximum_number_of_neurons_possibly_needed == 0 {
+            return Err(DataProcessingError::InvalidInputBounds("Given number of neurons possible must be greater than 0!".into()));
+        };
+        Ok(NeuronYXCPArrays{
+            y: Vec::with_capacity(NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
+            x: Vec::with_capacity(NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
+            c: Vec::with_capacity(NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
+            p: Vec::with_capacity(NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
+            max_number_neurons: maximum_number_of_neurons_possibly_needed
+        })
+    }
+    
+    pub fn new_from_resolution(resolution: (usize, usize, usize)) -> Result<Self, DataProcessingError> {
+        return crate::neuron_state::neuron_data::NeuronYXCPArrays::new(resolution.0 * resolution.1 * resolution.2);
+    }
+    
+    pub fn get_yxcp_vectors(&mut self) -> (&mut Vec<u32>, &mut Vec<u32>, &mut Vec<u32>, &mut Vec<f32>,) {
+        (&mut self.y, &mut self.x, &mut self.c, &mut self.p)
+    }
+    
+    pub fn get_max_possible_number_of_neurons_out(&self) -> usize {
+        self.max_number_neurons
+    }
+    
+    pub fn reset_indexes(&mut self) {
+        self.x.truncate(0);
+        self.y.truncate(0);
+        self.c.truncate(0);
+        self.p.truncate(0);
+    }
+}
 
 
 
@@ -19,6 +60,9 @@ pub type NeuronYXCPArray<'a> = (&'a [u32], &'a[u32], &'a[u32], &'a[f32]); // All
 
 
 
+
+
+/*
 
 
 pub type CorticalMappedNeuronPotentialCollectionXYZ = HashMap<CorticalID, NeuronPotentialCollectionXYZ>;
@@ -261,3 +305,5 @@ mod tests {
         assert!(float_eq(neurons_converted[2].potential, 0.3));
     }
 }
+
+ */
