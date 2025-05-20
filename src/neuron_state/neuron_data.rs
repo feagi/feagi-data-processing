@@ -1,12 +1,15 @@
 use std::collections::HashMap;
-use ndarray::{Array1};
 use crate::cortical_area_state::cortical_data::CorticalID;
 use crate::Error::DataProcessingError;
 
 pub type CorticalMappedNeuronData = HashMap<CorticalID, NeuronYXCPArrays>;
 
+
+pub type XYCPOrderedVectorWriteTargets<'a> = (&'a mut Vec<u32>, &'a mut Vec<u32>, &'a mut Vec<u32>, &'a mut Vec<f32>);
+
+#[derive(Clone)]
 pub struct NeuronYXCPArrays{
-    x: Vec<u32>,
+    x: Vec<u32>, // Remember, FEAGI is cartesian!
     y: Vec<u32>,
     c: Vec<u32>,
     p: Vec<f32>,
@@ -57,50 +60,41 @@ impl NeuronYXCPArrays{
         let count_bytes: [u8; 2] = (number_cortical_areas as u16).to_le_bytes();
         output[2..4].copy_from_slice(&count_bytes);
 
-        let mut header_write_index: usize = 4;
-        let mut data_write_index: usize = header_write_index + (number_cortical_areas * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE);
+        let mut header_write_index: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE;
+        let mut x_data_write_index: usize = header_write_index + (number_cortical_areas * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE);
+        
         
         let mut data_write_index: u32 = 4 + (number_cortical_areas as u32 * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
         
         // fill in cortical descriptors header
         for (cortical_id, neuron_data) in &mapped_data {
+            // Calculate locations
             let reading_start: u32 = data_write_index;
             let reading_length: u32 = neuron_data.get_number_of_neurons_used() as u32 * PER_NEURON_XYZP_SIZE as u32;
             let reading_start_bytes: [u8; 4] = reading_start.to_le_bytes();
             let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
 
+            // Write cortical subheader
             cortical_id.write_bytes_at(&mut output[header_write_index..header_write_index + 6]);
             output[header_write_index + 6.. header_write_index + 10].copy_from_slice(&reading_start_bytes);
             output[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
             
-            output[data_write_index .. data_write_index + reading_length] = 
+            // Write data
+            neuron_data.write_data_to_bytes(&mut output[reading_start as usize .. (reading_start + reading_length) as usize])?;
+            
+            // update indexes
+            data_write_index += reading_length;
         }
         
-        
-        for cortical_index in 0..CORTICAL_AREA_COUNT as usize {
-            let cortical_id_bytes = (&cortical_ids[cortical_index]).as_bytes(); // We know this to be ascii
-            let reading_start_index: u32 = data_write_index;
-            let reading_start_index_bytes: [u8; 4] = reading_start_index.to_le_bytes();
-            let reading_length: u32 = number_bytes_per_segment[cortical_index] as u32; // TODO divide by 4
-            let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
-
-            output[header_write_index..header_write_index + 6].copy_from_slice(cortical_id_bytes);
-            output[header_write_index + 6.. header_write_index + 10].copy_from_slice(&reading_start_index_bytes);
-            output[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
-
-            header_write_index += PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
-            data_write_index += reading_length;
-        };
-        
-        
+        Ok(output)
     }
     
     pub fn new_from_resolution(resolution: (usize, usize, usize)) -> Result<Self, DataProcessingError> {
         return crate::neuron_state::neuron_data::NeuronYXCPArrays::new(resolution.0 * resolution.1 * resolution.2);
     }
     
-    pub fn get_yxcp_vectors(&mut self) -> (&mut Vec<u32>, &mut Vec<u32>, &mut Vec<u32>, &mut Vec<f32>,) {
-        (&mut self.y, &mut self.x, &mut self.c, &mut self.p)
+    pub fn get_as_xycp_vectors(&mut self) -> XYCPOrderedVectorWriteTargets {
+        (&mut self.x, &mut self.y, &mut self.c, &mut self.p) // This isnt the best design, someone could write vectors of different sizes
     }
     
     pub fn get_max_possible_number_of_neurons_out(&self) -> usize {
@@ -115,27 +109,49 @@ impl NeuronYXCPArrays{
     }
     
     pub fn validate_equal_vector_lengths(&self) -> Result<(), DataProcessingError> {
-        if !(self.y == self.x && self.x == self.c && self.c == self.p){
+        if !((self.y.len() == self.x.len()) && (self.x.len() == self.c.len()) && (self.c.len() == self.p.len())) {
             return return Err(DataProcessingError::InternalError("Internal YXCP Arrays do not have equal lengths!".into()));
         }
         Ok(())
     }
     
     pub fn get_number_of_neurons_used(&self) -> usize {
-        return self.p.len();
+        self.p.len() // all of these are of qual length
     }
     
-    pub fn write_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), DataProcessingError> {
+    fn write_data_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), DataProcessingError> {
+        self.validate_equal_vector_lengths()?;
         const PER_NEURON_XYZP_SIZE: usize = 16;
-        let number_bytes_needed = PER_NEURON_XYZP_SIZE * self.get_number_of_neurons_used();
+        const U32_F32_LENGTH: usize = 4;
+        let number_of_neurons_to_write: usize = self.get_number_of_neurons_used();
+        let number_bytes_needed = PER_NEURON_XYZP_SIZE * number_of_neurons_to_write;
         if bytes_to_write_to.len() != number_bytes_needed {
-            return Err(DataProcessingError::InternalError("Invalid number of bytes passed to write neuroal YXCP data to!".into()))
+            return Err(DataProcessingError::InternalError("Invalid number of bytes passed to write neuronal YXCP data to!".into()))
         }
         
-        for i in 0 .. self.get_number_of_neurons_used() {
-            
+        let mut x_offset: usize = 0;
+        let mut y_offset = number_of_neurons_to_write * PER_NEURON_XYZP_SIZE / 4; // we want to be a quarter way
+        let mut c_offset = y_offset * 2; // half way
+        let mut p_offset = y_offset * 3; // three quarters way
+        
+        for i in 0 .. number_of_neurons_to_write {
+            let x_bytes = self.x[i].to_le_bytes();
+            let y_bytes = self.y[i].to_le_bytes();
+            let c_bytes = self.c[i].to_le_bytes();
+            let p_bytes = self.p[i].to_le_bytes();
+
+            bytes_to_write_to[x_offset .. x_offset + U32_F32_LENGTH].copy_from_slice(&x_bytes);
+            bytes_to_write_to[y_offset .. y_offset + U32_F32_LENGTH].copy_from_slice(&y_bytes);
+            bytes_to_write_to[c_offset .. c_offset + U32_F32_LENGTH].copy_from_slice(&c_bytes);
+            bytes_to_write_to[p_offset .. p_offset + U32_F32_LENGTH].copy_from_slice(&p_bytes);
+
+            x_offset += U32_F32_LENGTH;
+            y_offset += U32_F32_LENGTH;
+            c_offset += U32_F32_LENGTH;
+            p_offset += U32_F32_LENGTH;
         };
         
+        Ok(())
     }
 }
 

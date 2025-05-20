@@ -59,15 +59,15 @@ impl CorticalID {
     /// Returns an error if:
     /// * There aren't enough bytes available from the offset
     /// * The bytes contain non-ASCII characters
-    pub fn from_bytes_at(bytes: &[u8], offset: usize) -> Result<CorticalID, &'static str> {
+    pub fn from_bytes_at(bytes: &[u8], offset: usize) -> Result<CorticalID, DataProcessingError> { // TODO do not use offsets
         if offset + CORTICAL_ID_LENGTH > bytes.len() {
-            return Err("Not enough bytes starting from the given offset!");
+            return Err(DataProcessingError::InvalidInputBounds("Not enough bytes starting from the given offset!".into()));
         }
 
         let slice = &bytes[offset..offset + CORTICAL_ID_LENGTH];
 
         if !slice.iter().all(|&b| b.is_ascii()) {
-            return Err("Cortical ID must contain only ASCII characters!");
+            return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));
         }
 
         let mut inner = [0u8; CORTICAL_ID_LENGTH];

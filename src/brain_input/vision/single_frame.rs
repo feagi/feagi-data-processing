@@ -595,7 +595,7 @@ impl ImageFrame {
 
     // endregion
 
-    // region: byte data
+    // region: neuron export
 
     pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronYXCPArrays) -> Result<(), DataProcessingError> {
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
@@ -605,7 +605,7 @@ impl ImageFrame {
 
         write_target.reset_indexes();
         let mut writing_index: usize = 0;
-        let (y_vec, x_vec, c_vec, p_vec) = write_target.get_yxcp_vectors();
+        let (x_vec, y_vec, c_vec, p_vec) = write_target.get_as_xycp_vectors();
 
         for ((y, x, c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
             if color_val.abs() > threshold {
@@ -621,57 +621,6 @@ impl ImageFrame {
 
     }
 
-
-    /// Converts the image data to a byte array in XYZP format with thresholding.
-    ///
-    /// This method converts the image data into a compressed format where only pixels
-    /// exceeding the threshold value are included. The output is a byte array containing
-    /// the X, Y, Z coordinates and potential value for each significant pixel.
-    ///
-    /// # Arguments
-    ///
-    /// * `threshold` - The minimum absolute value a pixel must have to be included
-    ///
-    /// # Returns
-    ///
-    /// A Result containing either:
-    /// - Ok(Vec<u8>) containing the thresholded XYZP data
-    /// - Err(DataProcessingError) if the conversion fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::single_frame_processing::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let bytes = frame.as_thresholded_xyzp_byte_data(0.1).unwrap();
-    /// ```
-    pub fn as_thresholded_xyzp_byte_data(&self, threshold: f32) -> Result<Vec<u8>, DataProcessingError> {
-        let max_number_bytes_needed = self.get_number_of_max_number_bytes_needed_to_hold_xyzp_uncompressed();
-        let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
-        let mut sending_x: Vec<u32> = Vec::with_capacity(max_number_bytes_needed);
-        let mut sending_y: Vec<u32> = Vec::with_capacity(max_number_bytes_needed);
-        let mut sending_z: Vec<u32> = Vec::with_capacity(max_number_bytes_needed);
-        let mut sending_color: Vec<f32> = Vec::with_capacity(max_number_bytes_needed);
-
-        for ((y, x, c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
-            if color_val.abs() > threshold {
-                sending_x.push(x.clone() as u32);
-                sending_y.push(y_flip_distance - y.clone() as u32); // flip y
-                sending_z.push(c.clone() as u32);
-                sending_color.push(*color_val);
-            }
-        }
-
-        let mut output: Vec<u8> = Vec::with_capacity(sending_x.len() * 4 * 4); // 4 arrays, each element is 4 bytes
-        output.extend(sending_x.iter().flat_map(|x| x.to_le_bytes()));
-        output.extend(sending_y.iter().flat_map(|y| y.to_le_bytes()));
-        output.extend(sending_z.iter().flat_map(|z| z.to_le_bytes()));
-        output.extend(sending_color.iter().flat_map(|c| c.to_le_bytes()));
-
-        Ok(output)
-    }
 
 
     // endregion

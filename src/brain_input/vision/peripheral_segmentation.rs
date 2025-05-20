@@ -33,8 +33,6 @@ pub struct SegmentedVisionFrame {
     /// Resolution of the original source frame
     original_source_resolution: (usize, usize),
     // /// Corner points defining the boundaries of each segment
-    //segment_corner_points: SegmentedCornerPoints,
-    cached_cortical_data: [NeuronYXCPArrays; 1]
     
 }
 
@@ -58,9 +56,31 @@ impl SegmentedVisionFrame {
     /// * Creation of segment corner points fails
     pub fn new(source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
         let source_frame_width_height: (usize, usize) = source_frame.get_internal_resolution();
+        let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
+        let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame_width_height, inner_corners)?;
+        
+
+        // For all the following, we know the crops are safe
+        Ok(SegmentedVisionFrame{
+            lower_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_left, &segment_resolutions.lower_left)?,
+            middle_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.middle_left, &segment_resolutions.middle_left)?,
+            upper_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_left, &segment_resolutions.upper_left)?,
+            upper_middle: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_middle, &segment_resolutions.upper_middle)?,
+            upper_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_right, &segment_resolutions.upper_right)?,
+            middle_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.middle_right, &segment_resolutions.middle_right)?,
+            lower_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_right, &segment_resolutions.lower_right)?,
+            lower_middle: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_middle, &segment_resolutions.lower_middle)?,
+            center: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.center, &segment_resolutions.center)?,
+            original_source_resolution: source_frame_width_height,
+        })
+        
+    }
+
+    pub fn new_no_segment_test_temp(source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
+        let source_frame_width_height: (usize, usize) = source_frame.get_internal_resolution();
         //let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
         //let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame_width_height, inner_corners)?;
-        
+
         /*
         // For all the following, we know the crops are safe
         Ok(SegmentedVisionFrame{
@@ -78,7 +98,7 @@ impl SegmentedVisionFrame {
         })
         
          */
-        
+
         Ok(SegmentedVisionFrame{
             lower_left: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
             middle_left: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
@@ -90,13 +110,11 @@ impl SegmentedVisionFrame {
             lower_middle: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
             center: source_frame.clone(),
             original_source_resolution: source_frame_width_height,
-            cached_cortical_data: [
-                NeuronYXCPArrays::new_from_resolution((source_frame_width_height.0, source_frame_width_height.1, 3))?
-            ]
         })
-        
-    }
 
+    }
+    
+    
     /*
     /// Updates the segmentation with a new focus point while using the same source frame
     ///
@@ -337,7 +355,7 @@ impl SegmentedVisionFrame {
         &self.center
     }
 
-    fn u8_to_hex_chars(& self, n: u8) -> (char, char) { // TODO this should be moved elsewhere
+    fn u8_to_hex_chars(& self, n: u8) -> (char, char) { // TODO this should be moved elsewhere // TODO moving this to cortical ID makes sense
         const HEX_CHARS: &[u8; 16] = b"0123456789ABCDEF";
         let high = HEX_CHARS[(n >> 4) as usize] as char;
         let low = HEX_CHARS[(n & 0x0F) as usize] as char;
