@@ -1,12 +1,13 @@
 use std::collections::HashMap;
-use ndarray::{Array1};
 use crate::cortical_area_state::cortical_data::CorticalID;
 use crate::Error::DataProcessingError;
 
 pub type CorticalMappedNeuronData = HashMap<CorticalID, NeuronYXCPArrays>;
 
+
 pub type XYCPOrderedVectorWriteTargets<'a> = (&'a mut Vec<u32>, &'a mut Vec<u32>, &'a mut Vec<u32>, &'a mut Vec<f32>);
 
+#[derive(Clone)]
 pub struct NeuronYXCPArrays{
     x: Vec<u32>, // Remember, FEAGI is cartesian!
     y: Vec<u32>,

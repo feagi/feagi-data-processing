@@ -59,7 +59,7 @@ impl CorticalID {
     /// Returns an error if:
     /// * There aren't enough bytes available from the offset
     /// * The bytes contain non-ASCII characters
-    pub fn from_bytes_at(bytes: &[u8], offset: usize) -> Result<CorticalID, DataProcessingError> {
+    pub fn from_bytes_at(bytes: &[u8], offset: usize) -> Result<CorticalID, DataProcessingError> { // TODO do not use offsets
         if offset + CORTICAL_ID_LENGTH > bytes.len() {
             return Err(DataProcessingError::InvalidInputBounds("Not enough bytes starting from the given offset!".into()));
         }
