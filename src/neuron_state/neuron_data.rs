@@ -28,6 +28,73 @@ impl NeuronYXCPArrays{
         })
     }
     
+    pub fn cortical_mapped_neuron_data_to_bytes(mapped_data: CorticalMappedNeuronData) -> Result<Vec<u8>, DataProcessingError> {
+        const BYTE_STRUCT_ID: u8 = 11;
+        const BYTE_STRUCT_VERSION: u8 = 1;
+        const GLOBAL_HEADER_SIZE: usize = 2;
+        const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
+        const PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 14;
+        const PER_NEURON_XYZP_SIZE: usize = 16;
+
+
+        // Calculate prerequisite info
+        let number_cortical_areas: usize = mapped_data.len();
+        let mut number_of_neurons_total: usize = 0;
+        for (_, neuron_data) in &mapped_data {
+            number_of_neurons_total += neuron_data.get_number_of_neurons_used();
+        };
+        
+        let total_length_of_byte_structure = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE +
+            (number_cortical_areas * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE) +
+            (number_of_neurons_total * PER_NEURON_XYZP_SIZE);
+
+        let mut output: Vec<u8> = vec![0; total_length_of_byte_structure];
+
+        // Fill in constant size header
+        output[0] = BYTE_STRUCT_ID;
+        output[1] = BYTE_STRUCT_VERSION;
+
+        let count_bytes: [u8; 2] = (number_cortical_areas as u16).to_le_bytes();
+        output[2..4].copy_from_slice(&count_bytes);
+
+        let mut header_write_index: usize = 4;
+        let mut data_write_index: usize = header_write_index + (number_cortical_areas * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE);
+        
+        let mut data_write_index: u32 = 4 + (number_cortical_areas as u32 * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
+        
+        // fill in cortical descriptors header
+        for (cortical_id, neuron_data) in &mapped_data {
+            let reading_start: u32 = data_write_index;
+            let reading_length: u32 = neuron_data.get_number_of_neurons_used() as u32 * PER_NEURON_XYZP_SIZE as u32;
+            let reading_start_bytes: [u8; 4] = reading_start.to_le_bytes();
+            let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
+
+            cortical_id.write_bytes_at(&mut output[header_write_index..header_write_index + 6]);
+            output[header_write_index + 6.. header_write_index + 10].copy_from_slice(&reading_start_bytes);
+            output[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
+            
+            output[data_write_index .. data_write_index + reading_length] = 
+        }
+        
+        
+        for cortical_index in 0..CORTICAL_AREA_COUNT as usize {
+            let cortical_id_bytes = (&cortical_ids[cortical_index]).as_bytes(); // We know this to be ascii
+            let reading_start_index: u32 = data_write_index;
+            let reading_start_index_bytes: [u8; 4] = reading_start_index.to_le_bytes();
+            let reading_length: u32 = number_bytes_per_segment[cortical_index] as u32; // TODO divide by 4
+            let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
+
+            output[header_write_index..header_write_index + 6].copy_from_slice(cortical_id_bytes);
+            output[header_write_index + 6.. header_write_index + 10].copy_from_slice(&reading_start_index_bytes);
+            output[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
+
+            header_write_index += PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
+            data_write_index += reading_length;
+        };
+        
+        
+    }
+    
     pub fn new_from_resolution(resolution: (usize, usize, usize)) -> Result<Self, DataProcessingError> {
         return crate::neuron_state::neuron_data::NeuronYXCPArrays::new(resolution.0 * resolution.1 * resolution.2);
     }
@@ -45,6 +112,30 @@ impl NeuronYXCPArrays{
         self.y.truncate(0);
         self.c.truncate(0);
         self.p.truncate(0);
+    }
+    
+    pub fn validate_equal_vector_lengths(&self) -> Result<(), DataProcessingError> {
+        if !(self.y == self.x && self.x == self.c && self.c == self.p){
+            return return Err(DataProcessingError::InternalError("Internal YXCP Arrays do not have equal lengths!".into()));
+        }
+        Ok(())
+    }
+    
+    pub fn get_number_of_neurons_used(&self) -> usize {
+        return self.p.len();
+    }
+    
+    pub fn write_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), DataProcessingError> {
+        const PER_NEURON_XYZP_SIZE: usize = 16;
+        let number_bytes_needed = PER_NEURON_XYZP_SIZE * self.get_number_of_neurons_used();
+        if bytes_to_write_to.len() != number_bytes_needed {
+            return Err(DataProcessingError::InternalError("Invalid number of bytes passed to write neuroal YXCP data to!".into()))
+        }
+        
+        for i in 0 .. self.get_number_of_neurons_used() {
+            
+        };
+        
     }
 }
 

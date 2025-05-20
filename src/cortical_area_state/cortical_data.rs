@@ -91,4 +91,12 @@ impl CorticalID {
         std::str::from_utf8(&self.id).unwrap()
     }
     
+    pub fn write_bytes_at(&self, bytes_to_write_at: &mut [u8]) -> Result<(), DataProcessingError> {
+        if bytes_to_write_at.len() != CORTICAL_ID_LENGTH {
+            return Err(DataProcessingError::InvalidInputBounds("Cortical Area ID need a length of exactly 6 bytes to fit!".into()));
+        };
+        bytes_to_write_at.copy_from_slice(&self.id);
+        Ok(())
+    }
+    
 }
