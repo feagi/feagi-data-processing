@@ -1,6 +1,6 @@
 use super::single_frame::ImageFrame;
 use crate::error::DataProcessingError;
-use super::single_frame_processing::*;
+use super::descriptors::*;
 use crate::cortical_data::CorticalID;
 use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
 use std::cmp;
@@ -32,7 +32,7 @@ pub struct SegmentedVisionFrame {
     /// Resolution of the original source frame
     original_source_resolution: (usize, usize),
     // /// Corner points defining the boundaries of each segment
-    
+
 }
 
 impl SegmentedVisionFrame {
@@ -74,7 +74,7 @@ impl SegmentedVisionFrame {
         })
         
     }
-    
+
     // temp for testing purposes, but delete me later
     pub fn new_no_segment_test_temp(source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
         let source_frame_width_height: (usize, usize) = source_frame.get_internal_resolution();
@@ -96,7 +96,7 @@ impl SegmentedVisionFrame {
             original_source_resolution: source_frame_width_height,
             segment_corner_points
         })
-        
+
          */
 
         Ok(SegmentedVisionFrame{
@@ -113,8 +113,8 @@ impl SegmentedVisionFrame {
         })
 
     }
-    
-    
+
+
     /*
     /// Updates the segmentation with a new focus point while using the same source frame
     ///
@@ -251,9 +251,9 @@ impl SegmentedVisionFrame {
         for cortical_id_string in cortical_ids.iter_mut(){
             cortical_id_string.replace_range(2..4, &format!("{}{}", replacement_chars.0, replacement_chars.1));
         }
-        
-        
-        
+
+
+
         let cortical_data_per_segment: [Vec<u8>; 9] = [
             self.center.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
             self.lower_left.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
@@ -313,7 +313,7 @@ impl SegmentedVisionFrame {
         };
         Ok(output)
     }
-    
+
      */
 
     pub fn export_as_cortical_mapped_neuron_data(&mut self, camera_index: u8, ) -> Result<CorticalMappedNeuronData, DataProcessingError> {
@@ -334,8 +334,8 @@ impl SegmentedVisionFrame {
         for cortical_id_string in cortical_ids.iter_mut(){
             cortical_id_string.replace_range(2..4, &format!("{}{}", replacement_chars.0, replacement_chars.1));
         };
-        
-        
+
+
         // TODO only center right now
         let mut output: CorticalMappedNeuronData = CorticalMappedNeuronData::new();
         let center_id: CorticalID = CorticalID::from_str(&"iv00CC")?;
@@ -346,11 +346,11 @@ impl SegmentedVisionFrame {
         }
 
         output.insert(center_id, center_data);
-        
+
         Ok(output)
     }
-    
-    
+
+
     pub fn get_center_image_frame(&self) -> &ImageFrame {
         &self.center
     }
@@ -361,8 +361,8 @@ impl SegmentedVisionFrame {
         let low = HEX_CHARS[(n & 0x0F) as usize] as char;
         (high, low)
     }
-    
-    
+
+
     
 }
 
