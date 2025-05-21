@@ -1,7 +1,7 @@
 use ndarray::{s, Array3, ArrayView3};
 use crate::Error::DataProcessingError;
 use super::single_frame_processing::*;
-use crate::neuron_state::neuron_data::NeuronYXCPArrays;
+use crate::neuron_state::NeuronXYCPArrays;
 
 
 #[derive(Clone)]
@@ -619,15 +619,14 @@ impl ImageFrame {
 
     // region: neuron export
 
-    pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronYXCPArrays) -> Result<(), DataProcessingError> {
+    pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronXYCPArrays) -> Result<(), DataProcessingError> {
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
         if write_target.get_max_possible_number_of_neurons_out() < self.get_max_capacity_neuron_count() {
             return Err(DataProcessingError::InternalError("Given NeuronXYZP structure is too small!".into()));
         }
 
-        write_target.reset_indexes();
-        let mut writing_index: usize = 0;
-        let (x_vec, y_vec, c_vec, p_vec) = write_target.get_as_xycp_vectors();
+        write_target.reset_indexes(); // Ensure we push from the start
+        let (x_vec, y_vec, c_vec, p_vec) = write_target.get_as_xycp_vectors(); // FEAGI neuron data is cartesian
 
         for ((y, x, c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
             if color_val.abs() > threshold {
@@ -635,7 +634,6 @@ impl ImageFrame {
                 y_vec.push( y_flip_distance - y as u32);  // flip y
                 c_vec.push(c as u32);
                 p_vec.push(*color_val);
-                writing_index += 1;
             }
         };
 
