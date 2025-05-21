@@ -98,6 +98,19 @@ impl NeuronXYCPArrays{
     pub fn get_max_possible_number_of_neurons_out(&self) -> usize {
         self.max_number_neurons
     }
+    
+    pub fn expand_to_new_max_count_if_required(&mut self, new_max_neuron_count: usize) {
+        const NUMBER_BYTES_PER_NEURON: usize = 16;
+        
+        if (new_max_neuron_count > self.max_number_neurons) // only expand if needed
+        {
+            self.x = Vec::with_capacity(NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
+            self.y = Vec::with_capacity(NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
+            self.c = Vec::with_capacity(NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
+            self.p = Vec::with_capacity(NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
+            self.max_number_neurons = new_max_neuron_count
+        }
+    }
 
     pub fn reset_indexes(&mut self) {
         self.x.truncate(0);

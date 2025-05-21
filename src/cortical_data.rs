@@ -1,5 +1,35 @@
 use crate::error::DataProcessingError;
 
+/*
+pub enum CorticalAreaType {
+    Motor(MotorType),
+    Sensor(SensorType)
+}
+
+pub enum MotorType {
+    Servo,
+}
+
+pub enum SensorType {
+    Battery,
+    Camera(CameraType)
+}
+
+pub enum CameraType {
+    Center,
+    LowerLeft,
+    MiddleLeft,
+    UpperLeft,
+    UpperMiddle,
+    UpperRight,
+    MiddleRight,
+    LowerRight,
+    LowerMiddle,
+}
+
+ */
+
+
 /// Length of Cortical Area ID As ASCII characters / bytes
 const CORTICAL_ID_LENGTH: usize = 6;
 
@@ -73,8 +103,8 @@ impl CorticalID {
         let mut inner = [0u8; CORTICAL_ID_LENGTH];
         inner.copy_from_slice(bytes);
         Ok(CorticalID { id: inner })
-        
     }
+    
 
     /// Converts the CorticalID to a string slice
     ///

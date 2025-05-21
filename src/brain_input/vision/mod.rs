@@ -119,7 +119,7 @@ impl ImageFrame {
     /// ```
     pub fn from_array_with_processing(source_color_space: ColorSpace, image_processing: FrameProcessingParameters, input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
         // Let us set the memory order correct first, this has 0 cost
-        let processed_input = ImageFrame::change_memory_order_to_row_major(input, image_processing.get_memory_ordering_of_source());
+        let processed_input = ImageFrame::change_memory_order_to_row_major(input, image_processing.memory_ordering_of_source);
 
         let processing_steps_required = image_processing.process_steps_required_to_run();
 
@@ -134,30 +134,30 @@ impl ImageFrame {
             (true, true, false, false, false, false) => {
                 // crop from and resize to
                 let source_frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT);
-                ImageFrame::create_from_source_frame_crop_and_resize(&source_frame?, &image_processing.get_cropping_from().unwrap(), &image_processing.get_resizing_to().unwrap())
+                ImageFrame::create_from_source_frame_crop_and_resize(&source_frame?, &image_processing.cropping_from.unwrap(), &image_processing.resizing_to.unwrap())
             }
 
             _ => {
                 // We do not have an optimized pathway, just do this sequentially (although this is considerably slower)
                 let mut frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT)?;
 
-                if image_processing.get_cropping_from().is_some() {
-                    let corner_points_cropping = &image_processing.get_cropping_from().unwrap();
+                if image_processing.cropping_from.is_some() {
+                    let corner_points_cropping = &image_processing.cropping_from.unwrap();
                     let _ = frame.crop_to(corner_points_cropping)?;
                 };
 
-                if image_processing.get_resizing_to().is_some() {
-                    let corner_points_resizing = &image_processing.get_resizing_to().unwrap();
+                if image_processing.resizing_to.is_some() {
+                    let corner_points_resizing = &image_processing.resizing_to.unwrap();
                     let _ = frame.resize_nearest_neighbor(corner_points_resizing)?;
                 };
 
-                if image_processing.get_multiply_brightness_by().is_some() {
-                    let brightness = image_processing.get_multiply_brightness_by().unwrap();
+                if image_processing.multiply_brightness_by.is_some() {
+                    let brightness = image_processing.multiply_brightness_by.unwrap();
                     let _ = frame.change_brightness_multiplicative(brightness)?;
                 };
 
-                if image_processing.get_change_contrast_by().is_some() {
-                    let change_contrast_by = image_processing.get_change_contrast_by().unwrap();
+                if image_processing.change_contrast_by.is_some() {
+                    let change_contrast_by = image_processing.change_contrast_by.unwrap();
                     let _ = frame.change_contrast(change_contrast_by)?;
                 };
 
@@ -627,7 +627,7 @@ impl ImageFrame {
     pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronXYCPArrays) -> Result<(), DataProcessingError> {
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
         if write_target.get_max_possible_number_of_neurons_out() < self.get_max_capacity_neuron_count() {
-            return Err(DataProcessingError::InternalError("Given NeuronXYZP structure is too small!".into()));
+            write_target.expand_to_new_max_count_if_required(self.get_max_capacity_neuron_count());
         }
 
         write_target.reset_indexes(); // Ensure we push from the start

@@ -3,7 +3,6 @@ use crate::error::DataProcessingError;
 use super::descriptors::*;
 use crate::cortical_data::CorticalID;
 use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
-use std::cmp;
 
 /// A frame divided into nine segments with different resolutions. Used for Peripheral vision in FEAGI
 ///
@@ -73,45 +72,6 @@ impl SegmentedVisionFrame {
             original_source_resolution: source_frame_width_height,
         })
         
-    }
-
-    // temp for testing purposes, but delete me later
-    pub fn new_no_segment_test_temp(source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
-        let source_frame_width_height: (usize, usize) = source_frame.get_internal_resolution();
-        //let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
-        //let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame_width_height, inner_corners)?;
-
-        /*
-        // For all the following, we know the crops are safe
-        Ok(SegmentedVisionFrame{
-            lower_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_left, &segment_resolutions.lower_left)?,
-            middle_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.middle_left, &segment_resolutions.middle_left)?,
-            upper_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_left, &segment_resolutions.upper_left)?,
-            upper_middle: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_middle, &segment_resolutions.upper_middle)?,
-            upper_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_right, &segment_resolutions.upper_right)?,
-            middle_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.middle_right, &segment_resolutions.middle_right)?,
-            lower_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_right, &segment_resolutions.lower_right)?,
-            lower_middle: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_middle, &segment_resolutions.lower_middle)?,
-            center: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.center, &segment_resolutions.center)?,
-            original_source_resolution: source_frame_width_height,
-            segment_corner_points
-        })
-
-         */
-
-        Ok(SegmentedVisionFrame{
-            lower_left: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
-            middle_left: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
-            upper_left: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
-            upper_middle: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
-            upper_right: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
-            middle_right: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
-            lower_right: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
-            lower_middle: ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(1, 1)),
-            center: source_frame.clone(),
-            original_source_resolution: source_frame_width_height,
-        })
-
     }
 
 
@@ -199,162 +159,68 @@ impl SegmentedVisionFrame {
 
     }
      */
+    
+    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: u8) -> Result<CorticalMappedNeuronData, DataProcessingError> {
 
-    /*
-    /// Exports the segmented vision frame as a byte array containing neuron potential data. See FEAGI byte Structure 11 for more details.
-    ///
-    /// This function converts the segmented vision frame into a binary form. The output includes
-    /// headers and data for all nine segments (center and peripheral regions), with each segment's
-    /// data containing XYZ coordinates and potential values.
-    ///
-    /// # Arguments
-    ///
-    /// * `camera_index` - An 8-bit identifier for the camera source (0-255)
-    ///
-    /// # Returns
-    ///
-    /// * `Result<Vec<u8>, &'static str>` - A byte vector containing the formatted data or an error message
-    ///
-    /// # Format
-    ///
-    /// The output byte array follows this structure:
-    /// - Global header (2 bytes): Structure ID and version (11, 1)
-    /// - Cortical count header (2 bytes): Number of cortical areas (u16)
-    /// - Per-cortical headers (14 bytes each): ID, start index, and length for each segment
-    /// - Data section: XYZP (X,Y,Z coordinates and potential) values for each segment
-    /// ```
-    pub fn direct_export_as_byte_neuron_potential_categorical_xyz(&self, camera_index: u8, pixel_abs_threshold: f32) -> Result<Vec<u8>, DataProcessingError> {
+        let ordered_refs: [&mut ImageFrame; 9] = [&mut self.center, &mut self.lower_left, &mut self.middle_left,
+            &mut self.upper_left, &mut self.upper_middle, &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,
+            &mut self.lower_middle];
+        
+        let mut cortical_ids: [CorticalID; 9] = [CorticalID::from_str("iv00_C")?,
+            CorticalID::from_str("iv00BL")?, CorticalID::from_str("iv00ML")?,
+            CorticalID::from_str("iv00TL")?, CorticalID::from_str("iv00TM")?,
+            CorticalID::from_str("iv00TR")?, CorticalID::from_str("iv00MR")?,
+            CorticalID::from_str("iv00BR")?, CorticalID::from_str("iv00BM")?]; // same order as other struct members
 
-        const BYTE_STRUCT_ID: u8 = 11;
-        const BYTE_STRUCT_VERSION: u8 = 1;
-        const CORTICAL_AREA_COUNT: u16 = 9;
-        const GLOBAL_HEADER_SIZE: usize = 2;
-        const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
-        const PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 14;
-        const PER_NEURON_XYZP_SIZE: usize = 16;
-
-        // Calculate prerequisite info
-
-        let ordered_refs: [&ImageFrame; 9] = [&self.center, &self.lower_left, &self.middle_left,
-        &self.upper_left, &self.upper_middle, &self.upper_right, &self.middle_right, &self.lower_right,
-        &self.lower_middle];
-
-        let mut cortical_ids: [String; 9] = [String::from("iv00_C"),
-            String::from("iv00BL"), String::from("iv00ML"), String::from("iv00TL"),
-            String::from("iv00TM"), String::from("iv00TR"), String::from("iv00MR"),
-            String::from("iv00BR"), String::from("iv00BM")]; // same order as other struct members
-        if self.center.get_color_channel_count() > 1 {
+        if ordered_refs[0].get_color_channel_count() > 1 {
             // Ensure we aren't using grays scale cortical area ID if we are doing things in color
-            cortical_ids[0] = String::from("iv00CC")
+            cortical_ids[0] = CorticalID::from_str("iv00CC")?
         }
+        
+        // TODO user camera index
+        /*
         let replacement_chars = self.u8_to_hex_chars(camera_index);
-        for cortical_id_string in cortical_ids.iter_mut(){
-            cortical_id_string.replace_range(2..4, &format!("{}{}", replacement_chars.0, replacement_chars.1));
-        }
-
-
-
-        let cortical_data_per_segment: [Vec<u8>; 9] = [
-            self.center.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
-            self.lower_left.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
-            self.middle_left.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
-            self.upper_left.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
-            self.upper_middle.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
-            self.upper_right.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
-            self.middle_right.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
-            self.lower_right.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
-            self.lower_middle.as_thresholded_xyzp_byte_data(pixel_abs_threshold)?,
-        ];
-
-
-
-
-
-
-        let number_bytes_per_segment: [usize; 9] = ordered_refs.map(|s| s.get_number_of_bytes_needed_to_hold_xyzp_uncompressed());
-        
-        let byte_array_length: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE +
-            (CORTICAL_AREA_COUNT as usize * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE) +
-            number_bytes_per_segment.iter().sum::<usize>();
-        
-        // Create Byte Array, and fill in header
-        
-        let mut output: Vec<u8> = vec![0; byte_array_length];
-        output[0] = BYTE_STRUCT_ID;
-        output[1] = BYTE_STRUCT_VERSION;
-        
-        let count_bytes: [u8; 2] = CORTICAL_AREA_COUNT.to_le_bytes();
-        output[2..4].copy_from_slice(&count_bytes);
-        
-        let mut header_write_index: usize = 4;
-        let mut data_write_index: u32 = 4 + (CORTICAL_AREA_COUNT as u32 * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
-        
-        for cortical_index in 0..CORTICAL_AREA_COUNT as usize {
-            let cortical_id_bytes = (&cortical_ids[cortical_index]).as_bytes(); // We know this to be ascii
-            let reading_start_index: u32 = data_write_index;
-            let reading_start_index_bytes: [u8; 4] = reading_start_index.to_le_bytes();
-            let reading_length: u32 = number_bytes_per_segment[cortical_index] as u32; // TODO divide by 4
-            let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
-
-            output[header_write_index..header_write_index + 6].copy_from_slice(cortical_id_bytes);
-            output[header_write_index + 6.. header_write_index + 10].copy_from_slice(&reading_start_index_bytes);
-            output[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
-            
-            header_write_index += PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
-            data_write_index += reading_length;
-        };
-        
-        // fill in data
-        let data_write_index: usize = 4 + (CORTICAL_AREA_COUNT as usize * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE);
-        for cortical_index in 0..CORTICAL_AREA_COUNT as usize {
-            let data_length: usize = ordered_refs[cortical_index].get_number_of_bytes_needed_to_hold_xyzp_uncompressed();
-            let relevant_slice: &mut [u8] = &mut output[data_write_index..data_write_index + data_length];
-            let _ = ordered_refs[cortical_index].to_bytes_in_place(relevant_slice)?;
-        };
-        Ok(output)
-    }
-
-     */
-
-    pub fn export_as_cortical_mapped_neuron_data(&mut self, camera_index: u8, ) -> Result<CorticalMappedNeuronData, DataProcessingError> {
-
-        let ordered_refs: [&ImageFrame; 9] = [&self.center, &self.lower_left, &self.middle_left,
-            &self.upper_left, &self.upper_middle, &self.upper_right, &self.middle_right, &self.lower_right,
-            &self.lower_middle];
-
-        let mut cortical_ids: [String; 9] = [String::from("iv00_C"),
-            String::from("iv00BL"), String::from("iv00ML"), String::from("iv00TL"),
-            String::from("iv00TM"), String::from("iv00TR"), String::from("iv00MR"),
-            String::from("iv00BR"), String::from("iv00BM")]; // same order as other struct members
-        if self.center.get_color_channel_count() > 1 {
-            // Ensure we aren't using grays scale cortical area ID if we are doing things in color
-            cortical_ids[0] = String::from("iv00CC")
-        }
-        let replacement_chars = self.u8_to_hex_chars(camera_index);
-        for cortical_id_string in cortical_ids.iter_mut(){
+        for cortical_id_string in cortical_ids_strings.iter_mut(){
             cortical_id_string.replace_range(2..4, &format!("{}{}", replacement_chars.0, replacement_chars.1));
         };
+        
+         */
 
-
-        // TODO only center right now
         let mut output: CorticalMappedNeuronData = CorticalMappedNeuronData::new();
-        let center_id: CorticalID = CorticalID::from_str(&"iv00CC")?;
-        let center_max_neurons = self.center.get_max_capacity_neuron_count();
-        let mut center_data: NeuronYXCPArrays = NeuronYXCPArrays::new(center_max_neurons)?;
-        {
-            self.center.write_thresholded_xyzp_neuron_arrays(10.0, &mut center_data);
+        
+        for index in 0..9 {
+            let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
+            let mut data: NeuronXYCPArrays = NeuronXYCPArrays::new(max_neurons)?;
+            ordered_refs[index].write_thresholded_xyzp_neuron_arrays(10.0, &mut data);
+            output.insert(cortical_ids[index].clone(), data);
         }
-
-        output.insert(center_id, center_data);
-
+        
         Ok(output)
     }
-
-
-    pub fn get_center_image_frame(&self) -> &ImageFrame {
-        &self.center
+    
+    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_IDs: [CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedNeuronData) -> Result<(), DataProcessingError> {
+        let ordered_refs: [&mut ImageFrame; 9] = [&mut self.center, &mut self.lower_left, &mut self.middle_left,
+            &mut self.upper_left, &mut self.upper_middle, &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,
+            &mut self.lower_middle];
+        
+        let id_counter: usize = 0;
+        for index in 0..9 {
+            let cortical_id = &ordered_cortical_IDs[index];
+            let mapped_neuron_data = all_mapped_neuron_data.get_mut(cortical_id);
+            match mapped_neuron_data { 
+                None => {
+                    return Err(DataProcessingError::InternalError("Unable to find cortical area to unwrap!".into())); // TODO specific error?
+                }
+                Some(mapped_data) => {
+                    ordered_refs[index].write_thresholded_xyzp_neuron_arrays(10.0, mapped_data)?;
+                }
+            }
+        }
+        Ok(())
     }
-
+    
+    
+    
     fn u8_to_hex_chars(& self, n: u8) -> (char, char) { // TODO this should be moved elsewhere // TODO moving this to cortical ID makes sense
         const HEX_CHARS: &[u8; 16] = b"0123456789ABCDEF";
         let high = HEX_CHARS[(n >> 4) as usize] as char;

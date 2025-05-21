@@ -10,13 +10,13 @@ use crate::error::DataProcessingError;
 /// being optional. The processing steps are applied in a specific order when used.
 #[derive(PartialEq, Clone, Copy)]
 pub struct FrameProcessingParameters {
-    cropping_from: Option<CornerPoints>,
-    resizing_to: Option<(usize, usize)>,
-    multiply_brightness_by: Option<f32>,
-    change_contrast_by: Option<f32>,
-    memory_ordering_of_source: MemoryOrderLayout,
-    convert_to_grayscale: bool, // TODO
-    convert_color_space_to: Option<ColorSpace>, // TODO
+    pub cropping_from: Option<CornerPoints>,
+    pub resizing_to: Option<(usize, usize)>,
+    pub multiply_brightness_by: Option<f32>,
+    pub change_contrast_by: Option<f32>,
+    pub memory_ordering_of_source: MemoryOrderLayout,
+    pub convert_to_grayscale: bool, // TODO
+    pub convert_color_space_to: Option<ColorSpace>, // TODO
 }
 
 impl FrameProcessingParameters {
@@ -158,41 +158,6 @@ impl FrameProcessingParameters {
     pub fn enable_convert_to_color_space_to(&mut self, color_space: ColorSpace) -> &mut Self {
         self.convert_color_space_to = Some(color_space);
         self
-    }
-    
-    /// Returns the cropping region if set.
-    pub fn get_cropping_from(&self) -> Option<CornerPoints> {
-        self.cropping_from
-    }
-    
-    /// Returns the target resolution for resizing if set.
-    pub fn get_resizing_to(&self) -> Option<(usize, usize)> {
-        self.resizing_to
-    }
-    
-    /// Returns the brightness multiplication factor if set.
-    pub fn get_multiply_brightness_by(&self) -> Option<f32> {
-        self.multiply_brightness_by
-    }
-    
-    /// Returns the contrast adjustment factor if set.
-    pub fn get_change_contrast_by(&self) -> Option<f32> {
-        self.change_contrast_by
-    }
-    
-    /// Returns the memory layout of the source array.
-    pub fn get_memory_ordering_of_source(&self) -> MemoryOrderLayout {
-        self.memory_ordering_of_source
-    }
-    
-    /// Returns whether grayscale conversion is enabled.
-    pub fn get_convert_to_grayscale(&self) -> bool {
-        self.convert_to_grayscale
-    }
-    
-    /// Returns the target color space for conversion if set.
-    pub fn get_convert_to_color_space_to(&self) -> Option<ColorSpace> {
-        self.convert_color_space_to
     }
     
     /// Returns a tuple indicating which processing steps are required.
@@ -475,23 +440,23 @@ impl SegmentedVisionCenterProperties {
 #[derive(PartialEq, Clone, Copy)]
 pub struct SegmentedVisionTargetResolutions {
     /// Resolution for lower-left segment as (width, height)
-    lower_left: (usize, usize),
+    pub lower_left: (usize, usize),
     /// Resolution for middle-left segment as (width, height)
-    middle_left: (usize, usize),
+    pub middle_left: (usize, usize),
     /// Resolution for upper-left segment as (width, height)
-    upper_left: (usize, usize),
+    pub upper_left: (usize, usize),
     /// Resolution for upper-middle segment as (width, height)
-    upper_middle: (usize, usize),
+    pub upper_middle: (usize, usize),
     /// Resolution for upper-right segment as (width, height)
-    upper_right: (usize, usize),
+    pub upper_right: (usize, usize),
     /// Resolution for middle-right segment as (width, height)
-    middle_right: (usize, usize),
+    pub middle_right: (usize, usize),
     /// Resolution for lower-right segment as (width, height)
-    lower_right: (usize, usize),
+    pub lower_right: (usize, usize),
     /// Resolution for lower-middle segment as (width, height)
-    lower_middle: (usize, usize),
+    pub lower_middle: (usize, usize),
     /// Resolution for center segment as (width, height)
-    center: (usize, usize),
+    pub center: (usize, usize),
 }
 
 impl SegmentedVisionTargetResolutions {
@@ -532,5 +497,7 @@ impl SegmentedVisionTargetResolutions {
                                                      peripheral_width_height, peripheral_width_height,
                                                      center_width_height)
     }
+    
+    
 
 }
