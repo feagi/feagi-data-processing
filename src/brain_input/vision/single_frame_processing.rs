@@ -1,4 +1,4 @@
-use crate::Error::DataProcessingError;
+use crate::error::DataProcessingError;
 
 /// Parameters for processing an image frame, including cropping, resizing, and color adjustments.
 ///
@@ -215,7 +215,7 @@ impl FrameProcessingParameters {
 /// Holds pixel coordinates for cropping in row-major order.
 ///
 /// The coordinates are inclusive on the bottom-left and exclusive on the top-right.
-/// In row-major order, (0,0) is at the top-left corner, with Y increasing downward
+/// In row-major order, (0,0) is in the top-left corner, with Y increasing downward
 /// and X increasing rightward.
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct CornerPoints {
@@ -230,21 +230,21 @@ impl CornerPoints {
     ///
     /// # Arguments
     ///
-    /// * `lower_left` - The bottom-left corner as (y, x)
-    /// * `upper_right` - The top-right corner as (y, x)
+    /// * `lower_left_yx` - The bottom-left corner as (y, x)
+    /// * `upper_right_ux` - The top-right corner as (y, x)
     ///
     /// # Returns
     ///
     /// A Result containing either:
     /// - Ok(CornerPoints) if the coordinates are valid
     /// - Err(DataProcessingError) if the coordinates are invalid
-    pub fn new_from_row_major_where_origin_top_left(lower_left: (usize, usize), upper_right: (usize, usize)) -> Result<CornerPoints,  DataProcessingError> {
-        if lower_left.1 <= upper_right.1 || lower_left.0 >= upper_right.0 {
+    pub fn new_from_row_major(lower_left_yx: (usize, usize), upper_right_yx: (usize, usize)) -> Result<CornerPoints,  DataProcessingError> {
+        if lower_left_yx.1 < upper_right_yx.1 || lower_left_yx.0 > upper_right_yx.0 {
             return Err(DataProcessingError::InvalidInputBounds("The lower left point must have a greater Y index and a smaller X index than the upper right point!".into()));
         };
         Ok(CornerPoints {
-            lower_left,
-            upper_right
+            lower_left: lower_left_yx,
+            upper_right: upper_right_yx 
         })
     }
 
@@ -252,27 +252,27 @@ impl CornerPoints {
     ///
     /// # Arguments
     ///
-    /// * `left_lower_cartesian` - The bottom-left corner in cartesian coordinates (x, y)
-    /// * `right_upper_cartesian` - The top-right corner in cartesian coordinates (x, y)
-    /// * `total_resolution_width_height` - The total resolution as (width, height)
+    /// * `left_lower_xy` - The bottom-left corner in cartesian coordinates (x, y)
+    /// * `right_upper_xy` - The top-right corner in cartesian coordinates (x, y)
+    /// * `total_source_resolution_width_height` - The total resolution as (width, height)
     ///
     /// # Returns
     ///
     /// A Result containing either:
     /// - Ok(CornerPoints) if the coordinates are valid
     /// - Err(DataProcessingError) if the coordinates are invalid or out of bounds
-    pub fn new_from_cartesian_where_origin_bottom_left(
-        left_lower_cartesian: (usize, usize), right_upper_cartesian: (usize, usize),
-        total_resolution_width_height: (usize, usize))
+    pub fn new_from_cartesian(
+        left_lower_xy: (usize, usize), right_upper_xy: (usize, usize),
+        total_source_resolution_width_height: (usize, usize))
         -> Result<CornerPoints,  DataProcessingError> {
-        if left_lower_cartesian.0 > total_resolution_width_height.0 || right_upper_cartesian.0 > total_resolution_width_height.0 ||
-            left_lower_cartesian.1 > total_resolution_width_height.1 || right_upper_cartesian.1 > total_resolution_width_height.1 {
+        if left_lower_xy.0 > total_source_resolution_width_height.0 || right_upper_xy.0 > total_source_resolution_width_height.0 ||
+            left_lower_xy.1 > total_source_resolution_width_height.1 || right_upper_xy.1 > total_source_resolution_width_height.1 {
             return Err(DataProcessingError::InvalidInputBounds("Corner bounds must be within the total resolution!".into()));
         }
         
         Ok(CornerPoints {
-            lower_left: (total_resolution_width_height.1 - left_lower_cartesian.1, left_lower_cartesian.0),
-            upper_right: (total_resolution_width_height.1 - right_upper_cartesian.1, right_upper_cartesian.0)
+            lower_left: (total_source_resolution_width_height.1 - left_lower_xy.1, left_lower_xy.0),
+            upper_right: (total_source_resolution_width_height.1 - right_upper_xy.1, right_upper_xy.0)
         })
     }
     
@@ -322,7 +322,7 @@ impl CornerPoints {
     ///
     /// * `bool` - True if the region fits within the given resolution, false otherwise
     pub fn does_fit_in_frame_of_width_height(&self, width_height: (usize, usize)) -> bool {
-        self.upper_right.1 <= width_height.0 || self.lower_left.0 <= width_height.1
+        self.upper_right.1 <= width_height.0 && self.lower_left.0 <= width_height.1
     }
 
     /// Calculates the dimensions of the area enclosed by the corner points
@@ -361,6 +361,18 @@ pub enum ChannelFormat {
     RGBA = 4,
 }
 
+impl ChannelFormat {
+    pub fn from_usize(val: usize) -> Result<ChannelFormat, DataProcessingError> {
+        match val {
+            1 => Ok(ChannelFormat::GrayScale),
+            2 => Ok(ChannelFormat::RG),
+            3 => Ok(ChannelFormat::RGB),
+            4 => Ok(ChannelFormat::RGBA),
+            _ => Err(DataProcessingError::InvalidInputBounds("The number of color channels must be at least 1 and not exceed the 4!".into()))
+        }
+    }
+}
+
 /// Represents the memory layout of an image array.
 ///
 /// This enum defines the possible memory layouts for image data:
@@ -378,25 +390,4 @@ pub enum MemoryOrderLayout {
     HeightsChannelsWidths,
     ChannelsWidthsHeights,
     WidthsChannelsHeights,
-}
-
-/// Converts a number of channels to a ChannelFormat.
-///
-/// # Arguments
-///
-/// * `number` - The number of color channels (1-4)
-///
-/// # Returns
-///
-/// A Result containing either:
-/// - Ok(ChannelFormat) if the number of channels is valid
-/// - Err(DataProcessingError) if the number of channels is invalid
-pub fn usize_to_channel_format(number: usize) -> Result<ChannelFormat, DataProcessingError> {
-    match number { 
-        1 => Ok(ChannelFormat::GrayScale),
-        2 => Ok(ChannelFormat::RG),
-        3 => Ok(ChannelFormat::RGB),
-        4 => Ok(ChannelFormat::RGBA),
-        _ => return Err(DataProcessingError::InvalidInputBounds("The number of color channels must be at least 1 and not exceed the 4!".into()))
-    }
 }

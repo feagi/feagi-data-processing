@@ -1,10 +1,9 @@
 use super::single_frame::ImageFrame;
-use crate::Error::DataProcessingError;
+use crate::error::DataProcessingError;
 use super::single_frame_processing::*;
-use crate::neuron_state::neuron_data::{CorticalMappedNeuronData, NeuronYXCPArrays};
+use crate::cortical_data::CorticalID;
+use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
 use std::cmp;
-use ndarray::Array3;
-use crate::cortical_area_state::cortical_data::CorticalID;
 
 /// A frame divided into nine segments with different resolutions. Used for Peripheral vision in FEAGI
 ///
@@ -75,7 +74,8 @@ impl SegmentedVisionFrame {
         })
         
     }
-
+    
+    // temp for testing purposes, but delete me later
     pub fn new_no_segment_test_temp(source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
         let source_frame_width_height: (usize, usize) = source_frame.get_internal_resolution();
         //let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
@@ -449,7 +449,7 @@ impl SegmentedVisionCenterProperties {
         let right_pixel: usize = cmp::min(source_frame_width_height.0 - 1,
                                           (( self.center_coordinates_normalized_yx.1 + center_size_normalized_half_yx.1) * source_frame_width_height_f.0).ceil() as usize);
 
-        let corner_points: CornerPoints = CornerPoints::new_from_row_major_where_origin_top_left(
+        let corner_points: CornerPoints = CornerPoints::new_from_row_major(
             (bottom_pixel, left_pixel),
             (top_pixel, right_pixel)
         )?;
@@ -587,14 +587,14 @@ impl SegmentedCornerPoints {
             return Err(DataProcessingError::InvalidInputBounds("The corner points cannot exceed the range of the full resolution!".into()));
         }
         Ok(SegmentedCornerPoints{
-            lower_left: CornerPoints::new_from_row_major_where_origin_top_left((source_width_height.1,0), center_corner_points.lower_left_row_major())?,
-            middle_left: CornerPoints::new_from_row_major_where_origin_top_left((center_corner_points.lower_left_row_major().0, 0), center_corner_points.upper_left_row_major())?,
-            upper_left: CornerPoints::new_from_row_major_where_origin_top_left((center_corner_points.upper_right_row_major().0,0), (0, center_corner_points.lower_left_row_major().1))?,
-            upper_middle: CornerPoints::new_from_row_major_where_origin_top_left(center_corner_points.upper_left_row_major(), (0, center_corner_points.upper_right_row_major().1))?,
-            upper_right: CornerPoints::new_from_row_major_where_origin_top_left(center_corner_points.upper_right_row_major(), (0, source_width_height.0))?,
-            middle_right: CornerPoints::new_from_row_major_where_origin_top_left(center_corner_points.lower_right_row_major(), (center_corner_points.upper_right_row_major().0, source_width_height.0))?,
-            lower_right: CornerPoints::new_from_row_major_where_origin_top_left((source_width_height.1, center_corner_points.upper_right_row_major().1), (center_corner_points.lower_left_row_major().1, source_width_height.0))?,
-            lower_middle: CornerPoints::new_from_row_major_where_origin_top_left((source_width_height.1, center_corner_points.lower_left_row_major().1), center_corner_points.lower_right_row_major())?,
+            lower_left: CornerPoints::new_from_row_major((source_width_height.1, 0), center_corner_points.lower_left_row_major())?,
+            middle_left: CornerPoints::new_from_row_major((center_corner_points.lower_left_row_major().0, 0), center_corner_points.upper_left_row_major())?,
+            upper_left: CornerPoints::new_from_row_major((center_corner_points.upper_right_row_major().0, 0), (0, center_corner_points.lower_left_row_major().1))?,
+            upper_middle: CornerPoints::new_from_row_major(center_corner_points.upper_left_row_major(), (0, center_corner_points.upper_right_row_major().1))?,
+            upper_right: CornerPoints::new_from_row_major(center_corner_points.upper_right_row_major(), (0, source_width_height.0))?,
+            middle_right: CornerPoints::new_from_row_major(center_corner_points.lower_right_row_major(), (center_corner_points.upper_right_row_major().0, source_width_height.0))?,
+            lower_right: CornerPoints::new_from_row_major((source_width_height.1, center_corner_points.upper_right_row_major().1), (center_corner_points.lower_left_row_major().1, source_width_height.0))?,
+            lower_middle: CornerPoints::new_from_row_major((source_width_height.1, center_corner_points.lower_left_row_major().1), center_corner_points.lower_right_row_major())?,
             center: center_corner_points
         })
     }

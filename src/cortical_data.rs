@@ -1,4 +1,4 @@
-use crate::Error::DataProcessingError;
+use crate::error::DataProcessingError;
 
 /// Length of Cortical Area ID As ASCII characters / bytes
 const CORTICAL_ID_LENGTH: usize = 6;

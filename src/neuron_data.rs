@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use crate::cortical_area_state::cortical_data::CorticalID;
-use crate::Error::DataProcessingError;
+use crate::cortical_data::CorticalID;
+use crate::error::DataProcessingError;
 
 pub type CorticalMappedNeuronData = HashMap<CorticalID, NeuronXYCPArrays>;
 

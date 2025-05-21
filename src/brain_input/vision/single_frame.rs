@@ -1,7 +1,7 @@
 use ndarray::{s, Array3, ArrayView3};
-use crate::Error::DataProcessingError;
+use crate::error::DataProcessingError;
 use super::single_frame_processing::*;
-use crate::neuron_state::NeuronXYCPArrays;
+use crate::neuron_data::NeuronXYCPArrays;
 
 
 #[derive(Clone)]
@@ -79,7 +79,7 @@ impl ImageFrame {
         Ok(ImageFrame {
             pixels: ImageFrame::change_memory_order_to_row_major(input, source_memory_order),
             color_space,
-            channel_format: usize_to_channel_format(number_color_channels)?,
+            channel_format: ChannelFormat::from_usize(number_color_channels)?
         })
     }
 
@@ -495,7 +495,7 @@ impl ImageFrame {
     ///
     /// let image_original_resolution = (100, 100);
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &image_original_resolution);
-    /// let corners = CornerPoints::new_from_cartesian_where_origin_bottom_left((10, 10), (50, 50), image_original_resolution).unwrap();
+    /// let corners = CornerPoints::new_from_cartesian((10, 10), (50, 50), image_original_resolution).unwrap();
     /// frame.crop_to(&corners).unwrap();
     /// assert_eq!(frame.get_cartesian_width_height(), (40, 40));
     /// ```
