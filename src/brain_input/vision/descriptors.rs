@@ -1,4 +1,8 @@
+use std::cmp;
+use std::ops::RangeInclusive;
 use crate::error::DataProcessingError;
+
+
 
 /// Parameters for processing an image frame, including cropping, resizing, and color adjustments.
 ///
@@ -390,4 +394,143 @@ pub enum MemoryOrderLayout {
     HeightsChannelsWidths,
     ChannelsWidthsHeights,
     WidthsChannelsHeights,
+}
+
+/// Properties defining the center region of a segmented vision frame
+///
+/// This structure defines the coordinates and size of the central region
+/// in a normalized coordinate space (0.0 to 1.0).
+#[derive(PartialEq, Clone, Copy)]
+pub struct SegmentedVisionCenterProperties {
+    /// Center point coordinates in normalized space (0.0-1.0), from the top left
+    center_coordinates_normalized_yx: (f32, f32), // Scaled from 0 to 1
+    /// Size of the center region in normalized space (0.0-1.0)
+    center_size_normalized_yx: (f32, f32), // ditto
+}
+
+impl SegmentedVisionCenterProperties {
+    pub fn new_row_major_where_origin_top_left(center_coordinates_normalized_yx: (f32, f32), center_size_normalized_yx: (f32, f32)) -> Result<SegmentedVisionCenterProperties, DataProcessingError> {
+        let range_0_1: RangeInclusive<f32> = 0.0..=1.0;
+        if !(range_0_1.contains(&center_coordinates_normalized_yx.0) && range_0_1.contains(&center_coordinates_normalized_yx.1)) {
+            return Err(DataProcessingError::InvalidInputBounds("Central vision center coordinates are to be normalized and must be between 0 and 1!".into()))
+        }
+        if !(range_0_1.contains(&center_size_normalized_yx.0) && range_0_1.contains(&center_size_normalized_yx.1)) {
+            return Err(DataProcessingError::InvalidInputBounds("Central vision size is to be normalized and must be between 0 and 1!".into()))
+        }
+        
+        let range_overlap_y: RangeInclusive<f32> = (center_size_normalized_yx.0 / 2.0)..=(1.0 + (center_size_normalized_yx.0 / 2.0));
+        let range_overlap_x: RangeInclusive<f32> = (center_size_normalized_yx.1 / 2.0)..=(1.0 + (center_size_normalized_yx.1 / 2.0));
+        
+        if !(range_overlap_y.contains(&center_coordinates_normalized_yx.0) && range_overlap_x.contains(&center_coordinates_normalized_yx.1)) {
+            return Err(DataProcessingError::InvalidInputBounds("Resulting central vision crop includes regions outside input image!".into()))
+        }
+        
+        Ok(SegmentedVisionCenterProperties {
+            center_coordinates_normalized_yx,
+            center_size_normalized_yx,
+        })
+    }
+
+    pub fn cartesian_where_origin_bottom_left(center_coordinates_normalized_cartesian_xy: (f32, f32), center_size_normalized_xy: (f32, f32)) -> Result<SegmentedVisionCenterProperties, DataProcessingError> {
+        SegmentedVisionCenterProperties::new_row_major_where_origin_top_left(
+            (center_coordinates_normalized_cartesian_xy.1, 1.0 - center_coordinates_normalized_cartesian_xy.0),
+            (center_size_normalized_xy.1, center_size_normalized_xy.0))
+    }
+
+    pub fn create_default_centered() -> SegmentedVisionCenterProperties {
+        SegmentedVisionCenterProperties::new_row_major_where_origin_top_left((0.5, 0.5), (0.5, 0.5)).unwrap()
+    }
+    
+    pub fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_width_height: (usize, usize)) -> Result<CornerPoints, DataProcessingError> {
+        if source_frame_width_height.0 < 3 || source_frame_width_height.1 < 3 {
+            return Err(DataProcessingError::InvalidInputBounds("Source resolution must be 3 pixels or greater in the X and Y directions!".into()));
+        }
+        let source_frame_width_height_f: (f32, f32) = (source_frame_width_height.0 as f32, source_frame_width_height.1 as f32);
+        let center_size_normalized_half_yx: (f32, f32) = (self.center_size_normalized_yx.0 / 2.0, self.center_size_normalized_yx.1 / 2.0);
+
+        // We use max / min to ensure that there is always a 1 pixel buffer along all edges for use in peripheral vision (since we cannot use a resolution of 0)
+        let bottom_pixel: usize = cmp::min(source_frame_width_height.0 - 1,
+                                           ((self.center_coordinates_normalized_yx.0 + center_size_normalized_half_yx.0) * source_frame_width_height_f.1).ceil() as usize);
+        let top_pixel: usize = cmp::max(1,
+                                        (( self.center_coordinates_normalized_yx.0 - center_size_normalized_half_yx.0) * source_frame_width_height_f.1).floor() as usize);
+        let left_pixel: usize = cmp::max(1,
+                                         ((self.center_coordinates_normalized_yx.1 - center_size_normalized_half_yx.1) * source_frame_width_height_f.0).floor() as usize);
+        let right_pixel: usize = cmp::min(source_frame_width_height.0 - 1,
+                                          (( self.center_coordinates_normalized_yx.1 + center_size_normalized_half_yx.1) * source_frame_width_height_f.0).ceil() as usize);
+
+        let corner_points: CornerPoints = CornerPoints::new_from_row_major(
+            (bottom_pixel, left_pixel),
+            (top_pixel, right_pixel)
+        )?;
+        Ok(corner_points)
+    }
+
+
+}
+
+/// Target resolutions for each of the nine segments in a segmented vision frame
+///
+/// This structure stores the desired output resolution for each of the segments
+/// in a grid arrangement (3x3): corners, edges, and center.
+#[derive(PartialEq, Clone, Copy)]
+pub struct SegmentedVisionTargetResolutions {
+    /// Resolution for lower-left segment as (width, height)
+    lower_left: (usize, usize),
+    /// Resolution for middle-left segment as (width, height)
+    middle_left: (usize, usize),
+    /// Resolution for upper-left segment as (width, height)
+    upper_left: (usize, usize),
+    /// Resolution for upper-middle segment as (width, height)
+    upper_middle: (usize, usize),
+    /// Resolution for upper-right segment as (width, height)
+    upper_right: (usize, usize),
+    /// Resolution for middle-right segment as (width, height)
+    middle_right: (usize, usize),
+    /// Resolution for lower-right segment as (width, height)
+    lower_right: (usize, usize),
+    /// Resolution for lower-middle segment as (width, height)
+    lower_middle: (usize, usize),
+    /// Resolution for center segment as (width, height)
+    center: (usize, usize),
+}
+
+impl SegmentedVisionTargetResolutions {
+
+    pub fn new(
+        lower_left: (usize, usize),
+        middle_left: (usize, usize),
+        upper_left: (usize, usize),
+        upper_middle: (usize, usize),
+        upper_right: (usize, usize),
+        middle_right: (usize, usize),
+        lower_right: (usize, usize),
+        lower_middle: (usize, usize),
+        center: (usize, usize),
+    ) -> Result<SegmentedVisionTargetResolutions, DataProcessingError> {
+        if lower_left.0 == 0 || lower_left.1 == 0 || middle_left.0 == 0 || middle_left.1 == 0 || upper_left.0 == 0 || upper_left.1 == 0 || upper_middle.0 == 0 || upper_middle.1 == 0 || // Yandre-dev moment
+            upper_right.0 == 0 || upper_right.1 == 0 || middle_right.0 == 0 || middle_right.1 == 0 || lower_right.0 == 0 || lower_right.1 == 0 || lower_middle.0 == 0 || lower_middle.1 == 0 ||
+            center.0 == 0 || center.1 == 0 {
+            return Err(DataProcessingError::InvalidInputBounds("Dimensions must exceed 0 for all segments on all axis!".into()));
+        }
+        Ok(SegmentedVisionTargetResolutions {
+            lower_left,
+            middle_left,
+            upper_left,
+            upper_middle,
+            upper_right,
+            middle_right,
+            lower_right,
+            lower_middle,
+            center,
+        })
+    }
+
+    pub fn create_with_same_sized_peripheral(center_width_height: (usize, usize), peripheral_width_height: (usize, usize)) -> Result<SegmentedVisionTargetResolutions, DataProcessingError> {
+        SegmentedVisionTargetResolutions::new(peripheral_width_height, peripheral_width_height,
+                                                     peripheral_width_height, peripheral_width_height,
+                                                     peripheral_width_height, peripheral_width_height,
+                                                     peripheral_width_height, peripheral_width_height,
+                                                     center_width_height)
+    }
+
 }
