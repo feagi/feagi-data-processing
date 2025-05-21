@@ -1,4 +1,4 @@
-use feagi_core_data_structures_and_processing::brain_input::vision::single_frame::ImageFrame;
+use feagi_core_data_structures_and_processing::brain_input::vision::ImageFrame;
 use std::fs::File;
 use ndarray::Array3;
 use ndarray_npy::NpzReader;
