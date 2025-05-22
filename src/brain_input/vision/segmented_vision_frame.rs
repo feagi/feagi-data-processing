@@ -37,8 +37,8 @@ pub struct SegmentedVisionFrame {
 
 impl SegmentedVisionFrame {
     
-    pub fn new(segment_resolutions: &SegmentedVisionTargetResolutions, segment_color_channels: ChannelFormat,
-    segment_color_space: ColorSpace) -> Result<SegmentedVisionFrame, DataProcessingError> {
+    pub fn new(segment_resolutions: &SegmentedVisionTargetResolutions, segment_color_channels: &ChannelFormat,
+    segment_color_space: &ColorSpace) -> Result<SegmentedVisionFrame, DataProcessingError> {
         Ok(SegmentedVisionFrame{
             lower_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_left),
             middle_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_left),
@@ -74,23 +74,23 @@ impl SegmentedVisionFrame {
         
         let cropping_points= self.previous_cropping_points_for_source_from_segment.unwrap(); // We know this exists by now
         
-        self.lower_left.in_place_crop_and_nearest_neighbor_resize_to_self(
+        self.lower_left.in_place_crop_and_nearest_neighbor_resize(
             &cropping_points.lower_left, source_frame)?;
-        self.middle_left.in_place_crop_and_nearest_neighbor_resize_to_self(
+        self.middle_left.in_place_crop_and_nearest_neighbor_resize(
             &cropping_points.middle_left, source_frame)?;
-        self.upper_left.in_place_crop_and_nearest_neighbor_resize_to_self(
+        self.upper_left.in_place_crop_and_nearest_neighbor_resize(
             &cropping_points.upper_left, source_frame)?;
-        self.upper_middle.in_place_crop_and_nearest_neighbor_resize_to_self(
+        self.upper_middle.in_place_crop_and_nearest_neighbor_resize(
             &cropping_points.upper_middle, source_frame)?;
-        self.upper_right.in_place_crop_and_nearest_neighbor_resize_to_self(
+        self.upper_right.in_place_crop_and_nearest_neighbor_resize(
             &cropping_points.upper_right, source_frame)?;
-        self.middle_right.in_place_crop_and_nearest_neighbor_resize_to_self(
+        self.middle_right.in_place_crop_and_nearest_neighbor_resize(
             &cropping_points.middle_right, source_frame)?;
-        self.lower_right.in_place_crop_and_nearest_neighbor_resize_to_self(
+        self.lower_right.in_place_crop_and_nearest_neighbor_resize(
             &cropping_points.lower_right, source_frame)?;
-        self.lower_middle.in_place_crop_and_nearest_neighbor_resize_to_self(
+        self.lower_middle.in_place_crop_and_nearest_neighbor_resize(
             &cropping_points.lower_middle, source_frame)?;
-        self.center.in_place_crop_and_nearest_neighbor_resize_to_self(
+        self.center.in_place_crop_and_nearest_neighbor_resize(
             &cropping_points.center, source_frame)?;
         
         Ok(())

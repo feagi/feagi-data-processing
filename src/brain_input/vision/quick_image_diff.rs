@@ -1,0 +1,86 @@
+use super::image_frame::ImageFrame;
+use super::segmented_vision_frame::SegmentedVisionFrame;
+use super::descriptors::{FrameProcessingParameters, ChannelFormat, ColorSpace, SegmentedVisionCenterProperties, SegmentedVisionTargetResolutions};
+use crate::error::DataProcessingError;
+use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
+
+pub struct QuickImageDiff{
+    diff_frame_a: ImageFrame,
+    diff_frame_b: ImageFrame,
+    diff_frame_out: ImageFrame,
+    outputted_segmented_frame: SegmentedVisionFrame,
+    flag_a_subtract_from_b: bool,
+    preprocessing_parameters: Option<FrameProcessingParameters>,
+    segmented_center_coordinates: SegmentedVisionCenterProperties,
+}
+
+impl QuickImageDiff {
+    
+    pub fn new_from_preprocessor(preprocessor_parameters: FrameProcessingParameters, 
+                                 output_color_channels: &ChannelFormat, output_color_space: &ColorSpace,
+                                 output_segment_resolutions: SegmentedVisionTargetResolutions,
+                                 segmentation_properties: SegmentedVisionCenterProperties)
+        -> Result<Self, DataProcessingError> {
+        if preprocessor_parameters.convert_to_grayscale && output_color_channels != &ChannelFormat::GrayScale {
+            return Err(DataProcessingError::InvalidInputBounds("Preprocessor specifies conversion of image into grayscale, while output is defined as being in color!".into()));
+        }
+        let final_resolution = preprocessor_parameters.get_final_width_height();
+        if final_resolution.is_err() {
+            return Err(DataProcessingError::MissingContext("You must define a cropping and/or a resize parameter for the preprocessor!".into()));
+        }
+        let final_resolution = final_resolution.unwrap();
+
+        Ok(QuickImageDiff {
+            diff_frame_a: ImageFrame::new(&output_color_channels, &output_color_space, &final_resolution),
+            diff_frame_b: ImageFrame::new(&output_color_channels, &output_color_space, &final_resolution),
+            diff_frame_out: ImageFrame::new(&output_color_channels, &output_color_space, &final_resolution),
+            outputted_segmented_frame: SegmentedVisionFrame::new(
+                &output_segment_resolutions, output_color_channels, output_color_space
+            )?,
+            flag_a_subtract_from_b: false,
+            preprocessing_parameters: Some(preprocessor_parameters),
+            segmented_center_coordinates: segmentation_properties
+        })
+    }
+    
+    pub fn in_place_process_image_diff(incoming_image_frame: &ImageFrame) {
+        
+    }
+    
+    fn process_incoming_image_to_proper_diff_image(&mut self, incoming_image_frame: ImageFrame, pixel_threshold: u8, camera_index: u8) -> Result<Vec<u8>, DataProcessingError> {
+        
+        // handle preprocessing
+        if self.preprocessing_parameters.is_some() {
+            if self.flag_a_subtract_from_b {
+                self.diff_frame_a.in_place_run_processor(self.preprocessing_parameters.unwrap(), incoming_image_frame)?;
+            }
+            else {
+                self.diff_frame_b.in_place_run_processor(self.preprocessing_parameters.unwrap(), incoming_image_frame)?;
+            }
+        }
+        else { // no processing
+            if self.flag_a_subtract_from_b {
+                self.diff_frame_a = incoming_image_frame;
+            }
+            else {
+                self.diff_frame_b = incoming_image_frame;
+            }
+        }
+        if self.flag_a_subtract_from_b {
+            self.diff_frame_out.in_place_calculate_difference_thresholded(&self.diff_frame_a, &self.diff_frame_b, pixel_threshold)?;
+        }
+        else {
+            self.diff_frame_out.in_place_calculate_difference_thresholded(&self.diff_frame_b, &self.diff_frame_a, pixel_threshold)?;
+        }
+        self.flag_a_subtract_from_b = !self.flag_a_subtract_from_b;
+        
+        // segmentation and export
+        self.outputted_segmented_frame.update_segments(&self.diff_frame_out, self.segmented_center_coordinates)?;
+        
+        // TODO this can be cached
+        let cortical_mapped_data = self.outputted_segmented_frame.export_as_new_cortical_mapped_neuron_data(camera_index)?;
+        
+        NeuronXYCPArrays::cortical_mapped_neuron_data_to_bytes(cortical_mapped_data)
+
+    }
+}

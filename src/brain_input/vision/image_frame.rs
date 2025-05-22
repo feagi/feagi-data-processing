@@ -117,7 +117,7 @@ impl ImageFrame {
 
         let processing_steps_required = image_processing.process_steps_required_to_run();
 
-        // there are 6! (720) permutations of these bools. I ain't writing them all out here. Let us stick to the most common ones
+        // there are 2^6 permutations of these bools. I ain't writing them all out here. Let us stick to the most common ones
         // bool order is {cropping_from, resizing_to, multiply_brightness, contrast, to_grayscale, color_space}
         match processing_steps_required { // I can't believe this isn't Yandresim!
             (false, false, false, false, false, false) => {
@@ -567,8 +567,156 @@ impl ImageFrame {
     // endregion
 
     // region: Load Data in place
+    
+    pub fn in_place_run_processor(&mut self, image_processing: FrameProcessingParameters, source: ImageFrame) -> Result<(), DataProcessingError> {
+        
+        self.err_if_incoming_image_frame_is_color_incompatible(&source)?;
+        
+        
+        if image_processing.get_final_width_height().is_ok(){
+            if image_processing.get_final_width_height().unwrap() != self.get_cartesian_width_height() {
+                return Err(DataProcessingError::InvalidInputBounds("Specified Frame Processing Parameters do not result in an image that can fit in this ImageFrame!".into()));
+            }
+        }
+        else { 
+            // The image is not being cropped or resized, so it must fit already
+            if self.get_internal_resolution() != source.get_internal_resolution() {
+                return Err(DataProcessingError::InvalidInputBounds("Input image is not being cropped or resized, and does not have the correct dimensions to fit in this ImageFrame!".into()));
+            }
+        }
+        
+        let processing_steps_required = image_processing.process_steps_required_to_run();
 
-    pub fn in_place_crop_and_nearest_neighbor_resize_to_self(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
+        // bool order is {cropping_from, resizing_to, multiply_brightness, contrast, to_grayscale, color_space}
+        match processing_steps_required { // I can't believe this isn't Yandresim!
+            (false, false, false, false, false, false) => {
+                // No processing steps specified
+                self.in_place_load_data_unchanged(source.pixels, ImageFrame::INTERNAL_MEMORY_LAYOUT)?;
+                return Ok(());
+            }
+
+            (true, false, false, false, false, false) => {
+                // cropping from only
+                self.in_place_crop_image(&image_processing.cropping_from.unwrap(), &source)?;
+                return Ok(());
+            }
+
+            (false, true, false, false, false, false) => {
+                // resize only
+                self.in_place_nearest_neighbor_resize(&source);
+                return Ok(());
+            }
+
+            (true, true, false, false, false, false) => {
+                // crop from and resize to
+                self.in_place_crop_and_nearest_neighbor_resize(&image_processing.cropping_from.unwrap(), &source)?;
+                return Ok(());
+            }
+            
+
+            _ => {
+                // We do not have an optimized pathway, just do this sequentially (although this is considerably slower)
+
+                return Err(DataProcessingError::NotImplemented); // TODO
+                /*
+                
+                let mut frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT)?;
+
+
+                if image_processing.cropping_from.is_some() {
+                    let corner_points_cropping = &image_processing.cropping_from.unwrap();
+                    let _ = frame.crop_to(corner_points_cropping)?;
+                };
+
+                if image_processing.resizing_to.is_some() {
+                    let corner_points_resizing = &image_processing.resizing_to.unwrap();
+                    let _ = frame.resize_nearest_neighbor(corner_points_resizing)?;
+                };
+
+                if image_processing.multiply_brightness_by.is_some() {
+                    let brightness = image_processing.multiply_brightness_by.unwrap();
+                    let _ = frame.change_brightness_multiplicative(brightness)?;
+                };
+
+                if image_processing.change_contrast_by.is_some() {
+                    let change_contrast_by = image_processing.change_contrast_by.unwrap();
+                    let _ = frame.change_contrast(change_contrast_by)?;
+                };
+
+                // TODO grayscale conversions and color space conversions!
+
+                Ok(())
+                
+                 */
+            }
+        }
+    }
+    
+    pub fn in_place_load_data_unchanged(&mut self, new_array: Array3<f32>, source_memory_order: MemoryOrderLayout) -> Result<(), DataProcessingError> {
+        if new_array.shape()[2] != self.get_color_channel_count() {
+            return Err(DataProcessingError::InvalidInputBounds("Input array does not seem to have the correct number of color channels!".into()));
+        }
+        if (new_array.shape()[0] , new_array.shape()[1]) != self.get_internal_resolution() {
+            return Err(DataProcessingError::InvalidInputBounds("Input array does not seem to have the correct height or width!".into()));
+        }
+        self.pixels = ImageFrame::change_memory_order_to_row_major(new_array.into_owned(), source_memory_order);
+        Ok(())
+    }
+    
+    pub fn in_place_crop_image(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
+        if source.get_channel_format() != self.get_channel_format() {
+            return Err(DataProcessingError::InvalidInputBounds("The given image does not have the same color channel count as this ImageFrame!".into()))
+        }
+
+        if source.get_color_space() != self.get_color_space() {
+            return Err(DataProcessingError::InvalidInputBounds("The given image does not have the same color space as this ImageFrame!".into()))
+        }
+        
+        if !source_cropping_points.does_fit_in_frame_of_width_height(source.get_cartesian_width_height()) {
+            return Err(DataProcessingError::InvalidInputBounds("The given cropped region exceeds the source boundaries!".into()))
+        }
+        
+        if source_cropping_points.enclosed_area_width_height() != self.get_cartesian_width_height() {
+            return Err(DataProcessingError::InvalidInputBounds("The given cropped region does not have the same area as this image!".into()))
+        }
+
+        let channel_count: usize = source.get_color_channel_count();
+        let sliced_array_view: ArrayView3<f32> = source.pixels.slice(
+            s![source_cropping_points.lower_left_row_major().0 .. source_cropping_points.upper_right_row_major().0,
+                source_cropping_points.lower_left_row_major().1 .. source_cropping_points.upper_right_row_major().1 , 0..channel_count]
+        );
+        self.pixels = sliced_array_view.into_owned();
+        Ok(())
+    }
+    
+    pub fn in_place_nearest_neighbor_resize(&mut self, source: &ImageFrame) -> Result<(), DataProcessingError> {
+        // We dont need to specify size, as we are just using this size
+        if source.get_channel_format() != self.get_channel_format() {
+            return Err(DataProcessingError::InvalidInputBounds("The given image does not have the same color channel count as this ImageFrame!".into()))
+        }
+
+        if source.get_color_space() != self.get_color_space() {
+            return Err(DataProcessingError::InvalidInputBounds("The given image does not have the same color space as this ImageFrame!".into()))
+        }
+
+        let resolution: (usize, usize) = self.get_internal_resolution();
+        let source_resolution = source.get_internal_resolution();
+        let resolution_f: (f32, f32) = (resolution.0 as f32, resolution.1 as f32);
+        let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32);
+
+        for ((y,x,c), color_val) in self.pixels.indexed_iter_mut() {
+            let nearest_neighbor_coordinate_y: usize = (((y as f32) / resolution_f.1) * source_resolution_f.1).floor() as usize;
+            let nearest_neighbor_coordinate_x: usize = (((x as f32) / resolution_f.0) * source_resolution_f.0).floor() as usize;
+            let nearest_neighbor_channel_value: f32 = source.pixels[(
+                nearest_neighbor_coordinate_x,
+                nearest_neighbor_coordinate_y,
+                c)];
+            *color_val = nearest_neighbor_channel_value;
+        };
+        Ok(())
+    }
+    
+    pub fn in_place_crop_and_nearest_neighbor_resize(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
         let crop_resolution: (usize, usize) = source_cropping_points.enclosed_area_width_height();
         if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&self, source) {
             return Err(DataProcessingError::IncompatibleInplace("The incoming source data does not have compatible properties with the destination ImageFrame!".into()))
@@ -690,7 +838,7 @@ impl ImageFrame {
     }
 
     fn create_from_source_frame_crop(source_frame: &ImageFrame, corners_crop: &CornerPoints) -> Result<ImageFrame, DataProcessingError> {
-        let source_resolution = source_frame.get_internal_resolution();
+        let source_resolution = source_frame.get_internal_resolution(); // TODO ?
         if !corners_crop.does_fit_in_frame_of_width_height(source_resolution) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
         }
@@ -712,7 +860,7 @@ impl ImageFrame {
 
 
     // region: internal functions
-
+    
     /// Converts an array from any memory layout to row-major (HeightsWidthsChannels) format.
     ///
     /// This internal function handles the conversion of arrays between different memory
@@ -760,7 +908,17 @@ impl ImageFrame {
             MemoryOrderLayout::WidthsChannelsHeights => input.permuted_axes([2, 0, 1]),
         }
     }
-
+    
+    fn err_if_incoming_image_frame_is_color_incompatible(&self, incoming: &ImageFrame) -> Result<(), DataProcessingError> {
+        if self.color_space != incoming.color_space {
+            return Err(DataProcessingError::IncompatibleInplace("Incoming source array does not have matching color space!".into()))
+        }
+        if self.channel_format == incoming.channel_format {
+            return Err(DataProcessingError::IncompatibleInplace("Incoming source array does not have matching color channel count!!".into()))
+        }
+        Ok(())
+    }
+    
     // endregion
 
 }
