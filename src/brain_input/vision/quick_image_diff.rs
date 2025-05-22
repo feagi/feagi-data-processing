@@ -47,7 +47,7 @@ impl QuickImageDiff {
         
     }
     
-    fn process_incoming_image_to_proper_diff_image(&mut self, incoming_image_frame: ImageFrame, pixel_threshold: u8, camera_index: u8) -> Result<Vec<u8>, DataProcessingError> {
+    pub fn process_incoming_image_to_proper_diff_image(&mut self, incoming_image_frame: ImageFrame, pixel_threshold: u8, camera_index: u8) -> Result<Vec<u8>, DataProcessingError> {
         
         // handle preprocessing
         if self.preprocessing_parameters.is_some() {
