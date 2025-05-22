@@ -179,6 +179,15 @@ impl FrameProcessingParameters {
             self.convert_color_space_to.is_some(),
             )
     }
+    
+    pub fn get_final_width_height(&self) -> Result<(usize, usize), DataProcessingError> {
+        let crop_resize_exist = (self.cropping_from.is_some(), self.resizing_to.is_some());
+        match crop_resize_exist {
+            (false, false) => Err(DataProcessingError::MissingContext("Unknown final width of height as its not being changed by the image preprocessor!".into())),
+            (true, false) => Ok(self.cropping_from.unwrap().enclosed_area_width_height()),
+            _ => Ok(self.resizing_to.unwrap()),
+        }
+    }
 }
 
 /// Holds pixel coordinates for cropping in row-major order.
@@ -406,7 +415,22 @@ impl SegmentedVisionCenterProperties {
         SegmentedVisionCenterProperties::new_row_major_where_origin_top_left((0.5, 0.5), (0.5, 0.5)).unwrap()
     }
     
-    pub fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_width_height: (usize, usize)) -> Result<CornerPoints, DataProcessingError> {
+    pub fn calculate_source_corner_points_for_segemented_video_frame(&self, source_frame_width_height: (usize, usize))  -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, DataProcessingError> {
+        let center_corner_points = self.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
+        Ok(SegmentedVisionFrameSourceCroppingPointGrouping{
+            lower_left: CornerPoints::new_from_row_major((source_frame_width_height.1, 0), center_corner_points.lower_left_row_major())?,
+            middle_left: CornerPoints::new_from_row_major((center_corner_points.lower_left_row_major().0, 0), center_corner_points.upper_left_row_major())?,
+            upper_left: CornerPoints::new_from_row_major((center_corner_points.upper_right_row_major().0, 0), (0, center_corner_points.lower_left_row_major().1))?,
+            upper_middle: CornerPoints::new_from_row_major(center_corner_points.upper_left_row_major(), (0, center_corner_points.upper_right_row_major().1))?,
+            upper_right: CornerPoints::new_from_row_major(center_corner_points.upper_right_row_major(), (0, source_frame_width_height.0))?,
+            middle_right: CornerPoints::new_from_row_major(center_corner_points.lower_right_row_major(), (center_corner_points.upper_right_row_major().0, source_frame_width_height.0))?,
+            lower_right: CornerPoints::new_from_row_major((source_frame_width_height.1, center_corner_points.upper_right_row_major().1), (center_corner_points.lower_left_row_major().1, source_frame_width_height.0))?,
+            lower_middle: CornerPoints::new_from_row_major((source_frame_width_height.1, center_corner_points.lower_left_row_major().1), center_corner_points.lower_right_row_major())?,
+            center: center_corner_points
+        })
+    }
+    
+    fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_width_height: (usize, usize)) -> Result<CornerPoints, DataProcessingError> {
         if source_frame_width_height.0 < 3 || source_frame_width_height.1 < 3 {
             return Err(DataProcessingError::InvalidInputBounds("Source resolution must be 3 pixels or greater in the X and Y directions!".into()));
         }
@@ -429,8 +453,7 @@ impl SegmentedVisionCenterProperties {
         )?;
         Ok(corner_points)
     }
-
-
+    
 }
 
 /// Target resolutions for each of the nine segments in a segmented vision frame
@@ -497,7 +520,27 @@ impl SegmentedVisionTargetResolutions {
                                                      peripheral_width_height, peripheral_width_height,
                                                      center_width_height)
     }
-    
-    
+}
 
+/// For internal use, convinient grouping for segmented image frame to store corner points on where from the source various regions should be cropped from
+#[derive(PartialEq, Clone, Copy)]
+pub struct SegmentedVisionFrameSourceCroppingPointGrouping {
+    /// Corner points for the lower-left segment
+    pub lower_left: CornerPoints,
+    /// Corner points for the middle-left segment
+    pub middle_left: CornerPoints,
+    /// Corner points for the upper-left segment
+    pub upper_left: CornerPoints,
+    /// Corner points for the upper-middle segment
+    pub upper_middle: CornerPoints,
+    /// Corner points for the upper-right segment
+    pub upper_right: CornerPoints,
+    /// Corner points for the middle-right segment
+    pub middle_right: CornerPoints,
+    /// Corner points for the lower-right segment
+    pub lower_right: CornerPoints,
+    /// Corner points for the lower-middle segment
+    pub lower_middle: CornerPoints,
+    /// Corner points for the center segment
+    pub center: CornerPoints,
 }

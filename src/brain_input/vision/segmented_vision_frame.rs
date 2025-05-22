@@ -1,4 +1,4 @@
-use super::ImageFrame;
+use super::image_frame::ImageFrame;
 use crate::error::DataProcessingError;
 use super::descriptors::*;
 use crate::cortical_data::CorticalID;
@@ -28,13 +28,85 @@ pub struct SegmentedVisionFrame {
     lower_middle: ImageFrame,
     /// Center segment of the vision frame (typically higher resolution)
     center: ImageFrame,
-    /// Resolution of the original source frame
-    original_source_resolution: (usize, usize),
-    // /// Corner points defining the boundaries of each segment
+    /// Resolution of the original source frame that was loaded into this
+    previous_imported_internal_yx_resolution: (usize, usize),
+    /// The cropping points to use for the source, cached, assuming the source resolution is the same
+    previous_cropping_points_for_source_from_segment: Option<SegmentedVisionFrameSourceCroppingPointGrouping>
 
 }
 
 impl SegmentedVisionFrame {
+    
+    pub fn new(segment_resolutions: &SegmentedVisionTargetResolutions, segment_color_channels: ChannelFormat,
+    segment_color_space: ColorSpace) -> Result<SegmentedVisionFrame, DataProcessingError> {
+        Ok(SegmentedVisionFrame{
+            lower_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_left),
+            middle_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_left),
+            upper_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_left),
+            upper_middle: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_middle),
+            upper_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_right),
+            middle_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_right),
+            lower_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_right),
+            lower_middle: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_middle),
+            center: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.center),
+            previous_imported_internal_yx_resolution: (0, 0), // nothing imported before,
+            previous_cropping_points_for_source_from_segment: None,
+        })
+    }
+
+    pub fn update_segments(&mut self, source_frame: &ImageFrame, 
+                           center_properties: SegmentedVisionCenterProperties)
+        -> Result<(), DataProcessingError> {
+        if source_frame.get_channel_format() != self.get_color_channels(){
+            return Err(DataProcessingError::InvalidInputBounds("Input Image frame does not have matching color channel count!".into()));
+        }
+        if source_frame.get_color_space() != self.get_color_space() {
+            return Err(DataProcessingError::InvalidInputBounds("Input Image frame does not have matching color space!".into()));
+        }
+        
+        if source_frame.get_internal_resolution() != self.previous_imported_internal_yx_resolution ||
+            self.previous_cropping_points_for_source_from_segment.is_none() {
+            // We either have no corner points for the cropping sources defined, or they are no longer
+            // valid, we need to update them
+            self.previous_cropping_points_for_source_from_segment = Some(
+                center_properties.calculate_source_corner_points_for_segemented_video_frame(source_frame.get_internal_resolution())?);
+        }
+        
+        let cropping_points= self.previous_cropping_points_for_source_from_segment.unwrap(); // We know this exists by now
+        
+        self.lower_left.in_place_crop_and_nearest_neighbor_resize_to_self(
+            &cropping_points.lower_left, source_frame)?;
+        self.middle_left.in_place_crop_and_nearest_neighbor_resize_to_self(
+            &cropping_points.middle_left, source_frame)?;
+        self.upper_left.in_place_crop_and_nearest_neighbor_resize_to_self(
+            &cropping_points.upper_left, source_frame)?;
+        self.upper_middle.in_place_crop_and_nearest_neighbor_resize_to_self(
+            &cropping_points.upper_middle, source_frame)?;
+        self.upper_right.in_place_crop_and_nearest_neighbor_resize_to_self(
+            &cropping_points.upper_right, source_frame)?;
+        self.middle_right.in_place_crop_and_nearest_neighbor_resize_to_self(
+            &cropping_points.middle_right, source_frame)?;
+        self.lower_right.in_place_crop_and_nearest_neighbor_resize_to_self(
+            &cropping_points.lower_right, source_frame)?;
+        self.lower_middle.in_place_crop_and_nearest_neighbor_resize_to_self(
+            &cropping_points.lower_middle, source_frame)?;
+        self.center.in_place_crop_and_nearest_neighbor_resize_to_self(
+            &cropping_points.center, source_frame)?;
+        
+        Ok(())
+        
+    }
+    
+    pub fn get_color_space(&self) -> &ColorSpace {
+        self.upper_left.get_color_space()
+    }
+    
+    pub fn get_color_channels(&self) -> &ChannelFormat {
+        self.upper_left.get_channel_format()
+    }
+    
+
+    /*
     /// Creates a new SegmentedVisionFrame from a source frame, center properties, and target resolutions
     ///
     /// # Arguments
@@ -52,7 +124,7 @@ impl SegmentedVisionFrame {
     /// Returns an error if:
     /// * Calculation of center corner points fails
     /// * Creation of segment corner points fails
-    pub fn new(source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
+    pub fn new_from_frame(source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
         let source_frame_width_height: (usize, usize) = source_frame.get_internal_resolution();
         let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
         let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame_width_height, inner_corners)?;
@@ -75,7 +147,7 @@ impl SegmentedVisionFrame {
     }
 
 
-    /*
+    
     /// Updates the segmentation with a new focus point while using the same source frame
     ///
     /// # Arguments
@@ -153,14 +225,9 @@ impl SegmentedVisionFrame {
     }
     */
 
-    /*
-    pub fn export_as_neuron_potential_data(& self, camera_index: u8) -> Result<CorticalMappedNeuronPotentialCollectionXYZ, &'static str> {
-        let index_ID = self.u8_to_hex_chars(camera_index);
 
-    }
-     */
     
-    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: u8) -> Result<CorticalMappedNeuronData, DataProcessingError> {
+    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, _camera_index: u8) -> Result<CorticalMappedNeuronData, DataProcessingError> {
 
         let ordered_refs: [&mut ImageFrame; 9] = [&mut self.center, &mut self.lower_left, &mut self.middle_left,
             &mut self.upper_left, &mut self.upper_middle, &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,
@@ -232,71 +299,3 @@ impl SegmentedVisionFrame {
     
 }
 
-
-// region internal helpers
-
-
-/// Stores the corner points for each segment of a segmented vision frame
-///
-/// This structure defines the precise pixel coordinates for each of the nine segments
-/// of a segmented vision frame.
-#[derive(PartialEq)]
-#[derive(Debug)]
-struct SegmentedCornerPoints {
-    /// Corner points for the lower-left segment
-    lower_left: CornerPoints,
-    /// Corner points for the middle-left segment
-    middle_left: CornerPoints,
-    /// Corner points for the upper-left segment
-    upper_left: CornerPoints,
-    /// Corner points for the upper-middle segment
-    upper_middle: CornerPoints,
-    /// Corner points for the upper-right segment
-    upper_right: CornerPoints,
-    /// Corner points for the middle-right segment
-    middle_right: CornerPoints,
-    /// Corner points for the lower-right segment
-    lower_right: CornerPoints,
-    /// Corner points for the lower-middle segment
-    lower_middle: CornerPoints,
-    /// Corner points for the center segment
-    center: CornerPoints,
-}
-
-impl SegmentedCornerPoints {
-    /// Creates a new SegmentedCornerPoints from source resolution and center corner points
-    ///
-    /// This method calculates the corner points source for all nine segments based on the
-    /// center region and the overall resolution.
-    ///
-    /// # Arguments
-    ///
-    /// * `source_full_resolution` - Total resolution (width, height) of the source frame
-    /// * `center_corner_points` - Corner points defining the center region
-    ///
-    /// # Returns
-    ///
-    /// * `Result<SegmentedCornerPoints, &'static str>` - Created instance or error message
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the center corner points don't fit within the source resolution
-    pub fn from_source_and_center_corner_points(source_width_height: (usize, usize), center_corner_points: CornerPoints) -> Result<SegmentedCornerPoints, DataProcessingError> {
-        if !center_corner_points.does_fit_in_frame_of_width_height(source_width_height){
-            return Err(DataProcessingError::InvalidInputBounds("The corner points cannot exceed the range of the full resolution!".into()));
-        }
-        Ok(SegmentedCornerPoints{
-            lower_left: CornerPoints::new_from_row_major((source_width_height.1, 0), center_corner_points.lower_left_row_major())?,
-            middle_left: CornerPoints::new_from_row_major((center_corner_points.lower_left_row_major().0, 0), center_corner_points.upper_left_row_major())?,
-            upper_left: CornerPoints::new_from_row_major((center_corner_points.upper_right_row_major().0, 0), (0, center_corner_points.lower_left_row_major().1))?,
-            upper_middle: CornerPoints::new_from_row_major(center_corner_points.upper_left_row_major(), (0, center_corner_points.upper_right_row_major().1))?,
-            upper_right: CornerPoints::new_from_row_major(center_corner_points.upper_right_row_major(), (0, source_width_height.0))?,
-            middle_right: CornerPoints::new_from_row_major(center_corner_points.lower_right_row_major(), (center_corner_points.upper_right_row_major().0, source_width_height.0))?,
-            lower_right: CornerPoints::new_from_row_major((source_width_height.1, center_corner_points.upper_right_row_major().1), (center_corner_points.lower_left_row_major().1, source_width_height.0))?,
-            lower_middle: CornerPoints::new_from_row_major((source_width_height.1, center_corner_points.lower_left_row_major().1), center_corner_points.lower_right_row_major())?,
-            center: center_corner_points
-        })
-    }
-}
-
-// endregion
