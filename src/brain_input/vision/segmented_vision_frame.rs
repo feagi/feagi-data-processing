@@ -42,7 +42,7 @@ use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
 /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
 /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
 ///
-/// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
+/// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
 /// let frame = SegmentedVisionFrame::new(
 ///     &resolutions,
 ///     &ChannelFormat::RGB,
@@ -105,7 +105,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
@@ -163,7 +163,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     /// 
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
@@ -191,7 +191,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
@@ -243,7 +243,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
     ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
@@ -332,7 +332,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
@@ -387,7 +387,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
     /// use feagi_core_data_structures_and_processing::neuron_data::CorticalMappedNeuronData;
     ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
