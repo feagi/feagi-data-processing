@@ -1,3 +1,9 @@
+//! Vision processing descriptors and parameter structures for FEAGI.
+//! 
+//! This module provides data structures and enums for configuring image processing
+//! operations, including frame processing parameters, corner point definitions,
+//! color spaces, channel formats, memory layouts, and segmented vision configurations.
+
 use std::cmp;
 use std::ops::RangeInclusive;
 use crate::error::DataProcessingError;
@@ -180,6 +186,27 @@ impl FrameProcessingParameters {
             )
     }
     
+    /// Returns the final width and height after processing operations.
+    /// 
+    /// This method calculates the final dimensions of the image after applying
+    /// the configured processing steps. The final size depends on whether cropping
+    /// and/or resizing operations are specified.
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok((width, height)) if the final dimensions can be determined
+    /// - Err(DataProcessingError) if no size-changing operations are configured
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// 
+    /// let mut params = FrameProcessingParameters::new();
+    /// params.set_resizing_to((640, 480));
+    /// assert_eq!(params.get_final_width_height().unwrap(), (640, 480));
+    /// ```
     pub fn get_final_width_height(&self) -> Result<(usize, usize), DataProcessingError> {
         let crop_resize_exist = (self.cropping_from.is_some(), self.resizing_to.is_some());
         match crop_resize_exist {
@@ -340,6 +367,29 @@ pub enum ChannelFormat {
 }
 
 impl ChannelFormat {
+    /// Creates a ChannelFormat from a usize value.
+    /// 
+    /// This method converts a numeric channel count into the corresponding
+    /// ChannelFormat enum variant.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `val` - The number of color channels (1-4)
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(ChannelFormat) if the value is valid (1-4)
+    /// - Err(DataProcessingError) if the value is outside the valid range
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::ChannelFormat;
+    /// 
+    /// assert_eq!(ChannelFormat::from_usize(3).unwrap(), ChannelFormat::RGB);
+    /// assert!(ChannelFormat::from_usize(5).is_err());
+    /// ```
     pub fn from_usize(val: usize) -> Result<ChannelFormat, DataProcessingError> {
         match val {
             1 => Ok(ChannelFormat::GrayScale),
@@ -383,6 +433,31 @@ pub struct SegmentedVisionCenterProperties {
 }
 
 impl SegmentedVisionCenterProperties {
+    /// Creates a new SegmentedVisionCenterProperties with row-major coordinates.
+    /// 
+    /// This constructor creates center properties using normalized coordinates where
+    /// the origin (0,0) is at the top-left corner of the image. This is typical of many toolboxes such as Numpy
+    /// 
+    /// # Arguments
+    /// 
+    /// * `center_coordinates_normalized_yx` - Center point as (y, x) in normalized space (0.0-1.0)
+    /// * `center_size_normalized_yx` - Size as (height, width) in normalized space (0.0-1.0)
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(SegmentedVisionCenterProperties) if the parameters are valid
+    /// - Err(DataProcessingError) if coordinates or size are outside valid ranges
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionCenterProperties;
+    /// 
+    /// let center_props = SegmentedVisionCenterProperties::new_row_major_where_origin_top_left(
+    ///     (0.5, 0.5), (0.3, 0.3)
+    /// ).unwrap();
+    /// ```
     pub fn new_row_major_where_origin_top_left(center_coordinates_normalized_yx: (f32, f32), center_size_normalized_yx: (f32, f32)) -> Result<SegmentedVisionCenterProperties, DataProcessingError> {
         let range_0_1: RangeInclusive<f32> = 0.0..=1.0;
         if !(range_0_1.contains(&center_coordinates_normalized_yx.0) && range_0_1.contains(&center_coordinates_normalized_yx.1)) {
@@ -405,16 +480,80 @@ impl SegmentedVisionCenterProperties {
         })
     }
 
+    /// Creates a new SegmentedVisionCenterProperties with Cartesian coordinates.
+    /// 
+    /// This constructor creates center properties using normalized Cartesian coordinates
+    /// where the origin (0,0) is at the bottom-left corner of the image. This is typical in graphics pipelines.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `center_coordinates_normalized_cartesian_xy` - Center point as (x, y) in normalized space (0.0-1.0)
+    /// * `center_size_normalized_xy` - Size as (width, height) in normalized space (0.0-1.0)
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(SegmentedVisionCenterProperties) if the parameters are valid
+    /// - Err(DataProcessingError) if coordinates or size are outside valid ranges
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionCenterProperties;
+    /// 
+    /// let center_props = SegmentedVisionCenterProperties::cartesian_where_origin_bottom_left(
+    ///     (0.5, 0.5), (0.3, 0.3)
+    /// ).unwrap();
+    /// ```
     pub fn cartesian_where_origin_bottom_left(center_coordinates_normalized_cartesian_xy: (f32, f32), center_size_normalized_xy: (f32, f32)) -> Result<SegmentedVisionCenterProperties, DataProcessingError> {
         SegmentedVisionCenterProperties::new_row_major_where_origin_top_left(
             (center_coordinates_normalized_cartesian_xy.1, 1.0 - center_coordinates_normalized_cartesian_xy.0),
             (center_size_normalized_xy.1, center_size_normalized_xy.0))
     }
 
+    /// Creates a default centered SegmentedVisionCenterProperties.
+    /// 
+    /// This convenience method creates center properties with the center region
+    /// positioned at the middle of the image with a moderate size.
+    /// 
+    /// # Returns
+    /// 
+    /// A SegmentedVisionCenterProperties with default centered configuration.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionCenterProperties;
+    /// 
+    /// let center_props = SegmentedVisionCenterProperties::create_default_centered();
+    /// ```
     pub fn create_default_centered() -> SegmentedVisionCenterProperties {
         SegmentedVisionCenterProperties::new_row_major_where_origin_top_left((0.5, 0.5), (0.5, 0.5)).unwrap()
     }
     
+    /// Calculates the source corner points for all nine segments of a segmented vision frame.
+    /// 
+    /// This method computes the cropping regions for each of the nine segments based on
+    /// the center properties and the source frame dimensions.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `source_frame_width_height` - The dimensions of the source frame as (width, height)
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(SegmentedVisionFrameSourceCroppingPointGrouping) with corner points for all segments
+    /// - Err(DataProcessingError) if the calculations fail
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionCenterProperties;
+    /// 
+    /// let center_props = SegmentedVisionCenterProperties::create_default_centered();
+    /// let cropping_points = center_props.calculate_source_corner_points_for_segemented_video_frame((640, 480)).unwrap();
+    /// ```
     pub fn calculate_source_corner_points_for_segemented_video_frame(&self, source_frame_width_height: (usize, usize))  -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, DataProcessingError> {
         let center_corner_points = self.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
         Ok(SegmentedVisionFrameSourceCroppingPointGrouping{
@@ -484,6 +623,39 @@ pub struct SegmentedVisionTargetResolutions {
 
 impl SegmentedVisionTargetResolutions {
 
+    /// Creates a new SegmentedVisionTargetResolutions with individual segment resolutions.
+    /// 
+    /// This constructor allows setting different resolutions for each of the nine segments
+    /// in the segmented vision frame.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `lower_left` - Resolution for the lower-left segment as (width, height)
+    /// * `middle_left` - Resolution for the middle-left segment as (width, height)
+    /// * `upper_left` - Resolution for the upper-left segment as (width, height)
+    /// * `upper_middle` - Resolution for the upper-middle segment as (width, height)
+    /// * `upper_right` - Resolution for the upper-right segment as (width, height)
+    /// * `middle_right` - Resolution for the middle-right segment as (width, height)
+    /// * `lower_right` - Resolution for the lower-right segment as (width, height)
+    /// * `lower_middle` - Resolution for the lower-middle segment as (width, height)
+    /// * `center` - Resolution for the center segment as (width, height)
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(SegmentedVisionTargetResolutions) if all resolutions are valid (non-zero)
+    /// - Err(DataProcessingError) if any resolution has zero width or height
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionTargetResolutions;
+    /// 
+    /// let resolutions = SegmentedVisionTargetResolutions::new(
+    ///     (32, 32), (32, 32), (32, 32), (32, 32), (32, 32),
+    ///     (32, 32), (32, 32), (32, 32), (64, 64)
+    /// ).unwrap();
+    /// ```
     pub fn new(
         lower_left: (usize, usize),
         middle_left: (usize, usize),
@@ -513,6 +685,31 @@ impl SegmentedVisionTargetResolutions {
         })
     }
 
+    /// Creates a SegmentedVisionTargetResolutions with uniform peripheral segment sizes.
+    /// 
+    /// This convenience method creates a configuration where all eight peripheral segments
+    /// have the same resolution, while the center segment can have a different resolution.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `center_width_height` - Resolution for the center segment as (width, height)
+    /// * `peripheral_width_height` - Resolution for all peripheral segments as (width, height)
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(SegmentedVisionTargetResolutions) if all resolutions are valid (non-zero)
+    /// - Err(DataProcessingError) if any resolution has zero width or height
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionTargetResolutions;
+    /// 
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral(
+    ///     (64, 64), (32, 32)
+    /// ).unwrap();
+    /// ```
     pub fn create_with_same_sized_peripheral(center_width_height: (usize, usize), peripheral_width_height: (usize, usize)) -> Result<SegmentedVisionTargetResolutions, DataProcessingError> {
         SegmentedVisionTargetResolutions::new(peripheral_width_height, peripheral_width_height,
                                                      peripheral_width_height, peripheral_width_height,

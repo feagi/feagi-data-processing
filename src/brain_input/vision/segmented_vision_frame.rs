@@ -130,6 +130,45 @@ impl SegmentedVisionFrame {
         })
     }
     
+    /// Creates an ordered array of cortical IDs for the nine vision segments.
+    /// 
+    /// This method generates the standard cortical area identifiers used for mapping
+    /// the nine vision segments to their corresponding cortical areas in FEAGI.
+    /// The IDs follow a naming convention where the center uses different IDs for
+    /// grayscale vs color processing.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `_camera_index` - Camera identifier (currently unused but reserved for multi-camera support)
+    /// * `is_grayscale` - Whether the processing is in grayscale mode
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok([CorticalID; 9]) with the ordered cortical IDs
+    /// - Err(DataProcessingError) if any cortical ID creation fails
+    /// 
+    /// # Cortical ID Order
+    /// 
+    /// The returned array contains IDs in this order:
+    /// 1. Center (iv00_C for grayscale, iv00CC for color)
+    /// 2. Lower-left (iv00BL)
+    /// 3. Middle-left (iv00ML)
+    /// 4. Upper-left (iv00TL)
+    /// 5. Upper-middle (iv00TM)
+    /// 6. Upper-right (iv00TR)
+    /// 7. Middle-right (iv00MR)
+    /// 8. Lower-right (iv00BR)
+    /// 9. Lower-middle (iv00BM)
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
+    /// 
+    /// let cortical_ids = SegmentedVisionFrame::create_ordered_cortical_ids(0, false).unwrap();
+    /// assert_eq!(cortical_ids.len(), 9);
+    /// ```
     pub fn create_ordered_cortical_ids(_camera_index: u8, is_grayscale: bool) -> Result<[CorticalID; 9], DataProcessingError> {
         let mut output = [CorticalID::from_str("iv00_C")?, // TODO use camera index
             CorticalID::from_str("iv00BL")?, CorticalID::from_str("iv00ML")?,
@@ -244,7 +283,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
     ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
-    /// let frame = SegmentedVisionFrame::new(
+    /// let mut segmented_frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
     ///     &ColorSpace::Gamma,
@@ -252,7 +291,7 @@ impl SegmentedVisionFrame {
     /// ).unwrap();
     /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
     /// let center_props = SegmentedVisionCenterProperties::create_default_centered();
-    /// // segmented_frame.update_segments(&source, center_props).unwrap();
+    /// segmented_frame.update_segments(&source, center_props).unwrap();
     /// ```
     pub fn update_segments(&mut self, source_frame: &ImageFrame, 
                            center_properties: SegmentedVisionCenterProperties)
@@ -425,6 +464,16 @@ impl SegmentedVisionFrame {
     //endregion
     
     //region internal functions
+    
+    /// Returns mutable references to all nine image frames in the standard order.
+    /// 
+    /// This internal helper method provides ordered access to the image frame segments
+    /// for operations that need to process all segments uniformly.
+    /// 
+    /// # Returns
+    /// 
+    /// An array of mutable references to the nine ImageFrame segments in the order:
+    /// [center, lower_left, middle_left, upper_left, upper_middle, upper_right, middle_right, lower_right, lower_middle]
     fn get_ordered_image_frame_references(&mut self) -> [&mut ImageFrame; 9] {
         [&mut self.center, &mut self.lower_left, &mut self.middle_left,
             &mut self.upper_left, &mut self.upper_middle, &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,

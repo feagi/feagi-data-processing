@@ -1,3 +1,9 @@
+//! Cortical area identification and data structures for FEAGI.
+//! 
+//! This module provides the `CorticalID` type for identifying cortical areas in the FEAGI
+//! brain simulation. Cortical IDs are fixed-length ASCII identifiers that map to specific
+//! brain regions and are used throughout the system for organizing and routing neuron data.
+
 use crate::error::DataProcessingError;
 
 /*
@@ -119,6 +125,32 @@ impl CorticalID {
         std::str::from_utf8(&self.id).unwrap()
     }
     
+    /// Writes the cortical ID bytes to a target byte slice.
+    /// 
+    /// This method copies the cortical ID's internal byte representation to the
+    /// provided byte slice. The target slice must be exactly the correct length
+    /// to hold the cortical ID.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `bytes_to_write_at` - The target byte slice to write the cortical ID to
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if the write was successful
+    /// - Err(DataProcessingError) if the target slice has incorrect length
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
+    /// 
+    /// let cortical_id = CorticalID::from_str("iv00CC").unwrap();
+    /// let mut buffer = [0u8; 6];
+    /// cortical_id.write_bytes_at(&mut buffer).unwrap();
+    /// assert_eq!(&buffer, b"iv00CC");
+    /// ```
     pub fn write_bytes_at(&self, bytes_to_write_at: &mut [u8]) -> Result<(), DataProcessingError> {
         if bytes_to_write_at.len() != CORTICAL_ID_LENGTH {
             return Err(DataProcessingError::InvalidInputBounds(format!("Cortical Area ID need a length of exactly {} bytes to fit!", CORTICAL_ID_LENGTH).into()));
