@@ -522,7 +522,7 @@ impl SegmentedVisionTargetResolutions {
     }
 }
 
-/// For internal use, convinient grouping for segmented image frame to store corner points on where from the source various regions should be cropped from
+/// For internal use, convenient grouping for segmented image frame to store corner points on where from the source various regions should be cropped from
 #[derive(PartialEq, Clone, Copy)]
 pub struct SegmentedVisionFrameSourceCroppingPointGrouping {
     /// Corner points for the lower-left segment

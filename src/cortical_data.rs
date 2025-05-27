@@ -77,8 +77,7 @@ impl CorticalID {
     /// # Arguments
     ///
     /// * `bytes` - A byte slice containing the cortical identifier
-    /// * `offset` - The starting position within the byte slice
-    ///
+
     /// # Returns
     ///
     /// * `Result<CorticalID, &'static str>` - A Result containing either the constructed CorticalID
@@ -89,14 +88,13 @@ impl CorticalID {
     /// Returns an error if:
     /// * There aren't enough bytes available from the offset
     /// * The bytes contain non-ASCII characters
-    pub fn from_bytes_at(bytes: &[u8], offset: usize) -> Result<CorticalID, DataProcessingError> { // TODO do not use offsets
-        if offset + CORTICAL_ID_LENGTH > bytes.len() {
-            return Err(DataProcessingError::InvalidInputBounds("Not enough bytes starting from the given offset!".into()));
+    pub fn from_bytes_at(bytes: &[u8]) -> Result<CorticalID, DataProcessingError> { // TODO do not use offsets
+        if CORTICAL_ID_LENGTH != bytes.len() {
+            return Err(DataProcessingError::InvalidInputBounds(format!("Expected exactly {} bytes for getting the cortical ID! Received a slice of {} bytes!", CORTICAL_ID_LENGTH, bytes.len()).into()));
         }
+        
 
-        let slice = &bytes[offset..offset + CORTICAL_ID_LENGTH];
-
-        if !slice.iter().all(|&b| b.is_ascii()) {
+        if !bytes.iter().all(|&b| b.is_ascii()) {
             return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));
         }
 
@@ -123,7 +121,7 @@ impl CorticalID {
     
     pub fn write_bytes_at(&self, bytes_to_write_at: &mut [u8]) -> Result<(), DataProcessingError> {
         if bytes_to_write_at.len() != CORTICAL_ID_LENGTH {
-            return Err(DataProcessingError::InvalidInputBounds("Cortical Area ID need a length of exactly 6 bytes to fit!".into()));
+            return Err(DataProcessingError::InvalidInputBounds(format!("Cortical Area ID need a length of exactly {} bytes to fit!", CORTICAL_ID_LENGTH).into()));
         };
         bytes_to_write_at.copy_from_slice(&self.id);
         Ok(())

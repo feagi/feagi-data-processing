@@ -49,6 +49,7 @@ pub fn from_multi_structure_holder_get_sub_structures(bytes: &[u8]) -> Result<Ve
     Ok(output)
 }
 
+// TODO this needs to be redone to return slices, not vectors!
 pub fn from_multi_structure_holder_get_boundaries(bytes: &[u8]) -> Result<Vec<(u32, u32)>, &'static str> {
 
     
