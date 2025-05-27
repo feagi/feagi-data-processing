@@ -1,14 +1,56 @@
+//! Segmented vision frame processing for FEAGI peripheral vision simulation.
+//! 
+//! This module provides the `SegmentedVisionFrame` struct which divides an input image
+//! into nine segments with different resolutions to simulate peripheral vision. The center
+//! segment typically has higher resolution while peripheral segments have lower resolution,
+//! mimicking how human vision works with high acuity in the center and lower acuity in
+//! the periphery.
+
 use super::image_frame::ImageFrame;
 use crate::error::DataProcessingError;
 use super::descriptors::*;
 use crate::cortical_data::CorticalID;
 use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
 
-/// A frame divided into nine segments with different resolutions. Used for Peripheral vision in FEAGI
+/// A frame divided into nine segments with different resolutions for peripheral vision simulation.
 ///
-/// This structure holds nine image frames representing a segmented view
-/// of a source frame, with a high-resolution center and lower-resolution
-/// peripheral regions.
+/// This structure represents a segmented view of a source frame, dividing it into nine regions:
+/// - **Center**: High-resolution central region (foveal vision)
+/// - **Eight peripheral segments**: Lower-resolution surrounding regions (peripheral vision)
+/// 
+/// The segmentation pattern follows this layout:
+/// ```text
+/// ┌─────────┬─────────┬─────────┐
+/// │ upper_  │ upper_  │ upper_  │
+/// │ left    │ middle  │ right   │
+/// ├─────────┼─────────┼─────────┤
+/// │ middle_ │ center  │ middle_ │
+/// │ left    │         │ right   │
+/// ├─────────┼─────────┼─────────┤
+/// │ lower_  │ lower_  │ lower_  │
+/// │ left    │ middle  │ right   │
+/// └─────────┴─────────┴─────────┘
+/// ```
+/// 
+/// This design allows FEAGI to process visual information with varying levels of detail,
+/// concentrating computational resources on the center of attention while maintaining
+/// awareness of the broader visual field.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
+/// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+/// 
+/// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+/// let frame = SegmentedVisionFrame::new(
+///     &resolutions,
+///     &ChannelFormat::RGB,
+///     &ColorSpace::Gamma,
+///     (640, 480)
+/// ).unwrap();
+/// ```
+#[derive(Clone)]
 pub struct SegmentedVisionFrame {
     /// Lower-left segment of the vision frame
     lower_left: ImageFrame,
@@ -29,16 +71,50 @@ pub struct SegmentedVisionFrame {
     /// Center segment of the vision frame (typically higher resolution)
     center: ImageFrame,
     /// Resolution of the original source frame that was loaded into this
-    previous_imported_internal_yx_resolution: (usize, usize),
+    previous_imported_internal_yx_resolution: (usize, usize), // All imported frames need to match this
     /// The cropping points to use for the source, cached, assuming the source resolution is the same
     previous_cropping_points_for_source_from_segment: Option<SegmentedVisionFrameSourceCroppingPointGrouping>
-
 }
 
 impl SegmentedVisionFrame {
+
+    //region common constructors
     
+    /// Creates a new SegmentedVisionFrame with specified resolutions and color properties.
+    /// 
+    /// This constructor initializes all nine segments with their respective resolutions
+    /// and the same color format and color space. Each segment is created as an empty
+    /// ImageFrame ready to receive cropped and resized data from source images.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `segment_resolutions` - The target resolutions for each of the nine segments
+    /// * `segment_color_channels` - The color channel format (GrayScale, RG, RGB, or RGBA)
+    /// * `segment_color_space` - The color space (Linear or Gamma)
+    /// * `input_frames_source_width_height` - The expected resolution of source frames (width, height)
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(SegmentedVisionFrame) if all segments were created successfully
+    /// - Err(DataProcessingError) if any segment creation fails
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// 
+    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+    /// let frame = SegmentedVisionFrame::new(
+    ///     &resolutions,
+    ///     &ChannelFormat::RGB,
+    ///     &ColorSpace::Gamma,
+    ///     (640, 480)
+    /// ).unwrap();
+    /// ```
     pub fn new(segment_resolutions: &SegmentedVisionTargetResolutions, segment_color_channels: &ChannelFormat,
-    segment_color_space: &ColorSpace) -> Result<SegmentedVisionFrame, DataProcessingError> {
+    segment_color_space: &ColorSpace, input_frames_source_width_height: (usize, usize)) -> Result<SegmentedVisionFrame, DataProcessingError> {
         Ok(SegmentedVisionFrame{
             lower_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_left),
             middle_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_left),
@@ -49,11 +125,122 @@ impl SegmentedVisionFrame {
             lower_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_right),
             lower_middle: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_middle),
             center: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.center),
-            previous_imported_internal_yx_resolution: (0, 0), // nothing imported before,
+            previous_imported_internal_yx_resolution: (input_frames_source_width_height.1, input_frames_source_width_height.0),
             previous_cropping_points_for_source_from_segment: None,
         })
     }
 
+    //endregion
+    
+    //region get properties
+    
+    /// Returns the color space used by all segments in this frame.
+    /// 
+    /// Since all segments share the same color space, this method returns
+    /// a reference to the color space from any segment (using upper_left as representative).
+    /// 
+    /// # Returns
+    /// 
+    /// A reference to the ColorSpace enum value.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// 
+    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+    /// let frame = SegmentedVisionFrame::new(
+    ///     &resolutions,
+    ///     &ChannelFormat::RGB,
+    ///     &ColorSpace::Gamma,
+    ///     (640, 480)
+    /// ).unwrap();
+    /// assert_eq!(*frame.get_color_space(), ColorSpace::Gamma);
+    /// ```
+    pub fn get_color_space(&self) -> &ColorSpace {
+        self.upper_left.get_color_space()
+    }
+
+    /// Returns the color channel format used by all segments in this frame.
+    /// 
+    /// Since all segments share the same channel format, this method returns
+    /// a reference to the channel format from any segment (using upper_left as representative).
+    /// 
+    /// # Returns
+    /// 
+    /// A reference to the ChannelFormat enum value.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// 
+    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+    /// let frame = SegmentedVisionFrame::new(
+    ///     &resolutions,
+    ///     &ChannelFormat::RGB,
+    ///     &ColorSpace::Gamma,
+    ///     (640, 480)
+    /// ).unwrap();
+    /// assert_eq!(*frame.get_color_channels(), ChannelFormat::RGB);
+    /// ```
+    pub fn get_color_channels(&self) -> &ChannelFormat {
+        self.upper_left.get_channel_format()
+    }
+    
+    //endregion
+    
+    //region Loading in new data
+    
+    /// Updates all nine segments with data from a source frame.
+    /// 
+    /// This method takes a source ImageFrame and divides it into nine segments according
+    /// to the center properties. Each segment is cropped from the appropriate region of
+    /// the source frame and resized to match the target resolution for that segment.
+    /// 
+    /// The method caches cropping points for efficiency - if the same source resolution
+    /// is used repeatedly, the cropping calculations are only performed once.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `source_frame` - The source ImageFrame to segment
+    /// * `center_properties` - Properties defining how to position and size the center region
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if all segments were updated successfully
+    /// - Err(DataProcessingError) if the source frame is incompatible or processing fails
+    /// 
+    /// # Errors
+    /// 
+    /// This method will return an error if:
+    /// - The source frame has different color channels than expected
+    /// - The source frame has a different color space than expected
+    /// - The source frame has a different resolution than expected
+    /// - Any of the cropping or resizing operations fail
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
+    /// 
+    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+    /// let mut segmented_frame = SegmentedVisionFrame::new(
+    ///     &resolutions,
+    ///     &ChannelFormat::RGB,
+    ///     &ColorSpace::Gamma,
+    ///     (640, 480)
+    /// ).unwrap();
+    /// 
+    /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
+    /// let center_props = SegmentedVisionCenterProperties::new((320, 240), (200, 200)).unwrap();
+    /// // segmented_frame.update_segments(&source, center_props).unwrap();
+    /// ```
     pub fn update_segments(&mut self, source_frame: &ImageFrame, 
                            center_properties: SegmentedVisionCenterProperties)
         -> Result<(), DataProcessingError> {
@@ -63,9 +250,12 @@ impl SegmentedVisionFrame {
         if source_frame.get_color_space() != self.get_color_space() {
             return Err(DataProcessingError::InvalidInputBounds("Input Image frame does not have matching color space!".into()));
         }
+        if source_frame.get_internal_resolution() != self.previous_imported_internal_yx_resolution {
+            return Err(DataProcessingError::InvalidInputBounds("Input Image frame does not have matching resolution!".into()));
+        }
         
-        if source_frame.get_internal_resolution() != self.previous_imported_internal_yx_resolution ||
-            self.previous_cropping_points_for_source_from_segment.is_none() {
+        if self.previous_cropping_points_for_source_from_segment.is_none() {
+            
             // We either have no corner points for the cropping sources defined, or they are no longer
             // valid, we need to update them
             self.previous_cropping_points_for_source_from_segment = Some(
@@ -97,136 +287,49 @@ impl SegmentedVisionFrame {
         
     }
     
-    pub fn get_color_space(&self) -> &ColorSpace {
-        self.upper_left.get_color_space()
-    }
+    //endregion
     
-    pub fn get_color_channels(&self) -> &ChannelFormat {
-        self.upper_left.get_channel_format()
-    }
     
-
-    /*
-    /// Creates a new SegmentedVisionFrame from a source frame, center properties, and target resolutions
-    ///
+    //region neuron export
+    
+    /// Exports all segments as a new cortical-mapped neuron data structure.
+    /// 
+    /// This method converts each of the nine segments into neuron data and maps them
+    /// to their corresponding cortical areas. Each segment is processed with a threshold
+    /// to determine which pixels become neurons, and the resulting data is organized
+    /// by cortical ID.
+    /// 
+    /// The cortical IDs follow a standard naming convention:
+    /// - Center: "iv00_C" (grayscale) or "iv00CC" (color)
+    /// - Peripheral segments: "iv00BL", "iv00ML", "iv00TL", "iv00TM", "iv00TR", "iv00MR", "iv00BR", "iv00BM"
+    /// 
     /// # Arguments
-    ///
-    /// * `source_frame` - The source image frame to segment
-    /// * `center_properties` - Properties defining the center region of interest
-    /// * `segment_resolutions` - Target resolutions for each segment
-    ///
+    /// 
+    /// * `_camera_index` - The camera index (currently unused but reserved for future multi-camera support)
+    /// 
     /// # Returns
-    ///
-    /// * `Result<SegmentedVisionFrame, &'static str>` - Created instance or error message
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// * Calculation of center corner points fails
-    /// * Creation of segment corner points fails
-    pub fn new_from_frame(source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties, segment_resolutions: &SegmentedVisionTargetResolutions) -> Result<SegmentedVisionFrame, DataProcessingError> {
-        let source_frame_width_height: (usize, usize) = source_frame.get_internal_resolution();
-        let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
-        let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame_width_height, inner_corners)?;
-        
-
-        // For all the following, we know the crops are safe
-        Ok(SegmentedVisionFrame{
-            lower_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_left, &segment_resolutions.lower_left)?,
-            middle_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.middle_left, &segment_resolutions.middle_left)?,
-            upper_left: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_left, &segment_resolutions.upper_left)?,
-            upper_middle: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_middle, &segment_resolutions.upper_middle)?,
-            upper_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.upper_right, &segment_resolutions.upper_right)?,
-            middle_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.middle_right, &segment_resolutions.middle_right)?,
-            lower_right: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_right, &segment_resolutions.lower_right)?,
-            lower_middle: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.lower_middle, &segment_resolutions.lower_middle)?,
-            center: ImageFrame::create_from_source_frame_crop_and_resize(source_frame, &segment_corner_points.center, &segment_resolutions.center)?,
-            original_source_resolution: source_frame_width_height,
-        })
-        
-    }
-
-
-    
-    /// Updates the segmentation with a new focus point while using the same source frame
-    ///
-    /// # Arguments
-    ///
-    /// * `source_frame` - The source image frame
-    /// * `center_properties` - New properties defining the center region of interest
-    ///
-    /// # Returns
-    ///
-    /// * `Result<(), &'static str>` - Success or error message
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// * The resolution of the new frame doesn't match the original
-    /// * Calculation of corner points fails
-    pub fn update_in_place_new_focus(&mut self, source_frame: &ImageFrame, center_properties: &SegmentedVisionCenterProperties) -> Result<(), &'static str> {
-        if source_frame.get_xy_resolution() != self.original_source_resolution {
-            return Err("New frame does not have the same resolution as the previous! Unable to update in place!");
-        }
-        
-        let inner_corners = center_properties.calculate_pixel_coordinates_of_center_corners(self.original_source_resolution);
-        if inner_corners.is_err(){
-            return Err(inner_corners.unwrap_err()); // lol
-        }
-        let inner_corners: CornerPoints = inner_corners.unwrap();
-        let segment_corner_points = SegmentedCornerPoints::from_source_and_center_corner_points(source_frame.get_xy_resolution(), inner_corners);
-        if segment_corner_points.is_err(){
-            return Err(segment_corner_points.unwrap_err()); // lol x2
-        }
-        
-        self.segment_corner_points = segment_corner_points.unwrap();
-        _ = self.lower_left.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.lower_left, source_frame);
-        _ = self.middle_left.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.middle_left, source_frame);
-        _ = self.upper_left.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.upper_left, source_frame);
-        _ = self.upper_middle.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.upper_middle, source_frame);
-        _ = self.upper_right.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.upper_right, source_frame);
-        _ = self.middle_right.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.middle_right, source_frame);
-        _ = self.lower_right.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.lower_right, source_frame);
-        _ = self.lower_middle.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.lower_middle, source_frame);
-        _ = self.center.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.center, source_frame);
-        
-        Ok(())
-    }
-    
-    /// Updates all segments with a new source frame while maintaining the same focus point and size
-    ///
-    /// # Arguments
-    ///
-    /// * `source_frame` - The new source image frame
-    ///
-    /// # Returns
-    ///
-    /// * `Result<(), &'static str>` - Success or error message
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the resolution of the new frame doesn't match the original
-    pub fn update_in_place(&mut self, source_frame: &ImageFrame) -> Result<(), &'static str> {
-        
-        if source_frame.get_xy_resolution() != self.original_source_resolution {
-            return Err("New frame does not have the same resolution as the previous! Unable to update in place!");
-        }
-        
-        _ = self.lower_left.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.lower_left, source_frame);
-        _ = self.middle_left.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.middle_left, source_frame);
-        _ = self.upper_left.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.upper_left, source_frame);
-        _ = self.upper_middle.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.upper_middle, source_frame);
-        _ = self.upper_right.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.upper_right, source_frame);
-        _ = self.middle_right.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.middle_right, source_frame);
-        _ = self.lower_right.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.lower_right, source_frame);
-        _ = self.lower_middle.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.lower_middle, source_frame);
-        _ = self.center.in_place_crop_and_nearest_neighbor_resize_to_self(&self.segment_corner_points.center, source_frame);
-        Ok(())
-    }
-    */
-
-
-    
+    /// 
+    /// A Result containing either:
+    /// - Ok(CorticalMappedNeuronData) with neuron data for all nine segments
+    /// - Err(DataProcessingError) if any conversion fails
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// 
+    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+    /// let mut segmented_frame = SegmentedVisionFrame::new(
+    ///     &resolutions,
+    ///     &ChannelFormat::RGB,
+    ///     &ColorSpace::Gamma,
+    ///     (640, 480)
+    /// ).unwrap();
+    /// 
+    /// // After updating segments with source data...
+    /// // let neuron_data = segmented_frame.export_as_new_cortical_mapped_neuron_data(0).unwrap();
+    /// ```
     pub fn export_as_new_cortical_mapped_neuron_data(&mut self, _camera_index: u8) -> Result<CorticalMappedNeuronData, DataProcessingError> {
 
         let ordered_refs: [&mut ImageFrame; 9] = [&mut self.center, &mut self.lower_left, &mut self.middle_left,
@@ -265,14 +368,57 @@ impl SegmentedVisionFrame {
         Ok(output)
     }
     
-    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_IDs: [CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedNeuronData) -> Result<(), DataProcessingError> {
+    /// Exports neuron data from all segments into an existing cortical-mapped data structure.
+    /// 
+    /// This method is similar to `export_as_new_cortical_mapped_neuron_data` but writes
+    /// the neuron data into pre-existing NeuronXYCPArrays structures. This is more efficient
+    /// when the cortical data structure is being reused across multiple frames.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `ordered_cortical_ids` - An array of 9 cortical IDs in the expected order:
+    ///   [center, lower_left, middle_left, upper_left, upper_middle, upper_right, middle_right, lower_right, lower_middle]
+    /// * `all_mapped_neuron_data` - The existing cortical-mapped data structure to write into
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if all segments were exported successfully
+    /// - Err(DataProcessingError) if any cortical ID is not found or conversion fails
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
+    /// use feagi_core_data_structures_and_processing::neuron_data::CorticalMappedNeuronData;
+    /// 
+    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+    /// let mut segmented_frame = SegmentedVisionFrame::new(
+    ///     &resolutions,
+    ///     &ChannelFormat::RGB,
+    ///     &ColorSpace::Gamma,
+    ///     (640, 480)
+    /// ).unwrap();
+    /// 
+    /// // Set up cortical IDs and data structure
+    /// let cortical_ids = [
+    ///     CorticalID::from_str("iv00CC").unwrap(), // center
+    ///     CorticalID::from_str("iv00BL").unwrap(), // lower_left
+    ///     // ... other IDs
+    /// ];
+    /// let mut neuron_data = CorticalMappedNeuronData::new();
+    /// // segmented_frame.inplace_export_cortical_mapped_neuron_data(&cortical_ids, &mut neuron_data).unwrap();
+    /// ```
+    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedNeuronData) -> Result<(), DataProcessingError> {
         let ordered_refs: [&mut ImageFrame; 9] = [&mut self.center, &mut self.lower_left, &mut self.middle_left,
             &mut self.upper_left, &mut self.upper_middle, &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,
             &mut self.lower_middle];
         
         let id_counter: usize = 0;
         for index in 0..9 {
-            let cortical_id = &ordered_cortical_IDs[index];
+            let cortical_id = &ordered_cortical_ids[index];
             let mapped_neuron_data = all_mapped_neuron_data.get_mut(cortical_id);
             match mapped_neuron_data { 
                 None => {
@@ -286,7 +432,11 @@ impl SegmentedVisionFrame {
         Ok(())
     }
     
+    //endregion
     
+    
+    
+    /*
     
     fn u8_to_hex_chars(& self, n: u8) -> (char, char) { // TODO this should be moved elsewhere // TODO moving this to cortical ID makes sense
         const HEX_CHARS: &[u8; 16] = b"0123456789ABCDEF";
@@ -294,6 +444,8 @@ impl SegmentedVisionFrame {
         let low = HEX_CHARS[(n & 0x0F) as usize] as char;
         (high, low)
     }
+    
+     */
 
 
     
