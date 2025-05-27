@@ -33,7 +33,7 @@ use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
 /// ```
 /// 
 /// This design allows FEAGI to process visual information with varying levels of detail,
-/// concentrating computational resources on the center of attention while maintaining
+/// concentrating computational resources in the center of attention while maintaining
 /// awareness of the broader visual field.
 /// 
 /// # Examples
@@ -41,8 +41,8 @@ use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
 /// ```
 /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
 /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-/// 
-/// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+///
+/// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
 /// let frame = SegmentedVisionFrame::new(
 ///     &resolutions,
 ///     &ChannelFormat::RGB,
@@ -104,8 +104,8 @@ impl SegmentedVisionFrame {
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// 
-    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+    ///
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
     /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
@@ -129,7 +129,21 @@ impl SegmentedVisionFrame {
             previous_cropping_points_for_source_from_segment: None,
         })
     }
-
+    
+    pub fn create_ordered_cortical_ids(_camera_index: u8, is_grayscale: bool) -> Result<[CorticalID; 9], DataProcessingError> {
+        let mut output = [CorticalID::from_str("iv00_C")?, // TODO use camera index
+            CorticalID::from_str("iv00BL")?, CorticalID::from_str("iv00ML")?,
+            CorticalID::from_str("iv00TL")?, CorticalID::from_str("iv00TM")?,
+            CorticalID::from_str("iv00TR")?, CorticalID::from_str("iv00MR")?,
+            CorticalID::from_str("iv00BR")?, CorticalID::from_str("iv00BM")?];
+        
+        if !is_grayscale {
+            output[0] = CorticalID::from_str("iv00CC")?;
+        }
+        
+        Ok(output) // same order as other struct members
+    }
+    
     //endregion
     
     //region get properties
@@ -149,7 +163,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     /// 
-    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
     /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
@@ -176,8 +190,8 @@ impl SegmentedVisionFrame {
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// 
-    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
+    ///
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
     /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
@@ -228,17 +242,16 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// 
-    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
-    /// let mut segmented_frame = SegmentedVisionFrame::new(
+    ///
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
+    /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
     ///     &ColorSpace::Gamma,
     ///     (640, 480)
     /// ).unwrap();
-    /// 
     /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
-    /// let center_props = SegmentedVisionCenterProperties::new((320, 240), (200, 200)).unwrap();
+    /// let center_props = SegmentedVisionCenterProperties::create_default_centered();
     /// // segmented_frame.update_segments(&source, center_props).unwrap();
     /// ```
     pub fn update_segments(&mut self, source_frame: &ImageFrame, 
@@ -318,9 +331,9 @@ impl SegmentedVisionFrame {
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// 
-    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
-    /// let mut segmented_frame = SegmentedVisionFrame::new(
+    ///
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
+    /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
     ///     &ColorSpace::Gamma,
@@ -330,38 +343,18 @@ impl SegmentedVisionFrame {
     /// // After updating segments with source data...
     /// // let neuron_data = segmented_frame.export_as_new_cortical_mapped_neuron_data(0).unwrap();
     /// ```
-    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, _camera_index: u8) -> Result<CorticalMappedNeuronData, DataProcessingError> {
+    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: u8) -> Result<CorticalMappedNeuronData, DataProcessingError> {
 
-        let ordered_refs: [&mut ImageFrame; 9] = [&mut self.center, &mut self.lower_left, &mut self.middle_left,
-            &mut self.upper_left, &mut self.upper_middle, &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,
-            &mut self.lower_middle];
+        let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
-        let mut cortical_ids: [CorticalID; 9] = [CorticalID::from_str("iv00_C")?,
-            CorticalID::from_str("iv00BL")?, CorticalID::from_str("iv00ML")?,
-            CorticalID::from_str("iv00TL")?, CorticalID::from_str("iv00TM")?,
-            CorticalID::from_str("iv00TR")?, CorticalID::from_str("iv00MR")?,
-            CorticalID::from_str("iv00BR")?, CorticalID::from_str("iv00BM")?]; // same order as other struct members
-
-        if ordered_refs[0].get_color_channel_count() > 1 {
-            // Ensure we aren't using grays scale cortical area ID if we are doing things in color
-            cortical_ids[0] = CorticalID::from_str("iv00CC")?
-        }
+        let cortical_ids: [CorticalID; 9] = SegmentedVisionFrame::create_ordered_cortical_ids(camera_index, ordered_refs[0].get_color_channel_count() == 1)?;
         
-        // TODO user camera index
-        /*
-        let replacement_chars = self.u8_to_hex_chars(camera_index);
-        for cortical_id_string in cortical_ids_strings.iter_mut(){
-            cortical_id_string.replace_range(2..4, &format!("{}{}", replacement_chars.0, replacement_chars.1));
-        };
-        
-         */
-
         let mut output: CorticalMappedNeuronData = CorticalMappedNeuronData::new();
         
         for index in 0..9 {
             let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
             let mut data: NeuronXYCPArrays = NeuronXYCPArrays::new(max_neurons)?;
-            ordered_refs[index].write_thresholded_xyzp_neuron_arrays(10.0, &mut data);
+            ordered_refs[index].write_thresholded_xyzp_neuron_arrays(10.0, &mut data)?;
             output.insert(cortical_ids[index].clone(), data);
         }
         
@@ -393,9 +386,9 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     /// use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
     /// use feagi_core_data_structures_and_processing::neuron_data::CorticalMappedNeuronData;
-    /// 
-    /// let resolutions = SegmentedVisionTargetResolutions::new_all_equal((64, 64));
-    /// let mut segmented_frame = SegmentedVisionFrame::new(
+    ///
+    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16))?;
+    /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
     ///     &ChannelFormat::RGB,
     ///     &ColorSpace::Gamma,
@@ -412,11 +405,8 @@ impl SegmentedVisionFrame {
     /// // segmented_frame.inplace_export_cortical_mapped_neuron_data(&cortical_ids, &mut neuron_data).unwrap();
     /// ```
     pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedNeuronData) -> Result<(), DataProcessingError> {
-        let ordered_refs: [&mut ImageFrame; 9] = [&mut self.center, &mut self.lower_left, &mut self.middle_left,
-            &mut self.upper_left, &mut self.upper_middle, &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,
-            &mut self.lower_middle];
+        let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
-        let id_counter: usize = 0;
         for index in 0..9 {
             let cortical_id = &ordered_cortical_ids[index];
             let mapped_neuron_data = all_mapped_neuron_data.get_mut(cortical_id);
@@ -434,7 +424,14 @@ impl SegmentedVisionFrame {
     
     //endregion
     
+    //region internal functions
+    fn get_ordered_image_frame_references(&mut self) -> [&mut ImageFrame; 9] {
+        [&mut self.center, &mut self.lower_left, &mut self.middle_left,
+            &mut self.upper_left, &mut self.upper_middle, &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,
+            &mut self.lower_middle]
+    }
     
+    //endregion
     
     /*
     

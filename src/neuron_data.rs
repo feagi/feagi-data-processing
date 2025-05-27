@@ -65,7 +65,7 @@ impl NeuronXYCPArrays{
     ///
     /// # Returns
     /// * `Result<Vec<u8>, DataProcessingError>` - The serialized byte vector or an error
-    pub fn cortical_mapped_neuron_data_to_bytes(mapped_data: CorticalMappedNeuronData) -> Result<Vec<u8>, DataProcessingError> {
+    pub fn cortical_mapped_neuron_data_to_bytes(mapped_data: &CorticalMappedNeuronData) -> Result<Vec<u8>, DataProcessingError> {
         const BYTE_STRUCT_ID: u8 = 11;
         const BYTE_STRUCT_VERSION: u8 = 1;
         const GLOBAL_HEADER_SIZE: usize = 2;
@@ -76,7 +76,7 @@ impl NeuronXYCPArrays{
         // Calculate prerequisite info
         let number_cortical_areas: usize = mapped_data.len();
         let mut number_of_neurons_total: usize = 0;
-        for (_, neuron_data) in &mapped_data {
+        for (_, neuron_data) in mapped_data {
             number_of_neurons_total += neuron_data.get_number_of_neurons_used();
         };
 
@@ -97,7 +97,7 @@ impl NeuronXYCPArrays{
         let mut data_write_index: u32 = header_write_index as u32 + (number_cortical_areas as u32 * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
 
         // fill in cortical descriptors header
-        for (cortical_id, neuron_data) in &mapped_data {
+        for (cortical_id, neuron_data) in mapped_data {
             // Calculate locations
             let reading_start: u32 = data_write_index;
             let reading_length: u32 = neuron_data.get_number_of_neurons_used() as u32 * NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON as u32;
