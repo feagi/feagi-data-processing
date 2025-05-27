@@ -10,9 +10,6 @@ use crate::error::DataProcessingError;
 /// This structure is used to organize neuron data by cortical area.
 pub type CorticalMappedNeuronData = HashMap<CorticalID, NeuronXYCPArrays>;
 
-
-pub type XYCPOrderedVectorWriteTargets<'a> = (&'a mut Vec<u32>, &'a mut Vec<u32>, &'a mut Vec<u32>, &'a mut Vec<f32>);
-
 /// Represents neuron data as four parallel arrays for X, Y, channel, and potential values.
 /// This structure provides an efficient memory layout for serialization and processing of neuron data.
 #[derive(Clone)]

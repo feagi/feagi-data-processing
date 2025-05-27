@@ -1,18 +1,45 @@
+//! Image frame processing and manipulation for FEAGI vision input.
+//! 
+//! This module provides the `ImageFrame` struct and associated functionality for handling
+//! image data in various formats, color spaces, and memory layouts. It supports common
+//! image processing operations like cropping, resizing, brightness/contrast adjustment,
+//! and conversion to neuron data for FEAGI processing.
+
 use ndarray::{s, Array3, ArrayView3};
 use crate::brain_input::vision::descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::DataProcessingError;
 use crate::neuron_data::NeuronXYCPArrays;
 
+/// Represents an image frame with pixel data and metadata for FEAGI vision processing.
+/// 
+/// An `ImageFrame` stores image data as a 3D array of f32 values along with information
+/// about the color channel format and color space. The internal storage uses row-major
+/// ordering (height, width, channels) for efficient processing.
+/// 
+/// # Examples
+/// 
+/// ```
+/// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
+/// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+/// 
+/// // Create a new RGB image frame
+/// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
+/// assert_eq!(frame.get_cartesian_width_height(), (640, 480));
+/// assert_eq!(frame.get_color_channel_count(), 3);
+/// ```
 #[derive(Clone)]
 pub struct ImageFrame {
+    /// The pixel data stored as a 3D array with dimensions (height, width, channels)
     pixels: Array3<f32>,
+    /// The color channel format (GrayScale, RG, RGB, or RGBA)
     channel_format: ChannelFormat,
+    /// The color space (Linear or Gamma)
     color_space: ColorSpace,
 }
 
 impl ImageFrame {
+    /// The internal memory layout used for storing pixel data
     const INTERNAL_MEMORY_LAYOUT: MemoryOrderLayout = MemoryOrderLayout::HeightsWidthsChannels;
-    const NUMBER_BYTES_PER_NEURON: usize = 16;
 
     // region: common constructors
 
@@ -378,6 +405,25 @@ impl ImageFrame {
         (shape[0], shape[1], shape[2])
     }
 
+    /// Returns the maximum number of neurons that could be generated from this image.
+    /// 
+    /// This calculates the total number of pixels across all channels, which represents
+    /// the maximum number of neurons that could be created if every pixel value was
+    /// above the threshold when converting to neuron data.
+    /// 
+    /// # Returns
+    /// 
+    /// The maximum possible neuron count (width × height × channels).
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// 
+    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// assert_eq!(frame.get_max_capacity_neuron_count(), 100 * 100 * 3);
+    /// ```
     pub fn get_max_capacity_neuron_count(&self) -> usize {
         self.pixels.shape()[0] * self.pixels.shape()[1] * self.pixels.shape()[2]
     }
@@ -568,13 +614,41 @@ impl ImageFrame {
 
     // region: Load Data in place
     
+    /// Processes a source image frame in-place using the specified processing parameters.
+    /// 
+    /// This method applies a series of image processing operations to a source frame
+    /// and stores the result in this frame. The processing can include cropping,
+    /// resizing, brightness adjustment, and contrast adjustment.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `image_processing` - The processing parameters defining which operations to apply
+    /// * `source` - The source ImageFrame to process
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if all processing steps were successful
+    /// - Err(DataProcessingError) if any processing step fails or if the frames are incompatible
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// 
+    /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let mut target = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(50, 50));
+    /// let params = FrameProcessingParameters::new();
+    /// // target.in_place_run_processor(params, source).unwrap();
+    /// ```
     pub fn in_place_run_processor(&mut self, image_processing: FrameProcessingParameters, source: ImageFrame) -> Result<(), DataProcessingError> {
         
         self.err_if_incoming_image_frame_is_color_incompatible(&source)?;
         
         
         if image_processing.get_final_width_height().is_ok(){
-            if image_processing.get_final_width_height().unwrap() != self.get_cartesian_width_height() {
+            if image_processing.get_final_width_height()? != self.get_cartesian_width_height() {
                 return Err(DataProcessingError::InvalidInputBounds("Specified Frame Processing Parameters do not result in an image that can fit in this ImageFrame!".into()));
             }
         }
@@ -592,32 +666,32 @@ impl ImageFrame {
             (false, false, false, false, false, false) => {
                 // No processing steps specified
                 self.in_place_load_data_unchanged(source.pixels, ImageFrame::INTERNAL_MEMORY_LAYOUT)?;
-                return Ok(());
+                Ok(())
             }
 
             (true, false, false, false, false, false) => {
                 // cropping from only
                 self.in_place_crop_image(&image_processing.cropping_from.unwrap(), &source)?;
-                return Ok(());
+                Ok(())
             }
 
             (false, true, false, false, false, false) => {
                 // resize only
-                self.in_place_nearest_neighbor_resize(&source);
-                return Ok(());
+                self.in_place_nearest_neighbor_resize(&source)?;
+                Ok(())
             }
 
             (true, true, false, false, false, false) => {
                 // crop from and resize to
                 self.in_place_crop_and_nearest_neighbor_resize(&image_processing.cropping_from.unwrap(), &source)?;
-                return Ok(());
+                Ok(())
             }
             
 
             _ => {
                 // We do not have an optimized pathway, just do this sequentially (although this is considerably slower)
 
-                return Err(DataProcessingError::NotImplemented); // TODO
+                Err(DataProcessingError::NotImplemented) // TODO
                 /*
                 
                 let mut frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT)?;
@@ -652,6 +726,21 @@ impl ImageFrame {
         }
     }
     
+    /// Loads pixel data from an array into this frame without any processing.
+    /// 
+    /// This method replaces the current pixel data with data from the provided array,
+    /// converting the memory layout if necessary.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `new_array` - The new pixel data to load
+    /// * `source_memory_order` - The memory layout of the source array
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if the data was loaded successfully
+    /// - Err(DataProcessingError) if the array dimensions don't match this frame
     pub fn in_place_load_data_unchanged(&mut self, new_array: Array3<f32>, source_memory_order: MemoryOrderLayout) -> Result<(), DataProcessingError> {
         if new_array.shape()[2] != self.get_color_channel_count() {
             return Err(DataProcessingError::InvalidInputBounds("Input array does not seem to have the correct number of color channels!".into()));
@@ -663,6 +752,21 @@ impl ImageFrame {
         Ok(())
     }
     
+    /// Crops a region from a source image and stores it in this frame.
+    /// 
+    /// This method extracts a rectangular region from the source image as defined
+    /// by the cropping points and stores it in this frame.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `source_cropping_points` - The region to crop from the source image
+    /// * `source` - The source ImageFrame to crop from
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if the crop operation was successful
+    /// - Err(DataProcessingError) if the frames are incompatible or crop region is invalid
     pub fn in_place_crop_image(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
         if source.get_channel_format() != self.get_channel_format() {
             return Err(DataProcessingError::InvalidInputBounds("The given image does not have the same color channel count as this ImageFrame!".into()))
@@ -689,8 +793,22 @@ impl ImageFrame {
         Ok(())
     }
     
+    /// Resizes a source image to fit this frame using nearest neighbor interpolation.
+    /// 
+    /// This method resizes the source image to match the dimensions of this frame
+    /// using nearest neighbor interpolation for speed.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `source` - The source ImageFrame to resize
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if the resize operation was successful
+    /// - Err(DataProcessingError) if the frames are incompatible
     pub fn in_place_nearest_neighbor_resize(&mut self, source: &ImageFrame) -> Result<(), DataProcessingError> {
-        // We dont need to specify size, as we are just using this size
+        // We don't need to specify size, as we are just using this size
         if source.get_channel_format() != self.get_channel_format() {
             return Err(DataProcessingError::InvalidInputBounds("The given image does not have the same color channel count as this ImageFrame!".into()))
         }
@@ -716,6 +834,22 @@ impl ImageFrame {
         Ok(())
     }
     
+    /// Crops and resizes a source image in a single operation.
+    /// 
+    /// This method first crops the specified region from the source image, then
+    /// resizes the cropped region to fit this frame using nearest neighbor interpolation.
+    /// This is more efficient than performing crop and resize as separate operations.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `source_cropping_points` - The region to crop from the source image
+    /// * `source` - The source ImageFrame to process
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if the operation was successful
+    /// - Err(DataProcessingError) if the frames are incompatible or crop region is invalid
     pub fn in_place_crop_and_nearest_neighbor_resize(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
         let crop_resolution: (usize, usize) = source_cropping_points.enclosed_area_width_height();
         if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&self, source) {
@@ -738,6 +872,35 @@ impl ImageFrame {
         Ok(())
     }
 
+    /// Calculates the thresholded difference between two frames and stores the result.
+    /// 
+    /// This method computes the absolute difference between corresponding pixels in
+    /// two frames. If the difference exceeds the threshold, the difference value is
+    /// stored; otherwise, zero is stored.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `previous_frame` - The first frame for comparison
+    /// * `next_frame` - The second frame for comparison
+    /// * `threshold` - The minimum difference required to register a change
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if the operation was successful
+    /// - Err(DataProcessingError) if the frames have incompatible dimensions
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// 
+    /// let frame1 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let frame2 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let mut diff_frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// // diff_frame.in_place_calculate_difference_thresholded(&frame1, &frame2, 10).unwrap();
+    /// ```
     pub fn in_place_calculate_difference_thresholded(&mut self, previous_frame: &ImageFrame, next_frame: &ImageFrame, threshold: u8) -> Result<(), DataProcessingError> {
         if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&previous_frame, next_frame) {
             return Err(DataProcessingError::IncompatibleInplace("The two given frames do not have equivalent resolutions or channel counts!".into()))
@@ -760,32 +923,56 @@ impl ImageFrame {
         Ok(())
     }
 
-
-
     // endregion
 
     // region: neuron export
 
+    /// Converts pixel data to neuron arrays using a threshold filter.
+    /// 
+    /// This method extracts pixels with values above the specified threshold and
+    /// converts them to neuron data with X, Y, channel, and potential values.
+    /// The Y coordinates are flipped to convert from image coordinates to FEAGI's
+    /// Cartesian coordinate system.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `threshold` - The minimum pixel value required to generate a neuron
+    /// * `write_target` - The NeuronXYCPArrays to write the neuron data to
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if the conversion was successful
+    /// - Err(DataProcessingError) if the operation fails
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::neuron_data::NeuronXYCPArrays;
+    /// 
+    /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
+    /// let mut neuron_arrays = NeuronXYCPArrays::new(30000).unwrap();
+    /// // frame.write_thresholded_xyzp_neuron_arrays(0.5, &mut neuron_arrays).unwrap();
+    /// ```
     pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronXYCPArrays) -> Result<(), DataProcessingError> {
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
-        if write_target.get_max_possible_number_of_neurons_out() < self.get_max_capacity_neuron_count() {
-            write_target.expand_to_new_max_count_if_required(self.get_max_capacity_neuron_count());
-        }
-
+        write_target.expand_to_new_max_count_if_required(self.get_max_capacity_neuron_count()); // make sure there's enough capacity
         write_target.reset_indexes(); // Ensure we push from the start
-        let (x_vec, y_vec, c_vec, p_vec) = write_target.get_as_xycp_vectors(); // FEAGI neuron data is cartesian
-
-        for ((y, x, c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
-            if color_val.abs() > threshold {
-                x_vec.push(x as u32);
-                y_vec.push( y_flip_distance - y as u32);  // flip y
-                c_vec.push(c as u32);
-                p_vec.push(*color_val);
-            }
-        };
-
-        Ok(())
-
+        
+        // write to the vectors
+        write_target.update_vectors_from_external(|x_vec, y_vec, c_vec, p_vec| {
+            for ((y, x, c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
+                if color_val.abs() > threshold {
+                    x_vec.push(x as u32);
+                    y_vec.push( y_flip_distance - y as u32);  // flip y
+                    c_vec.push(c as u32);
+                    p_vec.push(*color_val);
+                }
+            };
+            Ok(())
+        })
     }
     // endregion
 
@@ -837,6 +1024,21 @@ impl ImageFrame {
         })
     }
 
+    /// Creates a new ImageFrame by cropping a region from a source frame.
+    /// 
+    /// This function extracts a rectangular region from the source frame as defined
+    /// by the corner points and creates a new ImageFrame containing only that region.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `source_frame` - The source ImageFrame to crop from
+    /// * `corners_crop` - The CornerPoints defining the region to crop
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(ImageFrame) if the crop region is valid and fits within the source frame
+    /// - Err(DataProcessingError) if the crop region would not fit in the source frame
     fn create_from_source_frame_crop(source_frame: &ImageFrame, corners_crop: &CornerPoints) -> Result<ImageFrame, DataProcessingError> {
         let source_resolution = source_frame.get_internal_resolution(); // TODO ?
         if !corners_crop.does_fit_in_frame_of_width_height(source_resolution) {
@@ -909,6 +1111,20 @@ impl ImageFrame {
         }
     }
     
+    /// Validates that an incoming ImageFrame has compatible color properties.
+    /// 
+    /// This internal function checks that the incoming frame has the same color space
+    /// and channel format as this frame, which is required for in-place operations.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `incoming` - The ImageFrame to validate for compatibility
+    /// 
+    /// # Returns
+    /// 
+    /// A Result containing either:
+    /// - Ok(()) if the frames are compatible
+    /// - Err(DataProcessingError) if the color properties don't match
     fn err_if_incoming_image_frame_is_color_incompatible(&self, incoming: &ImageFrame) -> Result<(), DataProcessingError> {
         if self.color_space != incoming.color_space {
             return Err(DataProcessingError::IncompatibleInplace("Incoming source array does not have matching color space!".into()))
