@@ -5,6 +5,7 @@
 //! image processing operations like cropping, resizing, brightness/contrast adjustment,
 //! and conversion to neuron data for FEAGI processing.
 
+use std::cmp::max;
 use ndarray::{s, Array3, ArrayView3};
 use crate::brain_input::vision::descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::DataProcessingError;
@@ -215,7 +216,7 @@ impl ImageFrame {
     /// assert!(ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&frame1, &frame2));
     /// ```
     pub fn do_resolutions_channel_depth_and_color_spaces_match(a: &ImageFrame, b: &ImageFrame) -> bool {
-        a.get_internal_shape() == b.get_internal_shape() && a.color_space == b.color_space
+        a.get_color_channel_count() == b.get_color_channel_count() && a.color_space == b.color_space
     }
 
     /// Returns true if the given array has valid dimensions for an ImageFrame.
@@ -851,6 +852,8 @@ impl ImageFrame {
     /// - Ok(()) if the operation was successful
     /// - Err(DataProcessingError) if the frames are incompatible or crop region is invalid
     pub fn in_place_crop_and_nearest_neighbor_resize(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
+        const EPSILON: f32 = 0.0001;
+        
         let crop_resolution: (usize, usize) = source_cropping_points.enclosed_area_width_height();
         if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&self, source) {
             return Err(DataProcessingError::IncompatibleInplace("The incoming source data does not have compatible properties with the destination ImageFrame!".into()))
@@ -859,13 +862,25 @@ impl ImageFrame {
         let resolution: (usize, usize) = self.get_internal_resolution();
         let resolution_f: (f32, f32) = (resolution.0 as f32, resolution.1 as f32);
         let crop_resolution_f: (f32, f32) = (crop_resolution.0 as f32, crop_resolution.1 as f32);
-
+        
+        let dist_factor_yx: (f32, f32) = (
+            (crop_resolution_f.1 / resolution_f.1),
+            (crop_resolution_f.0 / resolution_f.0));
+        
+        let upper_left_corner_offset_yx: (usize, usize) = (
+            source_cropping_points.upper_left_row_major().0,
+            source_cropping_points.upper_left_row_major().1,
+            );
+        
         for ((y,x,c), color_val) in self.pixels.indexed_iter_mut() {
-            let nearest_neighbor_coordinate_y: usize = (((y as f32) / resolution_f.1) * crop_resolution_f.1).floor() as usize;
-            let nearest_neighbor_coordinate_x: usize = (((x as f32) / resolution_f.0) * crop_resolution_f.0).floor() as usize;
+            let nearest_neighbor_coordinate_from_source_y: usize = ((y as f32) * dist_factor_yx.0).floor() as usize;
+            let nearest_neighbor_coordinate_from_source_x: usize = ((x as f32) * dist_factor_yx.1).floor() as usize;
+            let nnc_y_with_offset = nearest_neighbor_coordinate_from_source_y + upper_left_corner_offset_yx.0;
+            let nnc_x_with_offset = nearest_neighbor_coordinate_from_source_x + upper_left_corner_offset_yx.1;
+            
             let nearest_neighbor_channel_value: f32 = source.pixels[(
-                nearest_neighbor_coordinate_x + source_cropping_points.lower_left_row_major().0,
-                nearest_neighbor_coordinate_y + source_cropping_points.lower_left_row_major().1,
+                nnc_y_with_offset,
+                nnc_x_with_offset,
                 c)];
             *color_val = nearest_neighbor_channel_value;
         };

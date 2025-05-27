@@ -311,7 +311,7 @@ impl SegmentedVisionFrame {
             // We either have no corner points for the cropping sources defined, or they are no longer
             // valid, we need to update them
             self.previous_cropping_points_for_source_from_segment = Some(
-                center_properties.calculate_source_corner_points_for_segemented_video_frame(source_frame.get_internal_resolution())?);
+                center_properties.calculate_source_corner_points_for_segemented_video_frame(source_frame.get_cartesian_width_height())?);
         }
         
         let cropping_points= self.previous_cropping_points_for_source_from_segment.unwrap(); // We know this exists by now

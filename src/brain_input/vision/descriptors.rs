@@ -244,8 +244,12 @@ impl CornerPoints {
     /// - Ok(CornerPoints) if the coordinates are valid
     /// - Err(DataProcessingError) if the coordinates are invalid
     pub fn new_from_row_major(lower_left_yx: (usize, usize), upper_right_yx: (usize, usize)) -> Result<CornerPoints,  DataProcessingError> {
-        if lower_left_yx.1 < upper_right_yx.1 || lower_left_yx.0 > upper_right_yx.0 {
-            return Err(DataProcessingError::InvalidInputBounds("The lower left point must have a greater Y index and a smaller X index than the upper right point!".into()));
+        if lower_left_yx.1 >= upper_right_yx.1 {
+            return Err(DataProcessingError::InvalidInputBounds(format!("The lower left point must have a smaller X ({}) index than the upper right point ({})!", lower_left_yx.1, upper_right_yx.1).into()));
+        }
+
+        if lower_left_yx.0 <= upper_right_yx.0 {
+            return Err(DataProcessingError::InvalidInputBounds(format!("The lower left point must have a greater Y ({}) index than the upper right point ({})!", lower_left_yx.0, upper_right_yx.0).into()));
         };
         Ok(CornerPoints {
             lower_left: lower_left_yx,
@@ -721,6 +725,7 @@ impl SegmentedVisionTargetResolutions {
 
 /// For internal use, convenient grouping for segmented image frame to store corner points on where from the source various regions should be cropped from
 #[derive(PartialEq, Clone, Copy)]
+#[derive(Debug)]
 pub struct SegmentedVisionFrameSourceCroppingPointGrouping {
     /// Corner points for the lower-left segment
     pub lower_left: CornerPoints,
