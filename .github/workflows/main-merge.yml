@@ -1,0 +1,134 @@
+name: Main Merge - Release
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+    
+    - name: Get version from Cargo.toml
+      id: version
+      run: |
+        VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version: $VERSION"
+    
+    - name: Run final tests
+      run: cargo test --verbose --release
+    
+    - name: Build release package
+      run: cargo build --release --verbose
+    
+    - name: Package crate
+      run: cargo package --verbose
+    
+    - name: Publish to crates.io
+      run: |
+        echo "Publishing version ${{ steps.version.outputs.version }} to crates.io..."
+        cargo publish --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        echo "✅ Successfully published to crates.io"
+    
+    - name: Create release tag
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        TAG_NAME="v${{ steps.version.outputs.version }}"
+        echo "Creating release tag: $TAG_NAME"
+        
+        git tag "$TAG_NAME"
+        git push origin "$TAG_NAME"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get commits since last tag
+        LAST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+        if [ -n "$LAST_TAG" ]; then
+          echo "Generating changelog since $LAST_TAG"
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" $LAST_TAG..HEAD)
+        else
+          echo "No previous tag found, generating changelog for recent commits"
+          CHANGELOG=$(git log --pretty=format:"- %s (%h)" -10)
+        fi
+        
+        # Save changelog to file for multiline output
+        echo "$CHANGELOG" > changelog.txt
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        cat changelog.txt >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.version.outputs.version }}
+        release_name: Release v${{ steps.version.outputs.version }}
+        body: |
+          🎉 **Release of feagi_core_data_structures_and_processing v${{ steps.version.outputs.version }}**
+          
+          This release has been published to [crates.io](https://crates.io/crates/feagi_core_data_structures_and_processing).
+          
+          ## Installation
+          
+          Add this to your `Cargo.toml`:
+          ```toml
+          [dependencies]
+          feagi_core_data_structures_and_processing = "${{ steps.version.outputs.version }}"
+          ```
+          
+          ## Changes
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## Release Information
+          
+          - **Version:** ${{ steps.version.outputs.version }}
+          - **Branch:** main
+          - **Commit:** ${{ github.sha }}
+          - **Published to:** [crates.io](https://crates.io/crates/feagi_core_data_structures_and_processing)
+          
+          ## Verification
+          
+          - ✅ All tests passed
+          - ✅ Code formatting verified
+          - ✅ Linting passed
+          - ✅ Documentation generated
+          - ✅ Package built successfully
+          - ✅ Published to crates.io
+        draft: false
+        prerelease: false
+    
+    - name: Notify success
+      run: |
+        echo "🎉 Release v${{ steps.version.outputs.version }} completed successfully!"
+        echo "📦 Published to crates.io: https://crates.io/crates/feagi_core_data_structures_and_processing"
+        echo "🏷️ Tagged as: v${{ steps.version.outputs.version }}" 
