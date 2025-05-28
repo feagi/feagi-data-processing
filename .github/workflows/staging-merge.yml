@@ -1,8 +1,9 @@
 name: Staging Merge - Prerelease
 
 on:
-  push:
+  pull_request:
     branches: [ staging ]
+    types: [ closed ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -10,10 +11,14 @@ env:
 jobs:
   prerelease:
     runs-on: ubuntu-latest
+    # Only run if the PR was actually merged (not just closed)
+    if: github.event.pull_request.merged == true
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        ref: staging  # Ensure we're on the staging branch after merge
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable

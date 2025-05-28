@@ -1,8 +1,9 @@
 name: Main Merge - Release
 
 on:
-  push:
+  pull_request:
     branches: [ main ]
+    types: [ closed ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -10,10 +11,14 @@ env:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Only run if the PR was actually merged (not just closed)
+    if: github.event.pull_request.merged == true
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        ref: main  # Ensure we're on the main branch after merge
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable

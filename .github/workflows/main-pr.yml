@@ -1,8 +1,8 @@
 name: Main PR Tests
 
 on:
-  pull_request:
-    branches: [ main ]
+  pull_request_target:
+    branches: main
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,10 +15,8 @@ jobs:
     - name: Checkout PR code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
-    
-    - name: Checkout base branch
-      run: git fetch origin main:main
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        ref: ${{ github.event.pull_request.head.ref }}
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -60,22 +58,25 @@ jobs:
     
     - name: Check version number increase
       run: |
-        # Get current version from PR
+        # Get current version from PR branch (HEAD)
         CURRENT_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
-        echo "Current version: $CURRENT_VERSION"
+        echo "PR branch version: $CURRENT_VERSION"
+        
+        # Download main branch Cargo.toml directly from GitHub
+        echo "Downloading main Cargo.toml..."
+        curl -s https://raw.githubusercontent.com/feagi/feagi-data-processing/refs/heads/main/Cargo.toml -o main_cargo.toml
         
         # Get version from main branch
-        git checkout main -- Cargo.toml
-        MAIN_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
-        echo "Main version: $MAIN_VERSION"
+        MAIN_VERSION=$(grep '^version = ' main_cargo.toml | sed 's/version = "\(.*\)"/\1/')
+        echo "Main branch version: $MAIN_VERSION"
         
-        # Restore PR version
-        git checkout HEAD -- Cargo.toml
+        # Clean up temporary file
+        rm main_cargo.toml
         
         # Compare versions using sort -V (version sort)
         if [ "$CURRENT_VERSION" = "$MAIN_VERSION" ]; then
           echo "❌ Error: Version must be increased from main branch"
-          echo "Current: $CURRENT_VERSION, Main: $MAIN_VERSION"
+          echo "PR version: $CURRENT_VERSION, Main version: $MAIN_VERSION"
           exit 1
         fi
         
@@ -83,7 +84,7 @@ jobs:
         HIGHER_VERSION=$(printf '%s\n%s\n' "$MAIN_VERSION" "$CURRENT_VERSION" | sort -V | tail -n1)
         if [ "$HIGHER_VERSION" != "$CURRENT_VERSION" ]; then
           echo "❌ Error: Version must be higher than main branch"
-          echo "Current: $CURRENT_VERSION, Main: $MAIN_VERSION"
+          echo "PR version: $CURRENT_VERSION, Main version: $MAIN_VERSION"
           exit 1
         fi
         
