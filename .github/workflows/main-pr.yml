@@ -1,0 +1,109 @@
+name: Main PR Tests
+
+on:
+  pull_request_target:
+    branches: main
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  comprehensive-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout PR code
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        ref: ${{ github.event.pull_request.head.ref }}
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+    
+    - name: Install additional Rust components
+      run: |
+        rustup component add clippy rustfmt
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+    
+    - name: Check code formatting
+      run: cargo fmt --all -- --check
+    
+    - name: Run Clippy (linting)
+      run: cargo clippy --all-targets --all-features -- -D warnings
+    
+    - name: Run all tests
+      run: cargo test --verbose --all-features
+    
+    - name: Run tests in release mode
+      run: cargo test --release --verbose
+    
+    - name: Check documentation
+      run: cargo doc --no-deps --document-private-items
+    
+    - name: Build in release mode
+      run: cargo build --release --verbose
+    
+    - name: Check version number increase
+      run: |
+        # Get current version from PR branch (HEAD)
+        CURRENT_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+        echo "PR branch version: $CURRENT_VERSION"
+        
+        # Download main branch Cargo.toml directly from GitHub
+        echo "Downloading main Cargo.toml..."
+        curl -s https://raw.githubusercontent.com/feagi/feagi-data-processing/refs/heads/main/Cargo.toml -o main_cargo.toml
+        
+        # Get version from main branch
+        MAIN_VERSION=$(grep '^version = ' main_cargo.toml | sed 's/version = "\(.*\)"/\1/')
+        echo "Main branch version: $MAIN_VERSION"
+        
+        # Clean up temporary file
+        rm main_cargo.toml
+        
+        # Compare versions using sort -V (version sort)
+        if [ "$CURRENT_VERSION" = "$MAIN_VERSION" ]; then
+          echo "❌ Error: Version must be increased from main branch"
+          echo "PR version: $CURRENT_VERSION, Main version: $MAIN_VERSION"
+          exit 1
+        fi
+        
+        # Check if current version is greater than main version
+        HIGHER_VERSION=$(printf '%s\n%s\n' "$MAIN_VERSION" "$CURRENT_VERSION" | sort -V | tail -n1)
+        if [ "$HIGHER_VERSION" != "$CURRENT_VERSION" ]; then
+          echo "❌ Error: Version must be higher than main branch"
+          echo "PR version: $CURRENT_VERSION, Main version: $MAIN_VERSION"
+          exit 1
+        fi
+        
+        echo "✅ Version check passed: $MAIN_VERSION → $CURRENT_VERSION"
+    
+    - name: Validate version format
+      run: |
+        VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+        if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+          echo "❌ Error: Version must be in format X.Y.Z or X.Y.Z-suffix"
+          exit 1
+        fi
+        echo "✅ Version format is valid: $VERSION"
+    
+    - name: Check package can be published
+      run: cargo package --verbose
+    
+    - name: Dry run publish to crates.io
+      run: |
+        echo "Performing dry run publish to crates.io..."
+        cargo publish --dry-run --token ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        echo "✅ Dry run publish successful" 

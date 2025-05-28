@@ -6,6 +6,8 @@ pub enum DataProcessingError {
     IncompatibleInplace(String),
     IncompatibleInputArray(String),
     InternalError(String),
+    MissingContext(String),
+    NotImplemented,
 }
 
 impl fmt::Display for DataProcessingError {
@@ -15,6 +17,8 @@ impl fmt::Display for DataProcessingError {
             DataProcessingError::IncompatibleInplace(e) => write!(f, "Unable to perform inplace operation! {}", e),
             DataProcessingError::IncompatibleInputArray(e) => write!(f, "Incompatible input array for images! {}", e),
             DataProcessingError::InternalError(e) => write!(f, "Internal error! Please report this! {}", e),
+            DataProcessingError::MissingContext(e) => write!(f, "Missing context! {}", e),
+            DataProcessingError::NotImplemented => write!(f, "This function is not yet implemented! Please raise an issue on Github!"),
         }
     }
 }
