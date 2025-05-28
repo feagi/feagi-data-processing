@@ -1,8 +1,8 @@
 name: Staging PR Tests
 
 on:
-  pull_request:
-    branches: [ staging ]
+  pull_request_target:
+    branches: staging
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,10 +15,8 @@ jobs:
     - name: Checkout PR code
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0
-    
-    - name: Fetch staging branch
-      run: git fetch origin staging:staging
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
     
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
@@ -48,8 +46,11 @@ jobs:
         CURRENT_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
         echo "PR branch version: $CURRENT_VERSION"
         
+        # Download staging branch Cargo.toml directly from GitHub
+        echo "Downloading staging Cargo.toml..."
+        curl -s https://raw.githubusercontent.com/feagi/feagi-data-processing/refs/heads/staging/Cargo.toml -o staging_cargo.toml
+        
         # Get version from staging branch
-        git show staging:Cargo.toml > staging_cargo.toml
         STAGING_VERSION=$(grep '^version = ' staging_cargo.toml | sed 's/version = "\(.*\)"/\1/')
         echo "Staging branch version: $STAGING_VERSION"
         
