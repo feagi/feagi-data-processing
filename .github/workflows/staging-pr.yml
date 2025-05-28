@@ -17,7 +17,7 @@ jobs:
       with:
         fetch-depth: 0
     
-    - name: Checkout base branch
+    - name: Fetch staging branch
       run: git fetch origin staging:staging
     
     - name: Install Rust
@@ -44,22 +44,22 @@ jobs:
     
     - name: Check version number increase
       run: |
-        # Get current version from PR
+        # Get current version from PR branch (HEAD)
         CURRENT_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
-        echo "Current version: $CURRENT_VERSION"
+        echo "PR branch version: $CURRENT_VERSION"
         
         # Get version from staging branch
-        git checkout staging -- Cargo.toml
-        STAGING_VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
-        echo "Staging version: $STAGING_VERSION"
+        git show staging:Cargo.toml > staging_cargo.toml
+        STAGING_VERSION=$(grep '^version = ' staging_cargo.toml | sed 's/version = "\(.*\)"/\1/')
+        echo "Staging branch version: $STAGING_VERSION"
         
-        # Restore PR version
-        git checkout HEAD -- Cargo.toml
+        # Clean up temporary file
+        rm staging_cargo.toml
         
         # Compare versions using sort -V (version sort)
         if [ "$CURRENT_VERSION" = "$STAGING_VERSION" ]; then
           echo "❌ Error: Version must be increased from staging branch"
-          echo "Current: $CURRENT_VERSION, Staging: $STAGING_VERSION"
+          echo "PR version: $CURRENT_VERSION, Staging version: $STAGING_VERSION"
           exit 1
         fi
         
@@ -67,7 +67,7 @@ jobs:
         HIGHER_VERSION=$(printf '%s\n%s\n' "$STAGING_VERSION" "$CURRENT_VERSION" | sort -V | tail -n1)
         if [ "$HIGHER_VERSION" != "$CURRENT_VERSION" ]; then
           echo "❌ Error: Version must be higher than staging branch"
-          echo "Current: $CURRENT_VERSION, Staging: $STAGING_VERSION"
+          echo "PR version: $CURRENT_VERSION, Staging version: $STAGING_VERSION"
           exit 1
         fi
         
