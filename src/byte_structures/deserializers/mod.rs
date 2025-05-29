@@ -2,7 +2,7 @@ pub mod b001_json;
 pub mod b009_multi_struct_holder;
 pub mod b011_neuron_categorical_xyzp;
 
-use crate::byte_data_functions::FeagiByteStructureType;
+use crate::byte_structures::FeagiByteStructureType;
 use crate::error::DataProcessingError;
 use b001_json::*;
 use b009_multi_struct_holder::*;

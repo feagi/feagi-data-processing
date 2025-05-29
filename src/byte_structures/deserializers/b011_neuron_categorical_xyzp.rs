@@ -22,7 +22,7 @@ impl<'internal_bytes> NeuronCategoricalXYZPDeserializerV1<'internal_bytes> {
     fn to_cortical_mapped_neuron_data(&self) -> Result<CorticalMappedNeuronData, DataProcessingError> {
         // We don't have to verify the global header since that was checked on this struct being created
         // We also know it has at least 4 bytes
-        const GLOBAL_HEADER_SIZE: usize = crate::byte_data_functions::GLOBAL_HEADER_SIZE;
+        const GLOBAL_HEADER_SIZE: usize = crate::byte_structures::GLOBAL_HEADER_SIZE;
         const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
 
         let number_cortical_areas: u16 = LittleEndian::read_u16(&self.data_slice[2..4]);

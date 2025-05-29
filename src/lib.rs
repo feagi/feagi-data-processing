@@ -1,4 +1,4 @@
-pub mod byte_data_functions;
+pub mod byte_structures;
 pub mod brain_input;
 pub mod brain_output;
 pub mod error;

@@ -87,7 +87,7 @@ impl NeuronXYCPArrays{
     pub fn cortical_mapped_neuron_data_to_bytes(mapped_data: &CorticalMappedNeuronData) -> Result<Vec<u8>, DataProcessingError> {
         const BYTE_STRUCT_ID: u8 = 11;
         const BYTE_STRUCT_VERSION: u8 = 1;
-        const GLOBAL_HEADER_SIZE: usize = crate::byte_data_functions::GLOBAL_HEADER_SIZE;
+        const GLOBAL_HEADER_SIZE: usize = crate::byte_structures::GLOBAL_HEADER_SIZE;
         const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
         
 

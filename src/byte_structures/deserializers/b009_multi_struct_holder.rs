@@ -20,7 +20,7 @@ impl<'internal_bytes> MultiStructHolderDeserializerV1<'internal_bytes> {
     pub fn to_multiple_structs(&self) -> Result<Vec<Deserializer> , DataProcessingError> {
         const SUB_HEADER_SIZE_PER_STRUCT: usize = 8;
         let number_contained_structs: usize = self.data_slice[2] as usize; // This header element is the count as a u8
-        let minimum_number_of_bytes_for_headers: usize = crate::byte_data_functions::GLOBAL_HEADER_SIZE + 1 + (number_contained_structs * SUB_HEADER_SIZE_PER_STRUCT);
+        let minimum_number_of_bytes_for_headers: usize = crate::byte_structures::GLOBAL_HEADER_SIZE + 1 + (number_contained_structs * SUB_HEADER_SIZE_PER_STRUCT);
         
         if self.data_slice.len() < minimum_number_of_bytes_for_headers {
             return Err(DataProcessingError::InvalidByteStructure(format!("Byte structure for MultiStructHolderV1 needs a length of {} to fit just the cortical details header, but is a length of {}",
