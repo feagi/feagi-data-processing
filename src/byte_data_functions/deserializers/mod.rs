@@ -1,50 +1,83 @@
 pub mod b001_json;
 
-use crate::error::*;
-use crate::error::DataProcessingError::InvalidByteStructure;
+use crate::byte_data_functions::FeagiByteStructureType;
+use crate::error::DataProcessingError;
+use b001_json::*;
 
-#[repr(u8)]
-pub enum FeagiByteStructureType {
-    JSON = 1,
-    MultiStructHolder = 9,
-    NeuronCategoricalXYZP = 11
+enum Deserializer<'internal_bytes> {
+    JsonV1(JsonDeserializerV1<'internal_bytes>),
 }
 
-pub trait FeagiByteDeserializer {
-    fn get_id() -> u8;
-    fn get_version() -> u8;
-
-    fn validate_header(data: &[u8]) -> Result<(), DataProcessingError> {
-        if data.len() < 2 {
-            return Err(InvalidByteStructure("Byte Data Structure is too short to hold even a header!".into()));
-        }
-        if data[0] != Self::get_id() {
-            return Err(InvalidByteStructure(format!("Byte Data Structure has an ID of {} when expected {}!", data[0], Self::get_id())));
-        }
-        if data[1] != Self::get_version() {
-            return Err(InvalidByteStructure(format!("Byte Data Structure has an version of {} when expected {}!", data[1], Self::get_version())));
-        }
-        Ok(())
-    }
+trait FeagiByteDeserializer {
+    fn get_id(&self) -> u8;
+    fn get_version(&self) -> u8;
 }
 
-pub fn deserialize<'byte_arr>(bytes: &'byte_arr Vec<u8>) -> Result<Box<dyn FeagiByteDeserializer>, DataProcessingError> {
-    if bytes.len() < 2 {
-        return Err(InvalidByteStructure("Byte Data Structure is too short to hold even a header!".into()));
+pub fn verify_header_of_full_structure_bytes(data: &[u8], expected_type: FeagiByteStructureType, expected_version: u8) -> Result<(), DataProcessingError> {
+    if data.len() < 4 { // Header is 2 bytes, and we expected at LEAST 2 bytes of data
+        return Err(DataProcessingError::InvalidByteStructure("Byte Data Structure is too short o hold a header and any meaningful data!".into()));
     }
     
-    match bytes[0]{
-        FeagiByteStructureType::JSON => {
-            b001_json::JsonDeserializerV1::from_data_slice(&bytes)
+    let expected_type= expected_type as u8;
+    
+    if data[0] != expected_type{
+        return Err(DataProcessingError::InvalidByteStructure(format!("Incoming byte data has type ID {} when expected {}!", data[0], expected_type)));
+    }
+    if data[1] != expected_version {
+        return Err(DataProcessingError::InvalidByteStructure(format!("Incoming byte data has version {} when expected {}!", data[0], expected_version)));
+    }
+    
+    Ok(())
+}
+
+pub fn get_type_and_version_of_struct_from_bytes(data: &[u8]) -> Result<(FeagiByteStructureType, u8), DataProcessingError> {
+    if data.len() < 4 { // Header is 2 bytes, and we expected at LEAST 2 bytes of data
+        return Err(DataProcessingError::InvalidByteStructure("Byte Data Structure is too short o hold a header and any meaningful data!".into()));
+    }
+    let defined_type = data[0];
+    match defined_type {
+        1 => {
+            Ok((FeagiByteStructureType::JSON, data[1]))
         }
-        FeagiByteStructureType::MultiStructHolder => {
-            
+        9 => {
+            Ok((FeagiByteStructureType::MultiStructHolder, data[1]))
         }
-        FeagiByteStructureType::NeuronCategoricalXYZP => {
-            
+        11 => {
+            Ok((FeagiByteStructureType::NeuronCategoricalXYZP, data[1]))
         }
         _ => {
-            return Err(InvalidByteStructure(format!("Unknown byte Structure type {}!", bytes[0])));
+            Err(DataProcessingError::InvalidByteStructure(format!("Unknown byte Structure Type {}", defined_type)))
+        }
+        
+    }
+    
+    
+
+pub fn build_deserializer<'internal_bytes>(bytes: &'internal_bytes Vec<u8>) -> Result<Deserializer, DataProcessingError> {
+    
+    let (structure_type, version) = get_type_and_version_of_struct_from_bytes(bytes)?;
+    
+
+    match structure_type {
+        FeagiByteStructureType::JSON => {
+            match version {
+                1 => Ok(Deserializer::JsonV1(JsonDeserializerV1::from_data_slice(bytes)?)),
+                _ => Err(DataProcessingError::InvalidByteStructure(format!("Unsupported version {} for JSON Deserializer!", bytes[0]))),
+            }
+        }
+        /*
+        FeagiByteStructureType::MultiStructHolder => { // FeagiByteStructureType::MultiStructHolder
+
+        }
+        FeagiByteStructureType::NeuronCategoricalXYZP => { // FeagiByteStructureType::NeuronCategoricalXYZP
+
+        }
+        
+         */
+        _ => {
+            // This shouldn't be possible unless something is unimplemented
+            Err(DataProcessingError::InternalError(format!("Missing deserializer definition for structure ID {}!", bytes[0])))
         }
     }
+    
 }

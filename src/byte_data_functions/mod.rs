@@ -3,10 +3,12 @@ mod deserializers;
 
 use std::cmp::PartialEq;
 
+#[repr(u8)]
 #[derive(Debug, PartialEq)]
 pub enum FeagiByteStructureType {
+    JSON = 1,
     MultiStructHolder = 9,
-    NeuronPotentialCategoricalXYZ = 11
+    NeuronCategoricalXYZP = 11
 }
 
 pub fn infer_feagi_byte_structure_type(bytes: &[u8]) -> Result<FeagiByteStructureType, &'static str> {
@@ -38,3 +40,4 @@ pub fn confirm_feagi_byte_structure_is_as_expected(bytes: &[u8], confirming_type
     }
     Ok(calculated_type.unwrap() == confirming_type)
 }
+
