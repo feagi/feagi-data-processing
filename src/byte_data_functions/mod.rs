@@ -1,4 +1,5 @@
 mod byte_structures;
+mod deserializers;
 
 use std::cmp::PartialEq;
 

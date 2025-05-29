@@ -7,6 +7,7 @@ pub enum DataProcessingError {
     IncompatibleInputArray(String),
     InternalError(String),
     MissingContext(String),
+    InvalidByteStructure(String),
     NotImplemented,
 }
 
@@ -18,6 +19,7 @@ impl fmt::Display for DataProcessingError {
             DataProcessingError::IncompatibleInputArray(e) => write!(f, "Incompatible input array for images! {}", e),
             DataProcessingError::InternalError(e) => write!(f, "Internal error! Please report this! {}", e),
             DataProcessingError::MissingContext(e) => write!(f, "Missing context! {}", e),
+            DataProcessingError::InvalidByteStructure(e) => write!(f, "Invalid byte Structure! {}", e),
             DataProcessingError::NotImplemented => write!(f, "This function is not yet implemented! Please raise an issue on Github!"),
         }
     }
