@@ -50,14 +50,12 @@ pub fn get_type_and_version_of_struct_from_bytes(data: &[u8]) -> Result<(FeagiBy
         }
         
     }
-    
-    
+}
 
-pub fn build_deserializer<'internal_bytes>(bytes: &'internal_bytes Vec<u8>) -> Result<Deserializer, DataProcessingError> {
+pub fn build_deserializer(bytes: &Vec<u8>) -> Result<Deserializer, DataProcessingError> {
     
     let (structure_type, version) = get_type_and_version_of_struct_from_bytes(bytes)?;
     
-
     match structure_type {
         FeagiByteStructureType::JSON => {
             match version {
@@ -72,7 +70,6 @@ pub fn build_deserializer<'internal_bytes>(bytes: &'internal_bytes Vec<u8>) -> R
         FeagiByteStructureType::NeuronCategoricalXYZP => { // FeagiByteStructureType::NeuronCategoricalXYZP
 
         }
-        
          */
         _ => {
             // This shouldn't be possible unless something is unimplemented
