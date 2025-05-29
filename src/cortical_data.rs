@@ -37,7 +37,7 @@ pub enum CameraType {
 
 
 /// Length of Cortical Area ID As ASCII characters / bytes
-const CORTICAL_ID_LENGTH: usize = 6;
+const CORTICAL_ID_LENGTH: usize = 6; // TODO make this a property
 
 /// Represents an ID for a cortical area in the brain
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]

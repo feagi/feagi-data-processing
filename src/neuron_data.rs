@@ -175,7 +175,7 @@ impl NeuronXYCPArrays{
     ///
     /// # Returns
     /// * `Result<(), DataProcessingError>` - Success or an error if the vectors have different lengths
-    pub fn validate_equal_vector_lengths(&self) -> Result<(), DataProcessingError> {
+    pub fn validate_equal_vector_lengths(&self) -> Result<(), DataProcessingError> { // TODO this shouldnt be needed
         let len = self.x.len();
         if !((self.y.len() == len) && (self.x.len() == len) && (self.c.len() == len)) {
              return Err(DataProcessingError::InternalError("Internal XYCP Arrays do not have equal lengths!".into()));

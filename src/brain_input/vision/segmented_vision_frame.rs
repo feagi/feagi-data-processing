@@ -50,7 +50,7 @@ use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
 ///     (640, 480)
 /// ).unwrap();
 /// ```
-#[derive(Clone)]
+#[derive(Clone)]  // TODO Shouldnt this be called Segmented Image Frame?
 pub struct SegmentedVisionFrame {
     /// Lower-left segment of the vision frame
     lower_left: ImageFrame,
