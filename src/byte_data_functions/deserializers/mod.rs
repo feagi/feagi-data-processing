@@ -5,11 +5,13 @@ pub mod b011_neuron_categorical_xyzp;
 use crate::byte_data_functions::FeagiByteStructureType;
 use crate::error::DataProcessingError;
 use b001_json::*;
-use crate::byte_data_functions::deserializers::b011_neuron_categorical_xyzp::NeuronCategoricalXYZPDeserializerV1;
+use b009_multi_struct_holder::*;
+use b011_neuron_categorical_xyzp::*;
 
 enum Deserializer<'internal_bytes> {
     JsonV1(JsonDeserializerV1<'internal_bytes>),
     NeuronCategoricalXYZPV1(NeuronCategoricalXYZPDeserializerV1<'internal_bytes>),
+    MultiStructHolderV1(MultiStructHolderDeserializerV1<'internal_bytes>)
 }
 
 trait FeagiByteDeserializer {
@@ -67,14 +69,13 @@ pub fn build_deserializer(bytes: &[u8]) -> Result<Deserializer, DataProcessingEr
                 _ => Err(DataProcessingError::InvalidByteStructure(format!("Unsupported version {} for JSON Deserializer!", bytes[0]))),
             }
         }
-        
-        
-        /*
-        FeagiByteStructureType::MultiStructHolder => { // FeagiByteStructureType::MultiStructHolder
-
-        }
-         */
         FeagiByteStructureType::MultiStructHolder => {
+            match version {
+                1 => Ok(Deserializer::MultiStructHolderV1(MultiStructHolderDeserializerV1::from_data_slice(bytes)?)),
+                _ => Err(DataProcessingError::InvalidByteStructure(format!("Unsupported version {} for MultiStructHolder Deserializer!", bytes[0]))),
+            }
+        }
+        FeagiByteStructureType::NeuronCategoricalXYZP => {
             match version {
                 1 => Ok(Deserializer::NeuronCategoricalXYZPV1(NeuronCategoricalXYZPDeserializerV1::from_data_slice(bytes)?)),
                 _ => Err(DataProcessingError::InvalidByteStructure(format!("Unsupported version {} for NeuronCategoricalXYZP Deserializer!", bytes[0]))),

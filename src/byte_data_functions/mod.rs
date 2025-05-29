@@ -1,4 +1,3 @@
-mod byte_structures;
 pub mod deserializers;
 
 use std::cmp::PartialEq;
