@@ -59,7 +59,7 @@ impl NeuronXYCPArrays{
     pub fn new_from_resolution(resolution: (usize, usize, usize)) -> Result<Self, DataProcessingError> {
         NeuronXYCPArrays::new(resolution.0 * resolution.1 * resolution.2)
     }
-    
+
     pub fn new_from_bytes(bytes: &[u8]) -> Result<Self, DataProcessingError> {
         let bytes_length = bytes.len();
         if bytes_length % NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON != 0 {
@@ -68,7 +68,7 @@ impl NeuronXYCPArrays{
         let x_end = bytes_length / 4;
         let y_end = bytes_length / 2;
         let c_end = x_end * 3;
-        
+
         Ok(NeuronXYCPArrays{
             x: cast_slice::<u8, u32>(&bytes[0..x_end]).to_vec(),
             y: cast_slice::<u8, u32>(&bytes[x_end..y_end]).to_vec(),
@@ -89,7 +89,7 @@ impl NeuronXYCPArrays{
         const BYTE_STRUCT_VERSION: u8 = 1;
         const GLOBAL_HEADER_SIZE: usize = crate::byte_structures::GLOBAL_HEADER_SIZE;
         const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
-        
+
 
 
         // Calculate prerequisite info
@@ -194,7 +194,7 @@ impl NeuronXYCPArrays{
     ///
     /// # Returns
     /// * `Result<(), DataProcessingError>` - Success or an error if the vectors have different lengths
-    pub fn validate_equal_vector_lengths(&self) -> Result<(), DataProcessingError> { // TODO this shouldnt be needed
+    pub fn validate_equal_vector_lengths(&self) -> Result<(), DataProcessingError> { // TODO make internal
         let len = self.x.len();
         if !((self.y.len() == len) && (self.x.len() == len) && (self.c.len() == len)) {
              return Err(DataProcessingError::InternalError("Internal XYCP Arrays do not have equal lengths!".into()));

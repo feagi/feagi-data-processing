@@ -1,4 +1,5 @@
 pub mod deserializers;
+mod serializer;
 
 use std::cmp::PartialEq;
 

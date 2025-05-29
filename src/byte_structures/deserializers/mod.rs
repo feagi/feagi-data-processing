@@ -17,6 +17,8 @@ enum Deserializer<'internal_bytes> {
 trait FeagiByteDeserializer {
     fn get_id(&self) -> u8;
     fn get_version(&self) -> u8;
+    
+    // TODO deserialize could go here? (only signature)
 }
 
 pub fn verify_header_of_full_structure_bytes(data: &[u8], expected_type: FeagiByteStructureType, expected_version: u8) -> Result<(), DataProcessingError> {
