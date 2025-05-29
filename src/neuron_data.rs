@@ -3,6 +3,7 @@
 //! and properties data organized by cortical areas.
 
 use std::collections::HashMap;
+use bytemuck::{cast_slice, Pod, Zeroable};
 use crate::cortical_data::CorticalID;
 use crate::error::DataProcessingError;
 
@@ -26,7 +27,8 @@ pub struct NeuronXYCPArrays{
 
 impl NeuronXYCPArrays{
     /// Number of bytes used to represent a single neuron in memory (going across x y z p elements)
-    const NUMBER_BYTES_PER_NEURON: usize = 16;
+    pub const NUMBER_BYTES_PER_NEURON: usize = 16;
+    pub const PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 14;
     
     /// Creates a new NeuronXYCPArrays instance with capacity for the specified maximum number of neurons.
     ///
@@ -58,6 +60,23 @@ impl NeuronXYCPArrays{
         NeuronXYCPArrays::new(resolution.0 * resolution.1 * resolution.2)
     }
     
+    pub fn new_from_bytes(bytes: &[u8]) -> Result<Self, DataProcessingError> {
+        let bytes_length = bytes.len();
+        if bytes_length % NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON != 0 {
+            return Err(DataProcessingError::InvalidByteStructure("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input byte array must be divisible by 16!".into()));
+        }
+        let x_end = bytes_length / 4;
+        let y_end = bytes_length / 2;
+        let c_end = x_end * 3;
+        
+        Ok(NeuronXYCPArrays{
+            x: cast_slice::<u8, u32>(&bytes[0..x_end]).to_vec(),
+            y: cast_slice::<u8, u32>(&bytes[x_end..y_end]).to_vec(),
+            c: cast_slice::<u8, u32>(&bytes[y_end..c_end]).to_vec(),
+            p: cast_slice::<u8, f32>(&bytes[c_end..]).to_vec(),
+        })
+    }
+    
     /// Serializes a cortical-mapped neuron data structure into a new byte vector.
     ///
     /// # Arguments
@@ -68,9 +87,9 @@ impl NeuronXYCPArrays{
     pub fn cortical_mapped_neuron_data_to_bytes(mapped_data: &CorticalMappedNeuronData) -> Result<Vec<u8>, DataProcessingError> {
         const BYTE_STRUCT_ID: u8 = 11;
         const BYTE_STRUCT_VERSION: u8 = 1;
-        const GLOBAL_HEADER_SIZE: usize = 2;
+        const GLOBAL_HEADER_SIZE: usize = crate::byte_data_functions::GLOBAL_HEADER_SIZE;
         const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
-        const PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 14;
+        
 
 
         // Calculate prerequisite info
@@ -81,7 +100,7 @@ impl NeuronXYCPArrays{
         };
 
         let total_length_of_byte_structure = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE +
-            (number_cortical_areas * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE) +
+            (number_cortical_areas * NeuronXYCPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE) +
             (number_of_neurons_total * NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON);
 
         let mut output: Vec<u8> = vec![0; total_length_of_byte_structure];
@@ -94,7 +113,7 @@ impl NeuronXYCPArrays{
         output[2..4].copy_from_slice(&count_bytes);
 
         let mut header_write_index: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE;
-        let mut data_write_index: u32 = header_write_index as u32 + (number_cortical_areas as u32 * PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
+        let mut data_write_index: u32 = header_write_index as u32 + (number_cortical_areas as u32 * NeuronXYCPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
 
         // fill in cortical descriptors header
         for (cortical_id, neuron_data) in mapped_data {
@@ -114,7 +133,7 @@ impl NeuronXYCPArrays{
 
             // update indexes
             data_write_index += reading_length;
-            header_write_index += PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
+            header_write_index += NeuronXYCPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
         }
 
         Ok(output)
