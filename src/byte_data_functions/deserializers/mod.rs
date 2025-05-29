@@ -56,7 +56,7 @@ pub fn get_type_and_version_of_struct_from_bytes(data: &[u8]) -> Result<(FeagiBy
     }
 }
 
-pub fn build_deserializer(bytes: &Vec<u8>) -> Result<Deserializer, DataProcessingError> {
+pub fn build_deserializer(bytes: &[u8]) -> Result<Deserializer, DataProcessingError> {
     
     let (structure_type, version) = get_type_and_version_of_struct_from_bytes(bytes)?;
     
@@ -71,9 +71,6 @@ pub fn build_deserializer(bytes: &Vec<u8>) -> Result<Deserializer, DataProcessin
         
         /*
         FeagiByteStructureType::MultiStructHolder => { // FeagiByteStructureType::MultiStructHolder
-
-        }
-        FeagiByteStructureType::NeuronCategoricalXYZP => { // FeagiByteStructureType::NeuronCategoricalXYZP
 
         }
          */
