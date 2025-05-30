@@ -3,6 +3,7 @@ use crate::error::DataProcessingError;
 use super::FeagiByteSerializer;
 use byteorder::{ByteOrder, LittleEndian};
 
+
 pub struct MultiStructSerializerV1 {
     contained_serializers: Vec<Box<dyn FeagiByteSerializer>>,
 }
