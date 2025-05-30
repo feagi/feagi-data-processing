@@ -14,6 +14,4 @@ trait FeagiByteSerializer {
     fn generate_global_header(&self) ->[u8; 2] {
         [self.get_id(), self.get_version()]
     }
-
-    
 }
