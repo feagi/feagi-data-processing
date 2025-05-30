@@ -1,8 +1,7 @@
 pub mod b001_json;
-mod b011_neuron_categorical_xyzp;
-mod b009_multi_struct_holder;
+pub mod b011_neuron_categorical_xyzp;
+pub mod b009_multi_struct_holder;
 
-use crate::cortical_data::CorticalID;
 use crate::error::DataProcessingError;
 
 trait FeagiByteSerializer {
