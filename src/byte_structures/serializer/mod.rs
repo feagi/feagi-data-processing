@@ -4,7 +4,7 @@ pub mod b009_multi_struct_holder;
 
 use crate::error::DataProcessingError;
 
-trait FeagiByteSerializer {
+pub trait FeagiByteSerializer {
     fn get_id(&self) -> u8;
     fn get_version(&self) -> u8;
     fn get_max_possible_size_when_serialized(&self) -> usize;

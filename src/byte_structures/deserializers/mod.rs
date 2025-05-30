@@ -8,13 +8,13 @@ use b001_json::*;
 use b009_multi_struct_holder::*;
 use b011_neuron_categorical_xyzp::*;
 
-enum Deserializer<'internal_bytes> {
+pub enum Deserializer<'internal_bytes> {
     JsonV1(JsonDeserializerV1<'internal_bytes>),
     NeuronCategoricalXYZPV1(NeuronCategoricalXYZPDeserializerV1<'internal_bytes>),
     MultiStructHolderV1(MultiStructHolderDeserializerV1<'internal_bytes>)
 }
 
-trait FeagiByteDeserializer {
+pub trait FeagiByteDeserializer {
     fn get_id(&self) -> u8;
     fn get_version(&self) -> u8;
     
