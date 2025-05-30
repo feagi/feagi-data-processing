@@ -1,5 +1,4 @@
 use crate::byte_structures::GLOBAL_HEADER_SIZE;
-use crate::byte_structures::serializer::b001_json::JsonSerializerV1;
 use crate::error::DataProcessingError;
 use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
 use super::FeagiByteSerializer;
