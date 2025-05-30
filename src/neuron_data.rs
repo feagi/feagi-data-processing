@@ -163,7 +163,7 @@ impl NeuronXYCPArrays{
     /// # Returns
     /// * `usize` - Maximum neuron count capacity
     pub fn get_max_neuron_capacity_without_reallocating(&self) -> usize {
-        self.x.capacity() / NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON
+        self.x.capacity() / 4 // 4 * 4 / 4
     }
     
     /// Expands the capacity of the vectors if the new required maximum exceeds the current maximum.
@@ -210,6 +210,10 @@ impl NeuronXYCPArrays{
         self.p.len() // all of these are of equal length
     }
 
+    pub fn get_number_of_bytes_needed_if_serialized(&self) -> usize {
+        self.get_number_of_neurons_used() * NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON
+    }
+    
     /// Writes the neuron data to a byte array in a specific interleaved format.
     ///
     /// # Arguments
@@ -217,7 +221,7 @@ impl NeuronXYCPArrays{
     ///
     /// # Returns
     /// * `Result<(), DataProcessingError>` - Success or an error if the operation fails
-    fn write_data_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), DataProcessingError> {
+    pub fn write_data_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), DataProcessingError> {
         self.validate_equal_vector_lengths()?;
         const U32_F32_LENGTH: usize = 4;
         let number_of_neurons_to_write: usize = self.get_number_of_neurons_used();
