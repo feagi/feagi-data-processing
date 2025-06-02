@@ -82,7 +82,7 @@ use crate::error::DataProcessingError;
 /// 
 /// While not currently enforced by trait bounds, implementations should consider
 /// thread safety requirements for concurrent usage scenarios.
-pub trait FeagiByteSerializer: Send + Sync{
+pub trait FeagiByteSerializer: Send + Sync{ // TODO get enum
     /// Returns the unique format identifier for this serializer.
     /// 
     /// This byte value is used in the global header to identify the serialization

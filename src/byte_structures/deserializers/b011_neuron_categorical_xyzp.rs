@@ -78,7 +78,7 @@ impl FeagiByteDeserializer for NeuronCategoricalXYZPDeserializerV1<'_> {
     /// # Returns
     /// 
     /// Always returns the value corresponding to `FeagiByteStructureType::NeuronCategoricalXYZP` (11)
-    fn get_id(&self) -> u8 {FeagiByteStructureType::NeuronCategoricalXYCP as u8}
+    fn get_id(&self) -> u8 {FeagiByteStructureType::NeuronCategoricalXYZP as u8}
     
     /// Returns the version number for this neuron deserializer implementation.
     ///
@@ -122,7 +122,7 @@ impl<'internal_bytes> NeuronCategoricalXYZPDeserializerV1<'internal_bytes> {
     /// assert!(NeuronCategoricalXYZPDeserializerV1::from_data_slice(&invalid_data).is_err());
     /// ```
     pub fn from_data_slice(data_slice: & 'internal_bytes[u8]) -> Result<NeuronCategoricalXYZPDeserializerV1<'internal_bytes>, DataProcessingError> {
-        verify_header_of_full_structure_bytes(data_slice, FeagiByteStructureType::NeuronCategoricalXYCP, 1)?;
+        verify_header_of_full_structure_bytes(data_slice, FeagiByteStructureType::NeuronCategoricalXYZP, 1)?;
         Ok(NeuronCategoricalXYZPDeserializerV1 { data_slice })
     }
 
