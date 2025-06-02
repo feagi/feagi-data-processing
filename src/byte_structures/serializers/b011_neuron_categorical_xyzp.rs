@@ -47,7 +47,7 @@ impl FeagiByteSerializer for NeuronCategoricalXYZPSerializerV1 {
             output[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
 
             // Write data
-            neuron_data.write_data_to_bytes(&mut output[reading_start as usize .. (reading_start + reading_length) as usize])?;
+            write_neural_data_to_bytes(neuron_data, &mut output[reading_start as usize .. (reading_start + reading_length) as usize])?;
 
             // update indexes
             data_write_index += reading_length;
@@ -90,7 +90,7 @@ impl FeagiByteSerializer for NeuronCategoricalXYZPSerializerV1 {
             bytes_to_overwrite[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
 
             // Write data
-            neuron_data.write_data_to_bytes(&mut bytes_to_overwrite[reading_start as usize .. (reading_start + reading_length) as usize])?;
+            write_neural_data_to_bytes(neuron_data, &mut bytes_to_overwrite[reading_start as usize .. (reading_start + reading_length) as usize])?;
 
             // update indexes
             data_write_index += reading_length;
@@ -112,4 +112,38 @@ impl NeuronCategoricalXYZPSerializerV1 {
     pub fn as_mut(&mut self) -> &mut CorticalMappedNeuronData {
         &mut self.cortical_mapped_neuron_data
     }
+}
+
+fn write_neural_data_to_bytes(neurons: &NeuronXYCPArrays, bytes_to_write_to: &mut [u8]) -> Result<(), DataProcessingError> {
+    const U32_F32_LENGTH: usize = 4;
+    let number_of_neurons_to_write: usize = neurons.get_number_of_neurons_used();
+    let number_bytes_needed = NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON * number_of_neurons_to_write;
+    if bytes_to_write_to.len() != number_bytes_needed {
+        return Err(DataProcessingError::InvalidByteStructure(format!("Need exactly {} bytes to write xycp neuron data, but given a space of {} bytes!", bytes_to_write_to.len(), number_bytes_needed).into()))
+    }
+    let mut x_offset: usize = 0;
+    let mut y_offset = number_of_neurons_to_write * NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON / 4; // we want to be a quarter way
+    let mut c_offset = y_offset * 2; // half way
+    let mut p_offset = y_offset * 3; // three quarters way
+
+    let (x, y, c, p) = neurons.borrow_xycp_vectors();
+
+    for i in 0 .. number_of_neurons_to_write {
+        let x_bytes = x[i].to_le_bytes(); // TODO why can this not see the byte length?
+        let y_bytes = y[i].to_le_bytes();
+        let c_bytes = c[i].to_le_bytes();
+        let p_bytes = p[i].to_le_bytes();
+
+        bytes_to_write_to[x_offset .. x_offset + U32_F32_LENGTH].copy_from_slice(&x_bytes);
+        bytes_to_write_to[y_offset .. y_offset + U32_F32_LENGTH].copy_from_slice(&y_bytes);
+        bytes_to_write_to[c_offset .. c_offset + U32_F32_LENGTH].copy_from_slice(&c_bytes);
+        bytes_to_write_to[p_offset .. p_offset + U32_F32_LENGTH].copy_from_slice(&p_bytes);
+
+        x_offset += U32_F32_LENGTH;
+        y_offset += U32_F32_LENGTH;
+        c_offset += U32_F32_LENGTH;
+        p_offset += U32_F32_LENGTH;
+    };
+    
+    Ok(())
 }

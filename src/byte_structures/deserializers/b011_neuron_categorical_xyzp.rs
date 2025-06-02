@@ -1,3 +1,4 @@
+use bytemuck::{cast_slice};
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::DataProcessingError;
 use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
@@ -40,7 +41,7 @@ impl<'internal_bytes> NeuronCategoricalXYZPDeserializerV1<'internal_bytes> {
         let mut output: CorticalMappedNeuronData = CorticalMappedNeuronData::with_capacity(number_cortical_areas);
 
         let mut reading_index: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE;
-        for cortical_index in 0..number_cortical_areas {
+        for _cortical_index in 0..number_cortical_areas {
             let cortical_id = CorticalID::from_bytes_at(
                 &self.data_slice[reading_index..reading_index + 6]
             )?;
@@ -50,9 +51,21 @@ impl<'internal_bytes> NeuronCategoricalXYZPDeserializerV1<'internal_bytes> {
             if self.data_slice.len() < min_array_length_with_cortical_headers + data_start_reading + number_bytes_to_read {
                 return Err(DataProcessingError::InvalidByteStructure("Byte structure for NeuronCategoricalXYZPV1 is too short to fit the data the header says it contains!".into()));
             }
+            
+            let neuron_bytes = &self.data_slice[data_start_reading..data_start_reading + number_bytes_to_read];
+            let bytes_length = neuron_bytes.len();
+            if bytes_length % NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON != 0 {
+                return Err(DataProcessingError::InvalidByteStructure("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input byte array must be divisible by 16!".into()));
+            }
+            let x_end = bytes_length / 4;
+            let y_end = bytes_length / 2;
+            let c_end = x_end * 3;
 
-            let neurons = NeuronXYCPArrays::new_from_bytes(
-                &self.data_slice[data_start_reading..data_start_reading + number_bytes_to_read]
+            let neurons = NeuronXYCPArrays::new_from_vectors(
+                cast_slice::<u8, u32>(&neuron_bytes[0..x_end]).to_vec(),
+                cast_slice::<u8, u32>(&neuron_bytes[x_end..y_end]).to_vec(),
+                cast_slice::<u8, u32>(&neuron_bytes[y_end..c_end]).to_vec(),
+                cast_slice::<u8, f32>(&neuron_bytes[c_end..]).to_vec(),
             )?;
 
             output.insert(cortical_id, neurons);

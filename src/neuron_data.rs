@@ -59,85 +59,20 @@ impl NeuronXYCPArrays{
     pub fn new_from_resolution(resolution: (usize, usize, usize)) -> Result<Self, DataProcessingError> {
         NeuronXYCPArrays::new(resolution.0 * resolution.1 * resolution.2)
     }
-
-    pub fn new_from_bytes(bytes: &[u8]) -> Result<Self, DataProcessingError> {
-        let bytes_length = bytes.len();
-        if bytes_length % NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON != 0 {
-            return Err(DataProcessingError::InvalidByteStructure("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input byte array must be divisible by 16!".into()));
+    
+    pub fn new_from_vectors(x: Vec<u32>, y: Vec<u32>, c: Vec<u32>, p: Vec<f32>) -> Result<Self, DataProcessingError> {
+        let len = x.len();
+        if len != y.len() || len != c.len() || len != p.len() {
+            return Err(DataProcessingError::InvalidInputBounds("Vectors are not the same length!".into()));
         }
-        let x_end = bytes_length / 4;
-        let y_end = bytes_length / 2;
-        let c_end = x_end * 3;
-
-        Ok(NeuronXYCPArrays{
-            x: cast_slice::<u8, u32>(&bytes[0..x_end]).to_vec(),
-            y: cast_slice::<u8, u32>(&bytes[x_end..y_end]).to_vec(),
-            c: cast_slice::<u8, u32>(&bytes[y_end..c_end]).to_vec(),
-            p: cast_slice::<u8, f32>(&bytes[c_end..]).to_vec(),
+        Ok(NeuronXYCPArrays {
+            x,
+            y,
+            c,
+            p
         })
     }
     
-    /// Serializes a cortical-mapped neuron data structure into a new byte vector.
-    ///
-    /// # Arguments
-    /// * `mapped_data` - The cortical-mapped neuron data to serialize
-    ///
-    /// # Returns
-    /// * `Result<Vec<u8>, DataProcessingError>` - The serialized byte vector or an error
-    pub fn cortical_mapped_neuron_data_to_bytes(mapped_data: &CorticalMappedNeuronData) -> Result<Vec<u8>, DataProcessingError> {
-        const BYTE_STRUCT_ID: u8 = 11;
-        const BYTE_STRUCT_VERSION: u8 = 1;
-        const GLOBAL_HEADER_SIZE: usize = crate::byte_structures::GLOBAL_HEADER_SIZE;
-        const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
-
-
-
-        // Calculate prerequisite info
-        let number_cortical_areas: usize = mapped_data.len();
-        let mut number_of_neurons_total: usize = 0;
-        for (_, neuron_data) in mapped_data {
-            number_of_neurons_total += neuron_data.get_number_of_neurons_used();
-        };
-
-        let total_length_of_byte_structure = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE +
-            (number_cortical_areas * NeuronXYCPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE) +
-            (number_of_neurons_total * NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON);
-
-        let mut output: Vec<u8> = vec![0; total_length_of_byte_structure];
-
-        // Fill in constant size header
-        output[0] = BYTE_STRUCT_ID;
-        output[1] = BYTE_STRUCT_VERSION;
-
-        let count_bytes: [u8; 2] = (number_cortical_areas as u16).to_le_bytes();
-        output[2..4].copy_from_slice(&count_bytes);
-
-        let mut header_write_index: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE;
-        let mut data_write_index: u32 = header_write_index as u32 + (number_cortical_areas as u32 * NeuronXYCPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
-
-        // fill in cortical descriptors header
-        for (cortical_id, neuron_data) in mapped_data {
-            // Calculate locations
-            let reading_start: u32 = data_write_index;
-            let reading_length: u32 = neuron_data.get_number_of_neurons_used() as u32 * NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON as u32;
-            let reading_start_bytes: [u8; 4] = reading_start.to_le_bytes();
-            let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
-
-            // Write cortical subheader
-            cortical_id.write_bytes_at(&mut output[header_write_index..header_write_index + 6])?;
-            output[header_write_index + 6.. header_write_index + 10].copy_from_slice(&reading_start_bytes);
-            output[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
-
-            // Write data
-            neuron_data.write_data_to_bytes(&mut output[reading_start as usize .. (reading_start + reading_length) as usize])?;
-
-            // update indexes
-            data_write_index += reading_length;
-            header_write_index += NeuronXYCPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
-        }
-
-        Ok(output)
-    }
     
     /// Updates the internal vectors using an external function.
     /// This allows for custom in-place modifications of the neuron data vectors.
@@ -214,44 +149,7 @@ impl NeuronXYCPArrays{
         self.get_number_of_neurons_used() * NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON
     }
     
-    /// Writes the neuron data to a byte array in a specific interleaved format.
-    ///
-    /// # Arguments
-    /// * `bytes_to_write_to` - The target byte array to write the data to
-    ///
-    /// # Returns
-    /// * `Result<(), DataProcessingError>` - Success or an error if the operation fails
-    pub fn write_data_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), DataProcessingError> {
-        self.validate_equal_vector_lengths()?;
-        const U32_F32_LENGTH: usize = 4;
-        let number_of_neurons_to_write: usize = self.get_number_of_neurons_used();
-        let number_bytes_needed = NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON * number_of_neurons_to_write;
-        if bytes_to_write_to.len() != number_bytes_needed {
-            return Err(DataProcessingError::InternalError("Invalid number of bytes passed to write neuronal XYCP data to!".into()))
-        }
-
-        let mut x_offset: usize = 0;
-        let mut y_offset = number_of_neurons_to_write * NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON / 4; // we want to be a quarter way
-        let mut c_offset = y_offset * 2; // half way
-        let mut p_offset = y_offset * 3; // three quarters way
-
-        for i in 0 .. number_of_neurons_to_write {
-            let x_bytes = self.x[i].to_le_bytes();
-            let y_bytes = self.y[i].to_le_bytes();
-            let c_bytes = self.c[i].to_le_bytes();
-            let p_bytes = self.p[i].to_le_bytes();
-
-            bytes_to_write_to[x_offset .. x_offset + U32_F32_LENGTH].copy_from_slice(&x_bytes);
-            bytes_to_write_to[y_offset .. y_offset + U32_F32_LENGTH].copy_from_slice(&y_bytes);
-            bytes_to_write_to[c_offset .. c_offset + U32_F32_LENGTH].copy_from_slice(&c_bytes);
-            bytes_to_write_to[p_offset .. p_offset + U32_F32_LENGTH].copy_from_slice(&p_bytes);
-
-            x_offset += U32_F32_LENGTH;
-            y_offset += U32_F32_LENGTH;
-            c_offset += U32_F32_LENGTH;
-            p_offset += U32_F32_LENGTH;
-        };
-
-        Ok(())
+    pub fn borrow_xycp_vectors(&self) -> (&Vec<u32>, &Vec<u32>, &Vec<u32>, &Vec<f32>) {
+        (&self.x, &self.y, &self.c, &self.p)
     }
 }

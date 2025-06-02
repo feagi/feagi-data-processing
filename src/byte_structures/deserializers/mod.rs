@@ -22,7 +22,7 @@ pub trait FeagiByteDeserializer {
 }
 
 pub fn verify_header_of_full_structure_bytes(data: &[u8], expected_type: FeagiByteStructureType, expected_version: u8) -> Result<(), DataProcessingError> {
-    if data.len() < 4 { // Header is 2 bytes, and we expected at LEAST 2 bytes of data
+    if data.len() < 4 { // Header is 2 bytes, and we expect at LEAST 2 bytes of data
         return Err(DataProcessingError::InvalidByteStructure("Byte Data Structure is too short o hold a header and any meaningful data!".into()));
     }
     
