@@ -8,6 +8,6 @@ use descriptors::*;
 pub mod segmented_vision_frame;
 pub mod descriptors;
 pub mod image_frame;
-pub mod quick_image_diff;
+//pub mod quick_image_diff;
 
 
