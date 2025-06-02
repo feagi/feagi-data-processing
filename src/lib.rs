@@ -17,7 +17,7 @@
 //! ## Examples
 //!
 //! ```rust
-//! use feagi_core_data_structures_and_processing::neuron_data::NeuronXYCPArrays;
+//! use feagi_core_data_structures_and_processing::neuron_data::NeuronXYZPArrays;
 //! use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
 //! use std::collections::HashMap;
 //!
@@ -25,7 +25,7 @@
 //! let cortical_id = CorticalID::from_str("iv00CC").unwrap();
 //!
 //! // Create neuron data structure
-//! let mut neuron_data = NeuronXYCPArrays::new(1000).unwrap();
+//! let mut neuron_data = NeuronXYZPArrays::new(1000).unwrap();
 //!
 //! // Organize by cortical areas
 //! let mut cortical_mapped_data = HashMap::new();

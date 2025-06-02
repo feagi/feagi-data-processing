@@ -9,23 +9,23 @@ use crate::error::DataProcessingError;
 
 /// A mapping from cortical IDs to their corresponding neuron data arrays.
 /// This structure is used to organize neuron data by cortical area.
-pub type CorticalMappedNeuronData = HashMap<CorticalID, NeuronXYCPArrays>;
+pub type CorticalMappedNeuronData = HashMap<CorticalID, NeuronXYZPArrays>;
 
 /// Represents neuron data as four parallel arrays for X, Y, channel, and potential values.
 /// This structure provides an efficient memory layout for serialization and processing of neuron data.
 #[derive(Clone)]
-pub struct NeuronXYCPArrays{
+pub struct NeuronXYZPArrays {
     /// X coordinates of neurons (using Cartesian coordinate system)
     x: Vec<u32>, // Remember, FEAGI is cartesian!
     /// Y coordinates of neurons
     y: Vec<u32>,
     /// Channel indices of neurons
-    c: Vec<u32>,
+    z: Vec<u32>,
     /// Potential/activation values of neurons
     p: Vec<f32>,
 }
 
-impl NeuronXYCPArrays{
+impl NeuronXYZPArrays {
     /// Number of bytes used to represent a single neuron in memory (going across x y z p elements)
     pub const NUMBER_BYTES_PER_NEURON: usize = 16;
     pub const PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 14;
@@ -41,11 +41,11 @@ impl NeuronXYCPArrays{
         if maximum_number_of_neurons_possibly_needed == 0 {
             return Err(DataProcessingError::InvalidInputBounds("Given number of neurons possible must be greater than 0!".into()));
         };
-        Ok(NeuronXYCPArrays{
-            x: Vec::with_capacity(NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
-            y: Vec::with_capacity(NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
-            c: Vec::with_capacity(NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
-            p: Vec::with_capacity(NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
+        Ok(NeuronXYZPArrays {
+            x: Vec::with_capacity(NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
+            y: Vec::with_capacity(NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
+            z: Vec::with_capacity(NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
+            p: Vec::with_capacity(NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
         })
     }
 
@@ -57,18 +57,18 @@ impl NeuronXYCPArrays{
     /// # Returns
     /// * `Result<Self, DataProcessingError>` - A new instance with capacity for all neurons in the 3D space
     pub fn new_from_resolution(resolution: (usize, usize, usize)) -> Result<Self, DataProcessingError> {
-        NeuronXYCPArrays::new(resolution.0 * resolution.1 * resolution.2)
+        NeuronXYZPArrays::new(resolution.0 * resolution.1 * resolution.2)
     }
     
-    pub fn new_from_vectors(x: Vec<u32>, y: Vec<u32>, c: Vec<u32>, p: Vec<f32>) -> Result<Self, DataProcessingError> {
+    pub fn new_from_vectors(x: Vec<u32>, y: Vec<u32>, z: Vec<u32>, p: Vec<f32>) -> Result<Self, DataProcessingError> {
         let len = x.len();
-        if len != y.len() || len != c.len() || len != p.len() {
+        if len != y.len() || len != z.len() || len != p.len() {
             return Err(DataProcessingError::InvalidInputBounds("Vectors are not the same length!".into()));
         }
-        Ok(NeuronXYCPArrays {
+        Ok(NeuronXYZPArrays {
             x,
             y,
-            c,
+            z,
             p
         })
     }
@@ -86,7 +86,7 @@ impl NeuronXYCPArrays{
     pub fn update_vectors_from_external<F>(&mut self, vectors_changer: F) -> Result<(), DataProcessingError>
     where F: FnOnce(&mut Vec<u32>, &mut Vec<u32>, &mut Vec<u32>, &mut Vec<f32>) -> Result<(), DataProcessingError>
     {
-        let function_result = vectors_changer(&mut self.x, &mut self.y, &mut self.c, &mut self.p);
+        let function_result = vectors_changer(&mut self.x, &mut self.y, &mut self.z, &mut self.p);
         if function_result.is_err() {
             return function_result;
         }
@@ -109,10 +109,10 @@ impl NeuronXYCPArrays{
         
         if new_max_neuron_count > self.get_max_neuron_capacity_without_reallocating() // only expand if needed
         {
-            self.x = Vec::with_capacity(NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
-            self.y = Vec::with_capacity(NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
-            self.c = Vec::with_capacity(NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
-            self.p = Vec::with_capacity(NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
+            self.x = Vec::with_capacity(NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
+            self.y = Vec::with_capacity(NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
+            self.z = Vec::with_capacity(NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
+            self.p = Vec::with_capacity(NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
         }
     }
 
@@ -121,7 +121,7 @@ impl NeuronXYCPArrays{
     pub fn reset_indexes(&mut self) {
         self.x.truncate(0);
         self.y.truncate(0);
-        self.c.truncate(0);
+        self.z.truncate(0);
         self.p.truncate(0);
     }
 
@@ -131,7 +131,7 @@ impl NeuronXYCPArrays{
     /// * `Result<(), DataProcessingError>` - Success or an error if the vectors have different lengths
     pub fn validate_equal_vector_lengths(&self) -> Result<(), DataProcessingError> { // TODO make internal
         let len = self.x.len();
-        if !((self.y.len() == len) && (self.x.len() == len) && (self.c.len() == len)) {
+        if !((self.y.len() == len) && (self.x.len() == len) && (self.z.len() == len)) {
              return Err(DataProcessingError::InternalError("Internal XYCP Arrays do not have equal lengths!".into()));
         }
         Ok(())
@@ -146,10 +146,10 @@ impl NeuronXYCPArrays{
     }
 
     pub fn get_number_of_bytes_needed_if_serialized(&self) -> usize {
-        self.get_number_of_neurons_used() * NeuronXYCPArrays::NUMBER_BYTES_PER_NEURON
+        self.get_number_of_neurons_used() * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON
     }
     
-    pub fn borrow_xycp_vectors(&self) -> (&Vec<u32>, &Vec<u32>, &Vec<u32>, &Vec<f32>) {
-        (&self.x, &self.y, &self.c, &self.p)
+    pub fn borrow_xyzp_vectors(&self) -> (&Vec<u32>, &Vec<u32>, &Vec<u32>, &Vec<f32>) {
+        (&self.x, &self.y, &self.z, &self.p)
     }
 }

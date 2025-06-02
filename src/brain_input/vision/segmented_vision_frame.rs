@@ -10,7 +10,7 @@ use super::image_frame::ImageFrame;
 use crate::error::DataProcessingError;
 use super::descriptors::*;
 use crate::cortical_data::CorticalID;
-use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
+use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYZPArrays};
 
 /// A frame divided into nine segments with different resolutions for peripheral vision simulation.
 ///
@@ -181,7 +181,7 @@ impl SegmentedVisionFrame {
         }
         
         Ok(output) // same order as other struct members
-    }
+    } // TODO why is this here?
     
     //endregion
     
@@ -341,7 +341,6 @@ impl SegmentedVisionFrame {
     
     //endregion
     
-    
     //region neuron export
     
     /// Exports all segments as a new cortical-mapped neuron data structure.
@@ -392,7 +391,7 @@ impl SegmentedVisionFrame {
         
         for index in 0..9 {
             let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
-            let mut data: NeuronXYCPArrays = NeuronXYCPArrays::new(max_neurons)?;
+            let mut data: NeuronXYZPArrays = NeuronXYZPArrays::new(max_neurons)?;
             ordered_refs[index].write_thresholded_xyzp_neuron_arrays(10.0, &mut data)?;
             output.insert(cortical_ids[index].clone(), data);
         }

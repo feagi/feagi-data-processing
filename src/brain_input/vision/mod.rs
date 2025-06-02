@@ -27,7 +27,7 @@
 //!
 //! ```rust
 //! use feagi_core_data_structures_and_processing::brain_input::vision::*;
-//! use feagi_core_data_structures_and_processing::neuron_data::NeuronXYCPArrays;
+//! use feagi_core_data_structures_and_processing::neuron_data::NeuronXYZPArrays;
 //! use ndarray::Array3;
 //!
 //! // Process an RGB image frame
@@ -35,13 +35,13 @@
 //! // ... populate image_data from camera or file
 //!
 //! // Convert to neuron activation patterns
-//! let mut neuron_data = NeuronXYCPArrays::new(480 * 640 * 3).unwrap();
+//! let mut neuron_data = NeuronXYZPArrays::new(480 * 640 * 3).unwrap();
 //! // ... apply processing pipeline
 //! ```
 
 use ndarray::{s, Array3, ArrayView3};
 use crate::error::DataProcessingError;
-use crate::neuron_data::NeuronXYCPArrays;
+use crate::neuron_data::NeuronXYZPArrays;
 use descriptors::*;
 
 /// Segmented vision processing for region-based image analysis.

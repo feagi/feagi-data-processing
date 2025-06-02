@@ -177,7 +177,7 @@ pub fn get_type_and_version_of_struct_from_bytes(data: &[u8]) -> Result<(FeagiBy
             Ok((FeagiByteStructureType::MultiStructHolder, data[1]))
         }
         11 => {
-            Ok((FeagiByteStructureType::NeuronCategoricalXYZP, data[1]))
+            Ok((FeagiByteStructureType::NeuronCategoricalXYCP, data[1]))
         }
         _ => {
             Err(DataProcessingError::InvalidByteStructure(format!("Unknown byte Structure Type {}", defined_type)))
@@ -224,7 +224,7 @@ pub fn build_deserializer(bytes: &[u8]) -> Result<Deserializer, DataProcessingEr
                 _ => Err(DataProcessingError::InvalidByteStructure(format!("Unsupported version {} for MultiStructHolder Deserializer!", bytes[0]))),
             }
         }
-        FeagiByteStructureType::NeuronCategoricalXYZP => {
+        FeagiByteStructureType::NeuronCategoricalXYCP => {
             match version {
                 1 => Ok(Deserializer::NeuronCategoricalXYZPV1(NeuronCategoricalXYZPDeserializerV1::from_data_slice(bytes)?)),
                 _ => Err(DataProcessingError::InvalidByteStructure(format!("Unsupported version {} for NeuronCategoricalXYZP Deserializer!", bytes[0]))),
