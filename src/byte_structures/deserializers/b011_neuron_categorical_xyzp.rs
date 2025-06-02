@@ -1,3 +1,49 @@
+//! Neuron categorical XYZP binary deserialization for FEAGI neural data.
+//!
+//! This module provides highly optimized deserialization of binary neuron data with
+//! X, Y, Z coordinates and potential (P) values organized by cortical areas. It
+//! reconstructs the efficient "struct of arrays" memory layout back into usable
+//! FEAGI data structures for neural processing.
+//!
+//! ## Format Support
+//!
+//! - **Format Type**: 11 (Neuron Categorical XYZP)
+//! - **Supported Versions**: 1
+//! - **Byte Order**: Little-endian
+//! - **Coordinate System**: Cartesian (X, Y, Z)
+//! - **Data Types**: u32 for coordinates, f32 for potentials
+//!
+//! ## Binary Layout
+//!
+//! The deserializer processes byte streams with this structure:
+//! ```text
+//! [Global Header: 2 bytes]
+//! [Cortical Count: 2 bytes]
+//! [Cortical Descriptor 1: 14 bytes]...[Cortical Descriptor N: 14 bytes]
+//! [Neuron Data 1: Variable][Neuron Data 2: Variable]...[Neuron Data N: Variable]
+//! ```
+//!
+//! ## Memory Reconstruction
+//!
+//! The deserializer reconstructs neuron data from the quarter-based layout:
+//! - First quarter: All X coordinates → Vec<u32>
+//! - Second quarter: All Y coordinates → Vec<u32>
+//! - Third quarter: All Z coordinates → Vec<u32>
+//! - Fourth quarter: All potential values → Vec<f32>
+//!
+//! ## Usage Examples
+//!
+//! ```rust
+//! use feagi_core_data_structures_and_processing::byte_structures::deserializers::{
+//!     b011_neuron_categorical_xyzp::NeuronCategoricalXYZPDeserializerV1
+//! };
+//!
+//! // Deserialize binary neuron data
+//! let neuron_bytes: &[u8] = /* serialized neuron data */;
+//! let deserializer = NeuronCategoricalXYZPDeserializerV1::from_data_slice(neuron_bytes).unwrap();
+//! // let cortical_data = deserializer.to_cortical_mapped_neuron_data().unwrap();
+//! ```
+
 use bytemuck::{cast_slice};
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::DataProcessingError;
@@ -5,21 +51,152 @@ use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
 use crate::cortical_data::CorticalID;
 use super::{FeagiByteDeserializer, FeagiByteStructureType, verify_header_of_full_structure_bytes};
 
+/// Neuron categorical XYZP binary deserializer for FEAGI neural data (Format Type 11, Version 1).
+///
+/// This deserializer processes byte streams containing binary neuron data serialized by the
+/// corresponding [`NeuronCategoricalXYZPSerializerV1`]. It reconstructs cortical-organized
+/// neuron data from the optimized quarter-based binary layout back into structured
+/// [`CorticalMappedNeuronData`] objects.
+///
+/// ## Lifetime Management
+///
+/// The deserializer maintains a reference to the original byte data, enabling efficient
+/// zero-copy deserialization where possible. The bytemuck crate is used for safe
+/// reinterpretation of byte data as numeric arrays.
+///
+/// ## Format Validation
+///
+/// The deserializer performs comprehensive validation:
+/// - Global header format and version verification
+/// - Cortical count bounds checking
+/// - Individual cortical descriptor validation
+/// - Neuron data alignment and size verification
+/// - ASCII cortical ID validation
+///
+/// ## Performance Characteristics
+///
+/// - **Speed**: Optimized for large neural datasets
+/// - **Memory**: Zero-copy where possible, minimal allocation
+/// - **Validation**: Comprehensive bounds and format checking
+/// - **Output**: Direct conversion to FEAGI data structures
 pub struct NeuronCategoricalXYZPDeserializerV1<'internal_bytes> {
+    /// Reference to the complete byte slice containing the neuron categorical XYZP structure.
+    /// This includes the global header, cortical count, cortical descriptors, and all neuron data.
     data_slice: &'internal_bytes [u8],
 }
 
 impl FeagiByteDeserializer for NeuronCategoricalXYZPDeserializerV1<'_> {
+    /// Returns the format identifier for neuron categorical XYZP deserialization.
+    ///
+    /// # Returns
+    /// 
+    /// Always returns the value corresponding to `FeagiByteStructureType::NeuronCategoricalXYZP` (11)
     fn get_id(&self) -> u8 {FeagiByteStructureType::NeuronCategoricalXYZP as u8}
+    
+    /// Returns the version number for this neuron deserializer implementation.
+    ///
+    /// # Returns
+    /// 
+    /// Always returns `1` for this version of the neuron XYZP deserializer
     fn get_version(&self) -> u8 {1}
 }
 
 impl<'internal_bytes> NeuronCategoricalXYZPDeserializerV1<'internal_bytes> {
+    /// Creates a new neuron categorical XYZP deserializer from a byte slice.
+    ///
+    /// This constructor validates the global header to ensure the data is compatible
+    /// with neuron XYZP deserialization. It verifies both the format type and version
+    /// before creating the deserializer instance.
+    ///
+    /// # Arguments
+    /// 
+    /// * `data_slice` - Byte slice containing the complete neuron structure with global header
+    ///
+    /// # Returns
+    /// 
+    /// - `Ok(NeuronCategoricalXYZPDeserializerV1)`: Successfully created deserializer
+    /// - `Err(DataProcessingError)`: Header validation failed
+    ///
+    /// # Errors
+    /// 
+    /// - `InvalidByteStructure`: Data too short, wrong format type, or wrong version
+    ///
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::byte_structures::deserializers::b011_neuron_categorical_xyzp::NeuronCategoricalXYZPDeserializerV1;
+    /// 
+    /// // Valid neuron byte structure (minimal example with no neurons)
+    /// let neuron_data = [11u8, 1u8, 0u8, 0u8]; // Type 11, Version 1, 0 cortical areas
+    /// let deserializer = NeuronCategoricalXYZPDeserializerV1::from_data_slice(&neuron_data).unwrap();
+    /// 
+    /// // Invalid format type will fail
+    /// let invalid_data = [10u8, 1u8, 0u8, 0u8];
+    /// assert!(NeuronCategoricalXYZPDeserializerV1::from_data_slice(&invalid_data).is_err());
+    /// ```
     pub fn from_data_slice(data_slice: & 'internal_bytes[u8]) -> Result<NeuronCategoricalXYZPDeserializerV1<'internal_bytes>, DataProcessingError> {
         verify_header_of_full_structure_bytes(data_slice, FeagiByteStructureType::NeuronCategoricalXYZP, 1)?;
         Ok(NeuronCategoricalXYZPDeserializerV1 { data_slice })
     }
 
+    /// Deserializes the binary neuron data into cortical mapped neuron data structures.
+    ///
+    /// This method processes the complete binary neuron structure, extracting cortical
+    /// descriptors and reconstructing neuron data arrays for each cortical area. The
+    /// result is a HashMap mapping cortical IDs to their corresponding neuron data.
+    ///
+    /// # Returns
+    /// 
+    /// - `Ok(CorticalMappedNeuronData)`: Successfully reconstructed neuron data organized by cortical areas
+    /// - `Err(DataProcessingError)`: Deserialization failed due to invalid data format
+    ///
+    /// # Errors
+    /// 
+    /// - `InvalidByteStructure`: Various format validation failures including:
+    ///   - Container too short for expected cortical descriptors
+    ///   - Neuron data size not divisible by 16 bytes (4 values × 4 bytes each)
+    ///   - Data bounds exceed container size
+    ///   - Invalid cortical ID format
+    /// - Propagated errors from cortical ID creation and neuron array construction
+    ///
+    /// # Process
+    /// 
+    /// 1. Reads cortical area count from header
+    /// 2. Validates container size for all cortical descriptors
+    /// 3. Iterates through each cortical descriptor:
+    ///    - Extracts cortical ID (6 ASCII bytes)
+    ///    - Reads data position and length
+    ///    - Validates data bounds
+    ///    - Reconstructs neuron arrays from quarter-based layout
+    /// 4. Creates CorticalMappedNeuronData with all cortical areas
+    ///
+    /// # Memory Layout Reconstruction
+    /// 
+    /// For each cortical area's neuron data:
+    /// ```text
+    /// Input:  [X₁X₂...Xₙ][Y₁Y₂...Yₙ][Z₁Z₂...Zₙ][P₁P₂...Pₙ]
+    /// Output: NeuronXYCPArrays { x: Vec<u32>, y: Vec<u32>, c: Vec<u32>, p: Vec<f32> }
+    /// ```
+    ///
+    /// # Examples
+    /// 
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::byte_structures::deserializers::b011_neuron_categorical_xyzp::NeuronCategoricalXYZPDeserializerV1;
+    /// 
+    /// // Assuming neuron_bytes contains valid serialized neuron data
+    /// let neuron_bytes: &[u8] = /* binary neuron data */;
+    /// let deserializer = NeuronCategoricalXYZPDeserializerV1::from_data_slice(neuron_bytes).unwrap();
+    /// 
+    /// // Reconstruct cortical mapped neuron data
+    /// // let cortical_data = deserializer.to_cortical_mapped_neuron_data().unwrap();
+    /// // println!("Reconstructed {} cortical areas", cortical_data.len());
+    /// 
+    /// // // Access specific cortical area
+    /// // let cortical_id = CorticalID::from_str("iv00CC").unwrap();
+    /// // if let Some(neuron_data) = cortical_data.get(&cortical_id) {
+    /// //     println!("Cortical area iv00CC has {} neurons", neuron_data.get_number_of_neurons_used());
+    /// // }
+    /// ```
     fn to_cortical_mapped_neuron_data(&self) -> Result<CorticalMappedNeuronData, DataProcessingError> {
         // We don't have to verify the global header since that was checked on this struct being created
         // We also know it has at least 4 bytes
