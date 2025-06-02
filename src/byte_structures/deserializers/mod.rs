@@ -105,8 +105,6 @@ pub trait FeagiByteDeserializer {
     ///
     /// Version number (typically starting from 1)
     fn get_version(&self) -> u8;
-    
-    // TODO deserialize could go here? (only signature)
 }
 
 /// Verifies the header of a complete byte structure against expected values.
