@@ -36,26 +36,6 @@
 //! - **SIMD Friendly**: Aligned data enables vectorized operations
 //! - **Compact Storage**: No padding or alignment waste
 //! - **Fast Deserialization**: Direct memory mapping possible
-//!
-//! ## Usage Examples
-//!
-//! ```rust
-//! use feagi_core_data_structures_and_processing::{
-//!     byte_structures::serializers::{FeagiByteSerializer, b011_neuron_categorical_xyzp::NeuronCategoricalXYZPSerializerV1},
-//!     neuron_data::CorticalMappedNeuronData,
-//!     cortical_data::CorticalID
-//! };
-//!
-//! // Create neuron data organized by cortical areas
-//! let mut cortical_data = CorticalMappedNeuronData::new();
-//! // ... populate with neuron data
-//!
-//! // Create serializer
-//! let serializer = NeuronCategoricalXYZPSerializerV1::from_cortical_mapped_neuron_data(cortical_data).unwrap();
-//!
-//! // Serialize to compact binary format
-//! let serialized = serializer.serialize_new().unwrap();
-//! ```
 
 use crate::byte_structures::GLOBAL_HEADER_SIZE;
 use crate::error::DataProcessingError;

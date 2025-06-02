@@ -23,28 +23,6 @@
 //! Each sub-header contains position and length information enabling direct access
 //! to individual contained structures without parsing the entire container.
 //!
-//! ## Usage Examples
-//!
-//! ```rust
-//! use feagi_core_data_structures_and_processing::byte_structures::deserializers::{
-//!     b009_multi_struct_holder::MultiStructHolderDeserializerV1,
-//!     Deserializer
-//! };
-//!
-//! // Deserialize container holding multiple structures
-//! let container_bytes: &[u8] = /* serialized container data */;
-//! let deserializer = MultiStructHolderDeserializerV1::from_data_slice(container_bytes).unwrap();
-//! let contained_structures = deserializer.to_multiple_structs().unwrap();
-//!
-//! // Process each contained structure individually
-//! for structure in contained_structures {
-//!     match structure {
-//!         Deserializer::JsonV1(json_des) => { /* handle JSON */ },
-//!         Deserializer::NeuronCategoricalXYZPV1(neuron_des) => { /* handle neurons */ },
-//!         // ... handle other types
-//!     }
-//! }
-//! ```
 
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::DataProcessingError;
@@ -111,20 +89,6 @@ impl<'internal_bytes> MultiStructHolderDeserializerV1<'internal_bytes> {
     /// # Errors
     /// 
     /// - `InvalidByteStructure`: Data too short, wrong format type, or wrong version
-    ///
-    /// # Examples
-    /// 
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::byte_structures::deserializers::b009_multi_struct_holder::MultiStructHolderDeserializerV1;
-    /// 
-    /// // Valid container byte structure (minimal example)
-    /// let container_data = [9u8, 1u8, 0u8]; // Type 9, Version 1, 0 contained structures
-    /// let deserializer = MultiStructHolderDeserializerV1::from_data_slice(&container_data).unwrap();
-    /// 
-    /// // Invalid format type will fail
-    /// let invalid_data = [8u8, 1u8, 0u8];
-    /// assert!(MultiStructHolderDeserializerV1::from_data_slice(&invalid_data).is_err());
-    /// ```
     pub fn from_data_slice(data_slice: & 'internal_bytes[u8]) -> Result<MultiStructHolderDeserializerV1<'internal_bytes>, DataProcessingError> {
         verify_header_of_full_structure_bytes(data_slice, FeagiByteStructureType::MultiStructHolder, 1)?;
         Ok(MultiStructHolderDeserializerV1 { data_slice })
@@ -154,31 +118,6 @@ impl<'internal_bytes> MultiStructHolderDeserializerV1<'internal_bytes> {
     /// 4. Creates individual deserializers for each contained structure
     /// 5. Validates bounds and data integrity for each structure
     ///
-    /// # Examples
-    /// 
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::byte_structures::deserializers::{
-    ///     b009_multi_struct_holder::MultiStructHolderDeserializerV1,
-    ///     Deserializer
-    /// };
-    /// 
-    /// // Assuming container_bytes contains a valid multi-structure container
-    /// let container_bytes: &[u8] = /* container data */;
-    /// let deserializer = MultiStructHolderDeserializerV1::from_data_slice(container_bytes).unwrap();
-    /// 
-    /// // Extract all contained structures
-    /// let structures = deserializer.to_multiple_structs().unwrap();
-    /// println!("Container holds {} structures", structures.len());
-    /// 
-    /// // Process each structure by type
-    /// for (index, structure) in structures.iter().enumerate() {
-    ///     match structure {
-    ///         Deserializer::JsonV1(_) => println!("Structure {} is JSON", index),
-    ///         Deserializer::NeuronCategoricalXYZPV1(_) => println!("Structure {} is neuron data", index),
-    ///         Deserializer::MultiStructHolderV1(_) => println!("Structure {} is nested container", index),
-    ///     }
-    /// }
-    /// ```
     pub fn to_multiple_structs(&self) -> Result<Vec<Deserializer> , DataProcessingError> {
         const SUB_HEADER_SIZE_PER_STRUCT: usize = 8;
         let number_contained_structs: usize = self.data_slice[2] as usize; // This header element is the count as a u8

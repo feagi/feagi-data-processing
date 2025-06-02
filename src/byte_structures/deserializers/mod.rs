@@ -19,31 +19,6 @@
 //! - **Multi-Struct Holder (Type 9)**: Container format deserialization via [`b009_multi_struct_holder`]  
 //! - **Neuron Categorical XYZP (Type 11)**: Efficient binary neuron data via [`b011_neuron_categorical_xyzp`]
 //!
-//! ## Usage Pattern
-//!
-//! ```rust
-//! use feagi_core_data_structures_and_processing::byte_structures::deserializers::{
-//!     build_deserializer, Deserializer
-//! };
-//!
-//! // Automatically detect format and create appropriate deserializer
-//! let bytes: &[u8] = /* serialized data */;
-//! match build_deserializer(bytes).unwrap() {
-//!     Deserializer::JsonV1(json_deserializer) => {
-//!         let json_data = json_deserializer.to_json().unwrap();
-//!         // Process JSON data
-//!     },
-//!     Deserializer::NeuronCategoricalXYZPV1(neuron_deserializer) => {
-//!         // let neuron_data = neuron_deserializer.to_cortical_mapped_neuron_data().unwrap();
-//!         // Process neuron data
-//!     },
-//!     Deserializer::MultiStructHolderV1(container_deserializer) => {
-//!         let contained_structures = container_deserializer.to_multiple_structs().unwrap();
-//!         // Process each contained structure
-//!     }
-//! }
-//! ```
-//!
 //! ## Error Handling
 //!
 //! The deserialization system provides comprehensive error handling for:
@@ -154,21 +129,9 @@ pub trait FeagiByteDeserializer {
 /// # Errors
 ///
 /// - `InvalidByteStructure`: Data too short, wrong type, or wrong version
-///
-/// # Examples
-///
-/// ```rust
-/// use feagi_core_data_structures_and_processing::byte_structures::{
-///     FeagiByteStructureType,
-///     deserializers::verify_header_of_full_structure_bytes
-/// };
-///
-/// let data = [1u8, 1u8, /* JSON data */];
-/// verify_header_of_full_structure_bytes(&data, FeagiByteStructureType::JSON, 1).unwrap();
-/// ```
 pub fn verify_header_of_full_structure_bytes(data: &[u8], expected_type: FeagiByteStructureType, expected_version: u8) -> Result<(), DataProcessingError> {
     if data.len() < 4 { // Header is 2 bytes, and we expect at LEAST 2 bytes of data
-        return Err(DataProcessingError::InvalidByteStructure("Byte Data Structure is too short o hold a header and any meaningful data!".into()));
+        return Err(DataProcessingError::InvalidByteStructure("Byte Data Structure is too short to hold a header and any meaningful data!".into()));
     }
     
     let expected_type= expected_type as u8;
@@ -201,20 +164,6 @@ pub fn verify_header_of_full_structure_bytes(data: &[u8], expected_type: FeagiBy
 /// # Errors
 ///
 /// - `InvalidByteStructure`: Data too short or unknown format type
-///
-/// # Examples
-///
-/// ```rust
-/// use feagi_core_data_structures_and_processing::byte_structures::{
-///     FeagiByteStructureType,
-///     deserializers::get_type_and_version_of_struct_from_bytes
-/// };
-///
-/// let data = [11u8, 1u8, /* neuron data */];
-/// let (format_type, version) = get_type_and_version_of_struct_from_bytes(&data).unwrap();
-/// assert_eq!(format_type, FeagiByteStructureType::NeuronCategoricalXYZP);
-/// assert_eq!(version, 1);
-/// ```
 pub fn get_type_and_version_of_struct_from_bytes(data: &[u8]) -> Result<(FeagiByteStructureType, u8), DataProcessingError> {
     if data.len() < 4 { // Header is 2 bytes, and we expected at LEAST 2 bytes of data
         return Err(DataProcessingError::InvalidByteStructure("Byte Data Structure is too short to hold a header and any meaningful data!".into()));
@@ -258,27 +207,6 @@ pub fn get_type_and_version_of_struct_from_bytes(data: &[u8]) -> Result<(FeagiBy
 /// - `InvalidByteStructure`: Invalid header, unknown format, or unsupported version
 /// - `InternalError`: Missing deserializer implementation (should not occur)
 ///
-/// # Examples
-///
-/// ```rust
-/// use feagi_core_data_structures_and_processing::byte_structures::deserializers::{
-///     build_deserializer, Deserializer
-/// };
-///
-/// // Automatically detect and create deserializer
-/// let serialized_data: &[u8] = /* byte data from serializer */;
-/// let deserializer = build_deserializer(serialized_data).unwrap();
-///
-/// // Use pattern matching to handle different types
-/// match deserializer {
-///     Deserializer::JsonV1(json_des) => {
-///         let json = json_des.to_json().unwrap();
-///         println!("Deserialized JSON: {}", json);
-///     },
-///     // Handle other deserializer types...
-///     _ => println!("Other format detected"),
-/// }
-/// ```
 pub fn build_deserializer(bytes: &[u8]) -> Result<Deserializer, DataProcessingError> {
     
     let (structure_type, version) = get_type_and_version_of_struct_from_bytes(bytes)?;

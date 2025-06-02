@@ -30,19 +30,6 @@
 //! - Second quarter: All Y coordinates → Vec<u32>
 //! - Third quarter: All Z coordinates → Vec<u32>
 //! - Fourth quarter: All potential values → Vec<f32>
-//!
-//! ## Usage Examples
-//!
-//! ```rust
-//! use feagi_core_data_structures_and_processing::byte_structures::deserializers::{
-//!     b011_neuron_categorical_xyzp::NeuronCategoricalXYZPDeserializerV1
-//! };
-//!
-//! // Deserialize binary neuron data
-//! let neuron_bytes: &[u8] = /* serialized neuron data */;
-//! let deserializer = NeuronCategoricalXYZPDeserializerV1::from_data_slice(neuron_bytes).unwrap();
-//! // let cortical_data = deserializer.to_cortical_mapped_neuron_data().unwrap();
-//! ```
 
 use bytemuck::{cast_slice};
 use byteorder::{ByteOrder, LittleEndian};
@@ -176,26 +163,6 @@ impl<'internal_bytes> NeuronCategoricalXYZPDeserializerV1<'internal_bytes> {
     /// ```text
     /// Input:  [X₁X₂...Xₙ][Y₁Y₂...Yₙ][Z₁Z₂...Zₙ][P₁P₂...Pₙ]
     /// Output: NeuronXYCPArrays { x: Vec<u32>, y: Vec<u32>, c: Vec<u32>, p: Vec<f32> }
-    /// ```
-    ///
-    /// # Examples
-    /// 
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::byte_structures::deserializers::b011_neuron_categorical_xyzp::NeuronCategoricalXYZPDeserializerV1;
-    /// 
-    /// // Assuming neuron_bytes contains valid serialized neuron data
-    /// let neuron_bytes: &[u8] = /* binary neuron data */;
-    /// let deserializer = NeuronCategoricalXYZPDeserializerV1::from_data_slice(neuron_bytes).unwrap();
-    /// 
-    /// // Reconstruct cortical mapped neuron data
-    /// // let cortical_data = deserializer.to_cortical_mapped_neuron_data().unwrap();
-    /// // println!("Reconstructed {} cortical areas", cortical_data.len());
-    /// 
-    /// // // Access specific cortical area
-    /// // let cortical_id = CorticalID::from_str("iv00CC").unwrap();
-    /// // if let Some(neuron_data) = cortical_data.get(&cortical_id) {
-    /// //     println!("Cortical area iv00CC has {} neurons", neuron_data.get_number_of_neurons_used());
-    /// // }
     /// ```
     fn to_cortical_mapped_neuron_data(&self) -> Result<CorticalMappedNeuronData, DataProcessingError> {
         // We don't have to verify the global header since that was checked on this struct being created
