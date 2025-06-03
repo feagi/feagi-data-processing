@@ -44,6 +44,7 @@
 use serde_json;
 use crate::byte_structures::GLOBAL_HEADER_SIZE;
 use crate::error::DataProcessingError;
+use crate::byte_structures::feagi_full_byte_data::FeagiFullByteData;
 use super::FeagiByteSerializer;
 
 /// JSON serializer implementation for FEAGI byte structures (Format Type 1, Version 1).
@@ -94,7 +95,7 @@ impl FeagiByteSerializer for JsonSerializerV1 {
     /// 
     /// Total number of bytes required for serialization (header + JSON data)
     fn get_max_possible_size_when_serialized(&self) -> usize {
-        self.some_json.to_string().len() + GLOBAL_HEADER_SIZE
+        self.some_json.to_string().len() + GLOBAL_HEADER_SIZE // TODO this is slow, any faster way to do this?
     }
     
     /// Serializes the JSON data into a newly allocated byte vector.
@@ -120,43 +121,30 @@ impl FeagiByteSerializer for JsonSerializerV1 {
     /// assert_eq!(bytes[0], 1); // Format ID
     /// assert_eq!(bytes[1], 1); // Version
     /// ```
-    fn serialize_new(&self) -> Result<Vec<u8>, DataProcessingError> {
+    fn serialize_new(&self) -> Result<FeagiFullByteData, DataProcessingError> {
         let mut bytes = Vec::with_capacity(self.get_max_possible_size_when_serialized());
-        bytes.extend(self.generate_global_header().to_vec());
+        bytes.push(self.get_id());
+        bytes.push(self.get_version());
         bytes.extend(self.some_json.to_string().into_bytes());
-        Ok(bytes)
+        Ok(FeagiFullByteData::new(bytes)?)
     }
     
-    /// Serializes the JSON data into an existing byte buffer.
-    ///
-    /// Writes the global header and JSON data directly into the provided buffer.
-    /// The buffer must be large enough to hold the complete serialized data.
-    ///
-    /// # Arguments
-    /// 
-    /// * `bytes_to_overwrite` - Mutable byte slice to write serialized data into
-    ///
-    /// # Returns
-    /// 
-    /// - `Ok(usize)`: Number of unused bytes remaining in the buffer
-    /// - `Err(DataProcessingError)`: Buffer too small or serialization failed
-    ///
-    /// # Errors
-    /// 
-    /// Returns `IncompatibleInplace` error if the provided buffer is too small
-    /// to hold the serialized JSON data and global header.
-    fn serialize_in_place(&self, bytes_to_overwrite: &mut [u8]) -> Result<usize, DataProcessingError> {
-        let json_bytes = self.some_json.to_string().into_bytes();
-        let num_bytes_needed = self.get_max_possible_size_when_serialized();
-        if bytes_to_overwrite.len() < num_bytes_needed {
-            return Err(DataProcessingError::IncompatibleInplace(format!("Not enough space given to store JSON! Need {} bytes but given {}!", num_bytes_needed, bytes_to_overwrite.len())));
+    fn force_in_place_serialize(&self, write_target: &mut FeagiFullByteData) -> Result<usize, DataProcessingError> {
+        // TODO we are technically NOT writing in place with this function!
+        let write_data = self.some_json.to_string().into_bytes();
+        
+        write_target.ensure_capacity_of_at_least(write_data.len())?;
+        write_target.reset_write_index();
+        {
+            // Lets keep the writing of data in a small scope
+            let write_bytes = write_target.borrow_data_as_mut_vec();
+            write_bytes.push(self.get_id());
+            write_bytes.push(self.get_version());
+            write_bytes.extend(write_data);
         }
-        let num_extra_bytes = bytes_to_overwrite.len() - num_bytes_needed;
-        bytes_to_overwrite[0] = self.get_id();
-        bytes_to_overwrite[1] = self.get_version();
-        bytes_to_overwrite[2..num_bytes_needed].copy_from_slice(&json_bytes);
-        Ok(num_extra_bytes)
+        Ok(write_target.get_wasted_capacity_count())
     }
+    
 }
 
 impl JsonSerializerV1 {

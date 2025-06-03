@@ -35,4 +35,36 @@ impl FeagiFullByteData {
     pub fn borrow_data_as_mut_slice(&mut self) -> &mut [u8] {
         &mut self.bytes
     }
+    
+    pub fn borrow_data_as_mut_vec(&mut self) -> &mut Vec<u8> {
+        &mut self.bytes
+    }
+    
+    pub fn ensure_capacity_of_at_least(&mut self, size: usize) -> Result<(), DataProcessingError> {
+        if size < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
+            return Err(DataProcessingError::InvalidInputBounds(format!("Cannot set capacity to less than minimum required capacity of {}!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID)));
+        }
+        
+        if self.bytes.capacity() < size {
+            self.bytes.reserve(self.bytes.capacity() - size);
+        }
+        Ok(())
+    }
+    
+    pub fn shed_wasted_capacity(&mut self) {
+        self.bytes.shrink_to_fit();
+    }
+    
+    pub fn reset_write_index(&mut self) {
+        self.bytes.truncate(0);
+    }
+    
+    pub fn get_wasted_capacity_count(&self) -> usize {
+        self.bytes.capacity() - self.bytes.len()
+    }
+    
+    pub fn get_utilized_capacity_percentage(&self) -> f32 {
+        (self.bytes.len() as f32 / self.bytes.capacity() as f32) * 100.0
+    }
+    
 }
