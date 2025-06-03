@@ -31,6 +31,7 @@
 //! - Third quarter: All Z coordinates → Vec<u32>
 //! - Fourth quarter: All potential values → Vec<f32>
 
+use std::sync::Arc;
 use bytemuck::{cast_slice};
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::DataProcessingError;
@@ -66,13 +67,13 @@ use super::{FeagiByteDeserializer, FeagiByteStructureType, verify_header_of_full
 /// - **Memory**: Zero-copy where possible, minimal allocation
 /// - **Validation**: Comprehensive bounds and format checking
 /// - **Output**: Direct conversion to FEAGI data structures
-pub struct NeuronCategoricalXYZPDeserializerV1<'internal_bytes> {
+pub struct NeuronCategoricalXYZPDeserializerV1 {
     /// Reference to the complete byte slice containing the neuron categorical XYZP structure.
     /// This includes the global header, cortical count, cortical descriptors, and all neuron data.
-    data_slice: &'internal_bytes [u8],
+    data_slice:  Arc<[u8]>,
 }
 
-impl FeagiByteDeserializer for NeuronCategoricalXYZPDeserializerV1<'_> {
+impl FeagiByteDeserializer for NeuronCategoricalXYZPDeserializerV1 {
     /// Returns the format identifier for neuron categorical XYZP deserialization.
     ///
     /// # Returns
@@ -88,7 +89,7 @@ impl FeagiByteDeserializer for NeuronCategoricalXYZPDeserializerV1<'_> {
     fn get_version(&self) -> u8 {1}
 }
 
-impl<'internal_bytes> NeuronCategoricalXYZPDeserializerV1<'internal_bytes> {
+impl NeuronCategoricalXYZPDeserializerV1 {
     /// Creates a new neuron categorical XYZP deserializer from a byte slice.
     ///
     /// This constructor validates the global header to ensure the data is compatible
@@ -121,9 +122,9 @@ impl<'internal_bytes> NeuronCategoricalXYZPDeserializerV1<'internal_bytes> {
     /// let invalid_data = [10u8, 1u8, 0u8, 0u8];
     /// assert!(NeuronCategoricalXYZPDeserializerV1::from_data_slice(&invalid_data).is_err());
     /// ```
-    pub fn from_data_slice(data_slice: & 'internal_bytes[u8]) -> Result<NeuronCategoricalXYZPDeserializerV1<'internal_bytes>, DataProcessingError> {
+    pub fn from_data_slice(data_slice: &[u8]) -> Result<NeuronCategoricalXYZPDeserializerV1, DataProcessingError> {
         verify_header_of_full_structure_bytes(data_slice, FeagiByteStructureType::NeuronCategoricalXYZP, 1)?;
-        Ok(NeuronCategoricalXYZPDeserializerV1 { data_slice })
+        Ok(NeuronCategoricalXYZPDeserializerV1 { data_slice: Arc::from(data_slice) })
     }
 
     /// Deserializes the binary neuron data into cortical mapped neuron data structures.

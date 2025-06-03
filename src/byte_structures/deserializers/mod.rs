@@ -36,13 +36,13 @@
 /// 
 /// Provides deserialization of human-readable JSON data back into serde_json::Value
 /// objects for further processing.
-pub mod b001_json;
+//pub mod b001_json;
 
 /// Multi-structure container deserialization implementation (format type 9).
 /// 
 /// Handles deserialization of container formats that hold multiple different
 /// FEAGI structures, enabling extraction of individual contained structures.
-pub mod b009_multi_struct_holder;
+//pub mod b009_multi_struct_holder;
 
 /// Neuron categorical XYZP binary deserialization implementation (format type 11).
 /// 
@@ -50,10 +50,12 @@ pub mod b009_multi_struct_holder;
 /// and potential values, organized by cortical areas.
 pub mod b011_neuron_categorical_xyzp;
 
-use crate::byte_structures::FeagiByteStructureType;
+use std::sync::Arc;
+use crate::byte_structures::{FeagiByteStructureType, try_get_version_from_bytes};
+use crate::byte_structures::feagi_full_byte_data::FeagiFullByteData;
 use crate::error::DataProcessingError;
-use b001_json::*;
-use b009_multi_struct_holder::*;
+//use b001_json::*;
+//use b009_multi_struct_holder::*;
 use b011_neuron_categorical_xyzp::*;
 
 /// Enumeration of all available deserializer types.
@@ -64,15 +66,15 @@ use b011_neuron_categorical_xyzp::*;
 ///
 /// The lifetime parameter `'internal_bytes` represents the lifetime of the byte data
 /// being deserialized, ensuring memory safety when working with borrowed data.
-pub enum Deserializer<'internal_bytes> {
+pub enum Deserializer {
     /// JSON deserializer version 1 for human-readable JSON data.
-    JsonV1(JsonDeserializerV1<'internal_bytes>),
+    //JsonV1(JsonDeserializerV1<'internal_bytes>),
     
     /// Neuron categorical XYZP deserializer version 1 for binary neural data.
-    NeuronCategoricalXYZPV1(NeuronCategoricalXYZPDeserializerV1<'internal_bytes>),
+    NeuronCategoricalXYZPV1(NeuronCategoricalXYZPDeserializerV1),
     
-    /// Multi-structure holder deserializer version 1 for container formats.
-    MultiStructHolderV1(MultiStructHolderDeserializerV1<'internal_bytes>)
+    //  /// Multi-structure holder deserializer version 1 for container formats.
+    //MultiStructHolderV1(MultiStructHolderDeserializerV1<'internal_bytes>)
 }
 
 /// Common trait for all FEAGI byte structure deserializers.
@@ -95,6 +97,14 @@ pub trait FeagiByteDeserializer {
     ///
     /// Format type identifier (1-255)
     fn get_id(&self) -> u8;
+
+    fn get_type(&self) -> Result<FeagiByteStructureType, DataProcessingError> {
+        let result = FeagiByteStructureType::try_from(self.get_id());
+        match result {
+            Ok(t) => Ok(t),
+            Err(e) => Err(DataProcessingError::InternalError(format!("Internal serializer attempted to report itself as nonexistant type {}!", self.get_id()))),
+        }
+    }
     
     /// Returns the version number for this deserializer implementation.
     ///
@@ -106,6 +116,19 @@ pub trait FeagiByteDeserializer {
     /// Version number (typically starting from 1)
     fn get_version(&self) -> u8;
 }
+
+pub struct EncapsulatedDeserializer {
+    specific_byte_data: Arc<Vec<u8>>,
+    deserializer: Deserializer,
+}
+
+impl EncapsulatedDeserializer {
+    pub fn created_encapsulated_deserializer(full_data_for_type: Vec<u8>) -> Result<EncapsulatedDeserializer, DataProcessingError> {
+        
+    }
+}
+
+
 
 /// Verifies the header of a complete byte structure against expected values.
 ///
@@ -207,9 +230,11 @@ pub fn get_type_and_version_of_struct_from_bytes(data: &[u8]) -> Result<(FeagiBy
 ///
 pub fn build_deserializer(bytes: &[u8]) -> Result<Deserializer, DataProcessingError> {
     
-    let (structure_type, version) = get_type_and_version_of_struct_from_bytes(bytes)?;
+    let structure_type = FeagiByteStructureType::try_get_type_from_bytes(bytes)?;
+    let version = try_get_version_from_bytes(bytes)?;
     
     match structure_type {
+        /*
         FeagiByteStructureType::JSON => {
             match version {
                 1 => Ok(Deserializer::JsonV1(JsonDeserializerV1::from_data_slice(bytes)?)),
@@ -222,6 +247,8 @@ pub fn build_deserializer(bytes: &[u8]) -> Result<Deserializer, DataProcessingEr
                 _ => Err(DataProcessingError::InvalidByteStructure(format!("Unsupported version {} for MultiStructHolder Deserializer!", bytes[0]))),
             }
         }
+        
+         */
         FeagiByteStructureType::NeuronCategoricalXYZP => {
             match version {
                 1 => Ok(Deserializer::NeuronCategoricalXYZPV1(NeuronCategoricalXYZPDeserializerV1::from_data_slice(bytes)?)),

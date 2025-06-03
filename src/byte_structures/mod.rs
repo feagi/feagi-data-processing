@@ -55,6 +55,7 @@ use crate::error::DataProcessingError;
 /// - 1 byte: Format version number (u8)
 pub const GLOBAL_HEADER_SIZE: usize = 2;
 
+
 /// Enumeration of all supported FEAGI byte structure format types.
 /// 
 /// Each variant corresponds to a specific serialization format and is used
@@ -81,15 +82,28 @@ pub enum FeagiByteStructureType {
 }
 
 impl FeagiByteStructureType {
-    fn try_from(value: u8) -> Result<Self, DataProcessingError> {
-        match value { 
+    pub fn try_from(value: u8) -> Result<Self, DataProcessingError> {
+        match value {
             1 => Ok(FeagiByteStructureType::JSON),
             9 => Ok(FeagiByteStructureType::MultiStructHolder),
             11 => Ok(FeagiByteStructureType::NeuronCategoricalXYZP),
             _ => Err(DataProcessingError::InvalidByteStructure(format!("Unknown FeagiByteStructure type {}", value)))
         }
     }
+    pub fn try_get_type_from_bytes(bytes: &[u8]) -> Result<FeagiByteStructureType, DataProcessingError> {
+        if bytes.len() < 1 {
+            return Err(DataProcessingError::InvalidByteStructure("Cannot ascertain type of empty byte array!".into()))
+        }
+        FeagiByteStructureType::try_from(bytes[0])
+    }
 }
 
+
+pub fn try_get_version_from_bytes(bytes: &[u8]) -> Result<u8, DataProcessingError> {
+    if bytes.len() < 2 {
+        return Err(DataProcessingError::InvalidByteStructure("Cannot ascertain type of 0/1 long byte array!".into()))
+    }
+    Ok(bytes[1])
+}
 
 
