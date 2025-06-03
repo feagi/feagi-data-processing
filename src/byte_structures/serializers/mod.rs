@@ -63,7 +63,9 @@ pub mod b011_neuron_categorical_xyzp;
 /// and reducing serialization overhead.
 pub mod b009_multi_struct_holder;
 
+use crate::byte_structures::FeagiByteStructureType;
 use crate::error::DataProcessingError;
+use super::feagi_full_byte_data::FeagiFullByteData;
 
 /// Trait defining the interface for all FEAGI byte structure serializers.
 /// 
@@ -82,12 +84,20 @@ use crate::error::DataProcessingError;
 /// 
 /// While not currently enforced by trait bounds, implementations should consider
 /// thread safety requirements for concurrent usage scenarios.
-pub trait FeagiByteSerializer: Send + Sync{ // TODO get enum
+pub trait FeagiByteSerializer: Send + Sync{
     /// Returns the unique format identifier for this serializer.
     /// 
     /// This byte value is used in the global header to identify the serialization
     /// format when deserializing data. Must be unique across all serializer types.
     fn get_id(&self) -> u8;
+    
+    fn get_type(&self) -> Result<FeagiByteStructureType, DataProcessingError> {
+        let result = FeagiByteStructureType::try_from(self.get_id());
+        match result {
+            Ok(t) => Ok(t),
+            Err(e) => Err(DataProcessingError::InternalError(format!("Internal serializer attempted to report itself as nonexistant type {}!", self.get_id()))),
+        }
+    }
     
     /// Returns the version number for this serializer implementation.
     /// 
@@ -106,43 +116,35 @@ pub trait FeagiByteSerializer: Send + Sync{ // TODO get enum
     /// Maximum number of bytes that could be produced by serialization
     fn get_max_possible_size_when_serialized(&self) -> usize;
     
-    /// Serializes the data structure into a newly allocated byte vector.
+    /// Serializes the data structure into a new FeagiFullByteData
     /// 
-    /// This method handles memory allocation internally and returns a vector
-    /// containing the complete serialized data including the global header.
+    /// This method handles memory allocation internally and returns a 
+    /// FeagiFullByteData that is ready to be sent to FEAGI
     /// 
     /// # Returns
     /// 
-    /// - `Ok(Vec<u8>)`: Successfully serialized data
+    /// - `Ok(FeagiFullByteData)`: Successfully serialized data
     /// - `Err(DataProcessingError)`: Serialization failed
-    fn serialize_new(&self) -> Result<Vec<u8>, DataProcessingError>;
-    
-    /// Serializes the data structure into an existing byte buffer.
-    /// 
+    fn serialize_new(&self) -> Result<FeagiFullByteData, DataProcessingError>;
+
+    /// Overwrites the generated data on top of an existing FeagiFullByteData,
+    /// expanding its size if needed, and returns the number of wasted allocated 
+    /// bytes at the end
+    ///
     /// This method writes serialized data directly into the provided buffer,
-    /// which must be large enough to hold the complete serialized structure.
-    /// The buffer size can be determined using `get_max_possible_size_when_serialized()`.
-    /// 
+    /// which if isn't large enough, will be grown to be able to fit the data.
+    /// Returns an usize stating the number of wasted bytes at the end, in cases
+    /// where the generated data takes less bytes than is allocated in the internal
+    /// vector
+    ///
     /// # Arguments
-    /// 
-    /// * `bytes_to_overwrite` - Mutable byte slice to write serialized data into
-    /// 
+    ///
+    /// * `write_target` - Mutable FeagiFullByteData to write serialized data into
+    ///
     /// # Returns
-    /// 
-    /// - `Ok(usize)`: Number of bytes actually written to the buffer
+    ///
+    /// - `Ok(usize)`: Number of bytes unused within the internal vector (wasted memory)
     /// - `Err(DataProcessingError)`: Serialization failed or buffer too small
-    fn serialize_in_place(&self, bytes_to_overwrite: &mut [u8]) -> Result<usize, DataProcessingError>;
+    fn force_in_place_serialize(&self, write_target: &mut FeagiFullByteData) -> Result<usize, DataProcessingError>;
     
-    /// Generates the standard 2-byte global header for this serializer.
-    /// 
-    /// The global header contains the format ID and version number that
-    /// prefix all serialized FEAGI data structures. This method provides
-    /// a default implementation that should be suitable for most serializers.
-    /// 
-    /// # Returns
-    /// 
-    /// 2-byte array containing [format_id, version]
-    fn generate_global_header(&self) ->[u8; 2] {
-        [self.get_id(), self.get_version()]
-    }
 }
