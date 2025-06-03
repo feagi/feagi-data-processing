@@ -30,7 +30,7 @@ pub struct NeuronXYZPArrays {
 impl NeuronXYZPArrays {
     /// Number of bytes used to represent a single neuron in memory (going across x y z p elements)
     pub const NUMBER_BYTES_PER_NEURON: usize = 16;
-    pub const PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 14;
+    pub const PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 14; // TODO move?
     
     /// Creates a new NeuronXYCPArrays instance with capacity for the specified maximum number of neurons.
     ///

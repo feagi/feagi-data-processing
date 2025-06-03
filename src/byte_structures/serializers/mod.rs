@@ -17,30 +17,6 @@
 //!
 //! - `serialize_new()`: Creates a new Vec<u8> with the serialized data
 //! - `serialize_in_place()`: Writes serialized data to an existing buffer
-//!
-//! ## Examples
-//!
-//! ```rust
-//! use feagi_core_data_structures_and_processing::byte_structures::serializers::FeagiByteSerializer;
-//!
-//! // Using a serializer (example structure)
-//! # struct ExampleSerializer;
-//! # impl FeagiByteSerializer for ExampleSerializer {
-//! #     fn get_id(&self) -> u8 { 1 }
-//! #     fn get_version(&self) -> u8 { 1 }
-//! #     fn get_max_possible_size_when_serialized(&self) -> usize { 100 }
-//! #     fn serialize_new(&self) -> Result<Vec<u8>, feagi_core_data_structures_and_processing::error::DataProcessingError> { Ok(vec![]) }
-//! #     fn serialize_in_place(&self, bytes_to_overwrite: &mut [u8]) -> Result<usize, feagi_core_data_structures_and_processing::error::DataProcessingError> { Ok(0) }
-//! # }
-//! let serializer = ExampleSerializer;
-//! 
-//! // Serialize to new vector
-//! let serialized = serializer.serialize_new().unwrap();
-//! 
-//! // Or serialize in-place to existing buffer
-//! let mut buffer = vec![0u8; serializer.get_max_possible_size_when_serialized()];
-//! let bytes_written = serializer.serialize_in_place(&mut buffer).unwrap();
-//! ```
 
 /// JSON serialization implementation (format type 1).
 /// 

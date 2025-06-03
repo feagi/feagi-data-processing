@@ -45,10 +45,10 @@
 //! - **Random Access**: Sub-headers enable direct access to individual structures
 //! - **Type Preservation**: Each contained structure maintains its own format ID
 
-use crate::error::DataProcessingError;
-use super::FeagiByteSerializer;
 use byteorder::{ByteOrder, LittleEndian};
+use crate::error::DataProcessingError;
 use crate::byte_structures::feagi_full_byte_data::FeagiFullByteData;
+use super::FeagiByteSerializer;
 
 /// Multi-structure container serializer for FEAGI byte structures (Format Type 9, Version 1).
 ///

@@ -37,9 +37,11 @@
 //! - **Compact Storage**: No padding or alignment waste
 //! - **Fast Deserialization**: Direct memory mapping possible
 
+use byteorder::{ByteOrder, LittleEndian};
 use crate::byte_structures::GLOBAL_HEADER_SIZE;
 use crate::error::DataProcessingError;
 use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYZPArrays};
+use crate::byte_structures::feagi_full_byte_data::FeagiFullByteData;
 use super::FeagiByteSerializer;
 
 /// Neuron categorical XYZP binary serializer for FEAGI neural data (Format Type 11, Version 1).
@@ -104,13 +106,12 @@ impl FeagiByteSerializer for NeuronCategoricalXYZPSerializerV1 {
     /// 
     /// Total number of bytes required for all cortical areas and their neuron data
     fn get_max_possible_size_when_serialized(&self) -> usize {
-        const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
 
-        let mut size = GLOBAL_HEADER_SIZE + NeuronCategoricalXYZPSerializerV1::CORTICAL_COUNT_HEADER_SIZE;
+        let mut size = GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE;
         for (_cortical_id, mapped_neuron_data) in self.cortical_mapped_neuron_data.iter(){
             size += NeuronXYZPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE + mapped_neuron_data.get_number_of_bytes_needed_if_serialized()
         };
-        size
+        size // This is precise, no overestimation
     }
     
     /// Serializes all neuron data into a newly allocated byte vector.
@@ -131,109 +132,54 @@ impl FeagiByteSerializer for NeuronCategoricalXYZPSerializerV1 {
     /// 
     /// - `InvalidByteStructure`: Issues with cortical ID formatting
     /// - Propagated errors from internal neuron data serialization
-    fn serialize_new(&self) -> Result<Vec<u8>, DataProcessingError> {
+    fn serialize_new(&self) -> Result<FeagiFullByteData, DataProcessingError> {
         const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
 
-        let mut output: Vec<u8> = Vec::with_capacity(self.get_max_possible_size_when_serialized());
-        output[0] = self.get_id();
-        output[1] = self.get_version();
+        let mut vector_data: Vec<u8> = Vec::with_capacity(self.get_max_possible_size_when_serialized());
+        _ = self.in_place_serialize(&mut vector_data);
 
-        let number_cortical_areas: usize = self.cortical_mapped_neuron_data.len();
-        let count_bytes: [u8; 2] = (number_cortical_areas as u16).to_le_bytes();
-        output[2..4].copy_from_slice(&count_bytes);
-
-        let mut header_write_index: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE;
-        let mut data_write_index: u32 = header_write_index as u32 + (number_cortical_areas as u32 * NeuronXYZPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
-
-        // fill in cortical descriptors header
-        for (cortical_id, neuron_data) in &self.cortical_mapped_neuron_data {
-            // Calculate locations
-            let reading_start: u32 = data_write_index;
-            let reading_length: u32 = neuron_data.get_number_of_neurons_used() as u32 * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON as u32;
-            let reading_start_bytes: [u8; 4] = reading_start.to_le_bytes();
-            let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
-
-            // Write cortical subheader
-            cortical_id.write_bytes_at(&mut output[header_write_index..header_write_index + 6])?;
-            output[header_write_index + 6.. header_write_index + 10].copy_from_slice(&reading_start_bytes);
-            output[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
-
-            // Write data
-            write_neural_data_to_bytes(neuron_data, &mut output[reading_start as usize .. (reading_start + reading_length) as usize])?;
-
-            // update indexes
-            data_write_index += reading_length;
-            header_write_index += NeuronXYZPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
-        }
-
-        Ok(output)
+        Ok(FeagiFullByteData::new(vector_data)?)
 
     }
-    
-    /// Serializes all neuron data into an existing byte buffer.
-    ///
-    /// Performs the same serialization as `serialize_new()` but writes directly
-    /// into a provided buffer to avoid memory allocation.
-    ///
-    /// # Arguments
-    /// 
-    /// * `bytes_to_overwrite` - Mutable byte slice to write serialized data into
-    ///
-    /// # Returns
-    /// 
-    /// - `Ok(usize)`: Number of unused bytes remaining in the buffer
-    /// - `Err(DataProcessingError)`: Buffer too small or serialization failed
-    ///
-    /// # Errors
-    /// 
-    /// - `IncompatibleInplace`: Buffer too small for all neuron data
-    /// - Other errors propagated from cortical ID or neuron data writing
-    fn serialize_in_place(&self, bytes_to_overwrite: &mut [u8]) -> Result<usize, DataProcessingError> {
 
+    fn in_place_serialize(&self, bytes_to_overwrite: &mut [u8]) -> Result<usize, DataProcessingError> {
         let num_bytes_needed: usize = self.get_max_possible_size_when_serialized();
         if bytes_to_overwrite.len() < num_bytes_needed {
             return Err(DataProcessingError::IncompatibleInplace(format!("Not enough space given to store neuron XYZP data! Need {} bytes but given {}!", num_bytes_needed, bytes_to_overwrite.len())));
         }
 
-        const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
-
         bytes_to_overwrite[0] = self.get_id();
         bytes_to_overwrite[1] = self.get_version();
 
         let number_cortical_areas: usize = self.cortical_mapped_neuron_data.len();
-        let count_bytes: [u8; 2] = (number_cortical_areas as u16).to_le_bytes();
-        bytes_to_overwrite[2..4].copy_from_slice(&count_bytes);
+        LittleEndian::write_u16(&mut bytes_to_overwrite[2..4], number_cortical_areas as u16);
 
-        let mut header_write_index: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE;
-        let mut data_write_index: u32 = header_write_index as u32 + (number_cortical_areas as u32 * NeuronXYZPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
+        let mut subheader_write_index: usize = GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE;
+        let mut neuron_data_write_index: u32 = subheader_write_index as u32 + (number_cortical_areas as u32 * NeuronXYZPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
 
-        // fill in cortical descriptors header
         for (cortical_id, neuron_data) in &self.cortical_mapped_neuron_data {
-            // Calculate locations
-            let reading_start: u32 = data_write_index;
-            let reading_length: u32 = neuron_data.get_number_of_neurons_used() as u32 * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON as u32;
-            let reading_start_bytes: [u8; 4] = reading_start.to_le_bytes();
-            let reading_length_bytes: [u8; 4] = reading_length.to_le_bytes();
-
             // Write cortical subheader
-            cortical_id.write_bytes_at(&mut bytes_to_overwrite[header_write_index..header_write_index + 6])?;
-            bytes_to_overwrite[header_write_index + 6.. header_write_index + 10].copy_from_slice(&reading_start_bytes);
-            bytes_to_overwrite[header_write_index + 10.. header_write_index + 14].copy_from_slice(&reading_length_bytes);
-
-            // Write data
+            cortical_id.write_bytes_at(&mut bytes_to_overwrite[subheader_write_index .. subheader_write_index + 6])?;
+            let reading_start: u32 = neuron_data_write_index;
+            let reading_length: u32 = neuron_data.get_number_of_neurons_used() as u32 * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON as u32;
+            LittleEndian::write_u32(&mut bytes_to_overwrite[subheader_write_index + 6 .. subheader_write_index + 10], reading_start);
+            LittleEndian::write_u32(&mut bytes_to_overwrite[subheader_write_index + 10 .. subheader_write_index + 14], reading_length);
+            
+            // write neuron data
             write_neural_data_to_bytes(neuron_data, &mut bytes_to_overwrite[reading_start as usize .. (reading_start + reading_length) as usize])?;
 
             // update indexes
-            data_write_index += reading_length;
-            header_write_index += NeuronXYZPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
+            neuron_data_write_index += reading_length;
+            subheader_write_index += NeuronXYZPArrays::PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
         };
-
-        Ok(bytes_to_overwrite.len() - num_bytes_needed)
+        let wasted_space = bytes_to_overwrite.len() - num_bytes_needed;
+        Ok(wasted_space)
     }
 
 }
 
 impl NeuronCategoricalXYZPSerializerV1 {
+    
     /// Size in bytes of the cortical count header field.
     pub const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
 
