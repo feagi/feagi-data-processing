@@ -96,6 +96,7 @@ impl FeagiByteSerializer for JsonSerializerV1 {
     /// Total number of bytes required for serialization (header + JSON data)
     fn get_max_possible_size_when_serialized(&self) -> usize {
         self.some_json.to_string().len() + GLOBAL_HEADER_SIZE // TODO this is slow, any faster way to do this?
+        // This is precise, good
     }
     
     /// Serializes the JSON data into a newly allocated byte vector.
@@ -129,20 +130,21 @@ impl FeagiByteSerializer for JsonSerializerV1 {
         Ok(FeagiFullByteData::new(bytes)?)
     }
     
-    fn force_in_place_serialize(&self, write_target: &mut FeagiFullByteData) -> Result<usize, DataProcessingError> {
+    fn in_place_serialize(&self, write_target: &mut [u8]) -> Result<usize, DataProcessingError> {
         // TODO we are technically NOT writing in place with this function!
         let write_data = self.some_json.to_string().into_bytes();
-        
-        write_target.ensure_capacity_of_at_least(write_data.len())?;
-        write_target.reset_write_index();
-        {
-            // Lets keep the writing of data in a small scope
-            let write_bytes = write_target.borrow_data_as_mut_vec();
-            write_bytes.push(self.get_id());
-            write_bytes.push(self.get_version());
-            write_bytes.extend(write_data);
+        let required_size = write_data.len() + GLOBAL_HEADER_SIZE;
+        if write_target.len() < required_size {
+            return Err(DataProcessingError::IncompatibleInplace(format!("Json structure needs {} bytes of space but only {} was provided!",
+                                                                        required_size, write_target.len())));
         }
-        Ok(write_target.get_wasted_capacity_count())
+        
+        write_target[0] = self.get_id();
+        write_target[1] = self.get_version();
+        write_target[2..required_size].copy_from_slice(&write_data);
+
+        let wasted_space = write_target.len() - required_size;
+        Ok(wasted_space)
     }
     
 }

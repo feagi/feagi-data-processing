@@ -45,10 +45,10 @@
 //! - **Random Access**: Sub-headers enable direct access to individual structures
 //! - **Type Preservation**: Each contained structure maintains its own format ID
 
-use crate::byte_structures::GLOBAL_HEADER_SIZE;
 use crate::error::DataProcessingError;
 use super::FeagiByteSerializer;
 use byteorder::{ByteOrder, LittleEndian};
+use crate::byte_structures::feagi_full_byte_data::FeagiFullByteData;
 
 /// Multi-structure container serializer for FEAGI byte structures (Format Type 9, Version 1).
 ///
@@ -81,6 +81,7 @@ pub struct MultiStructSerializerV1 {
 }
 
 impl FeagiByteSerializer for MultiStructSerializerV1 {
+    
     /// Returns the format identifier for multi-structure container serialization.
     ///
     /// # Returns
@@ -109,7 +110,7 @@ impl FeagiByteSerializer for MultiStructSerializerV1 {
     fn get_max_possible_size_when_serialized(&self) -> usize {
         let mut output = 3; // 1 byte for the number contained struct header + global headers
         for serializer in &self.contained_serializers {
-            output += serializer.get_max_possible_size_when_serialized() + 8;
+            output += serializer.get_max_possible_size_when_serialized() + Self::SUBHEADER_SIZE;
         }
         output
     }
@@ -132,39 +133,12 @@ impl FeagiByteSerializer for MultiStructSerializerV1 {
     /// 
     /// Propagates any errors from contained serializers during their individual
     /// serialization processes.
-    fn serialize_new(&self) -> Result<Vec<u8>, DataProcessingError> {
+    fn serialize_new(&self) -> Result<FeagiFullByteData, DataProcessingError> {
         let max_size = self.get_max_possible_size_when_serialized();
         let mut output = vec![0u8; max_size];
-
-        // Write header
-        output[0] = self.get_id();
-        output[1] = self.get_version();
-        output[2] = self.contained_serializers.len() as u8;
         
-        let mut subheader_write_index: usize = 3;
-        let sub_header_size_per_struct: usize = 8; // 4 bytes for position + 4 bytes for length
-        let data_start_position: usize = 3 + (self.contained_serializers.len() * sub_header_size_per_struct);
-        let mut current_data_position: usize = data_start_position;
-        
-        // Serialize each contained structure and write sub-headers
-        for serializer in &self.contained_serializers {
-            // Serialize the data for this structure
-            let serialized_data = serializer.serialize_new()?;
-            let data_length = serialized_data.len();
-            
-            // Write sub-header: position (4 bytes) + length (4 bytes)
-            LittleEndian::write_u32(&mut output[subheader_write_index..subheader_write_index + 4], current_data_position as u32);
-            LittleEndian::write_u32(&mut output[subheader_write_index + 4..subheader_write_index + 8], data_length as u32);
-            
-            // Copy the serialized data to the output
-            output[current_data_position..current_data_position + data_length].copy_from_slice(&serialized_data);
-            
-            // Update positions for next iteration
-            subheader_write_index += sub_header_size_per_struct;
-            current_data_position += data_length;
-        }
-
-        Ok(output)
+        _ = self.in_place_serialize(&mut output)?;
+        Ok(FeagiFullByteData::new(output)?)
     }
 
     /// Serializes all contained structures into an existing byte buffer.
@@ -185,46 +159,44 @@ impl FeagiByteSerializer for MultiStructSerializerV1 {
     /// 
     /// - `IncompatibleInplace`: Buffer too small for all contained structures
     /// - Propagated errors from contained serializers
-    fn serialize_in_place(&self, bytes_to_overwrite: &mut [u8]) -> Result<usize, DataProcessingError> {
-        let num_bytes_needed = self.get_max_possible_size_when_serialized();
-        if bytes_to_overwrite.len() < num_bytes_needed {
-            return Err(DataProcessingError::IncompatibleInplace(format!("Not enough space given to store MultiStructHolder! Need {} bytes but given {}!", num_bytes_needed, bytes_to_overwrite.len())));
+    fn in_place_serialize(&self, bytes_to_overwrite: &mut [u8]) -> Result<usize, DataProcessingError> {
+        let max_size = self.get_max_possible_size_when_serialized();
+        if bytes_to_overwrite.len() < max_size {
+            return Err(DataProcessingError::IncompatibleInplace(format!("Multi struct likely requires {} bytes to allocate internal data, but only {} bytes of space was given", max_size, bytes_to_overwrite.len())));
         }
 
         // Write header
         bytes_to_overwrite[0] = self.get_id();
         bytes_to_overwrite[1] = self.get_version();
         bytes_to_overwrite[2] = self.contained_serializers.len() as u8;
-        
+
         let mut subheader_write_index: usize = 3;
-        let sub_header_size_per_struct: usize = 8; // 4 bytes for position + 4 bytes for length
-        let data_start_position: usize = 3 + (self.contained_serializers.len() * sub_header_size_per_struct);
-        let mut current_data_position: usize = data_start_position;
-        
+        let data_start_position: usize = 3 + (self.contained_serializers.len() * Self::SUBHEADER_SIZE);
+        let mut data_write_index: usize = data_start_position;
+
         // Serialize each contained structure and write sub-headers
         for serializer in &self.contained_serializers {
-            // Serialize the data for this structure
-            let serialized_data = serializer.serialize_new()?;
-            let data_length = serialized_data.len();
-            
+            // Write data to array
+            let estimated_data_size = serializer.get_max_possible_size_when_serialized();
+            let wasted_byte_count = serializer.in_place_serialize(&mut bytes_to_overwrite[data_write_index..data_write_index + estimated_data_size])?;
+            let true_data_size = estimated_data_size - wasted_byte_count;
+
             // Write sub-header: position (4 bytes) + length (4 bytes)
-            LittleEndian::write_u32(&mut bytes_to_overwrite[subheader_write_index..subheader_write_index + 4], current_data_position as u32);
-            LittleEndian::write_u32(&mut bytes_to_overwrite[subheader_write_index + 4..subheader_write_index + 8], data_length as u32);
-            
-            // Copy the serialized data to the output
-            bytes_to_overwrite[current_data_position..current_data_position + data_length].copy_from_slice(&serialized_data);
+            LittleEndian::write_u32(&mut bytes_to_overwrite[subheader_write_index..subheader_write_index + 4], data_write_index as u32); // where to start reading
+            LittleEndian::write_u32(&mut bytes_to_overwrite[subheader_write_index + 4..subheader_write_index + 8], true_data_size as u32); // how long to read
             
             // Update positions for next iteration
-            subheader_write_index += sub_header_size_per_struct;
-            current_data_position += data_length;
+            subheader_write_index += Self::SUBHEADER_SIZE;
+            data_write_index += true_data_size;
         }
-        
-        // Return number of unused bytes
-        Ok(bytes_to_overwrite.len() - current_data_position)
+        let true_number_written_bytes = data_write_index;
+        Ok(max_size - true_number_written_bytes)
     }
 }
 
 impl MultiStructSerializerV1 {
+    const SUBHEADER_SIZE: usize = 8; // each contained struct gets a u32 for describing start index, and a u32 for describing struct length
+    
     /// Creates a new empty multi-structure serializer container.
     ///
     /// The container starts empty and serializers can be added using `add_serializer()`.
@@ -296,4 +268,6 @@ impl MultiStructSerializerV1 {
     pub fn is_empty(&self) -> bool {
         self.contained_serializers.is_empty()
     }
+    
+    
 }

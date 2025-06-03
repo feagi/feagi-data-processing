@@ -127,24 +127,19 @@ pub trait FeagiByteSerializer: Send + Sync{
     /// - `Err(DataProcessingError)`: Serialization failed
     fn serialize_new(&self) -> Result<FeagiFullByteData, DataProcessingError>;
 
-    /// Overwrites the generated data on top of an existing FeagiFullByteData,
-    /// expanding its size if needed, and returns the number of wasted allocated 
-    /// bytes at the end
+    /// Overwrites the generated data on top of an existing FeagiFullByteData slice,
+    /// and returns the number of wasted allocated bytes at the end (compared 
+    /// from max possible size when serialized)
     ///
-    /// This method writes serialized data directly into the provided buffer,
-    /// which if isn't large enough, will be grown to be able to fit the data.
-    /// Returns an usize stating the number of wasted bytes at the end, in cases
-    /// where the generated data takes less bytes than is allocated in the internal
-    /// vector
     ///
     /// # Arguments
     ///
-    /// * `write_target` - Mutable FeagiFullByteData to write serialized data into
+    /// * `write_target` - Mutable [u8] slice to write serialized data into
     ///
     /// # Returns
     ///
     /// - `Ok(usize)`: Number of bytes unused within the internal vector (wasted memory)
     /// - `Err(DataProcessingError)`: Serialization failed or buffer too small
-    fn force_in_place_serialize(&self, write_target: &mut FeagiFullByteData) -> Result<usize, DataProcessingError>;
-    
+    fn in_place_serialize(&self, write_target: &mut [u8]) -> Result<usize, DataProcessingError>;
 }
+
