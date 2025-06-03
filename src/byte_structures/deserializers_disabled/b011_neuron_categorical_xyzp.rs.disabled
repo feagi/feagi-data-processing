@@ -112,12 +112,12 @@ impl NeuronCategoricalXYZPDeserializerV1 {
     /// # Examples
     /// 
     /// ```rust
-    /// use feagi_core_data_structures_and_processing::byte_structures::deserializers::b011_neuron_categorical_xyzp::NeuronCategoricalXYZPDeserializerV1;
-    /// 
+    /// use feagi_core_data_structures_and_processing::byte_structures::deserializers_disabled::b011_neuron_categorical_xyzp::NeuronCategoricalXYZPDeserializerV1;
+    ///
     /// // Valid neuron byte structure (minimal example with no neurons)
     /// let neuron_data = [11u8, 1u8, 0u8, 0u8]; // Type 11, Version 1, 0 cortical areas
     /// let deserializer = NeuronCategoricalXYZPDeserializerV1::from_data_slice(&neuron_data).unwrap();
-    /// 
+    ///
     /// // Invalid format type will fail
     /// let invalid_data = [10u8, 1u8, 0u8, 0u8];
     /// assert!(NeuronCategoricalXYZPDeserializerV1::from_data_slice(&invalid_data).is_err());

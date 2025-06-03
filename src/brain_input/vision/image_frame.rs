@@ -9,7 +9,7 @@ use std::cmp::max;
 use ndarray::{s, Array3, ArrayView3};
 use crate::brain_input::vision::descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::DataProcessingError;
-use crate::neuron_data::NeuronXYZPArrays;
+use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
 
 /// Represents an image frame with pixel data and metadata for FEAGI vision processing.
 /// 
@@ -964,7 +964,7 @@ impl ImageFrame {
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// use feagi_core_data_structures_and_processing::neuron_data::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// let mut neuron_arrays = NeuronXYZPArrays::new(30000).unwrap();

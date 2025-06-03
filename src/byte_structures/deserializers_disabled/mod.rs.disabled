@@ -52,7 +52,7 @@ pub mod b011_neuron_categorical_xyzp;
 
 use std::sync::Arc;
 use crate::byte_structures::{FeagiByteStructureType, try_get_version_from_bytes};
-use crate::byte_structures::feagi_full_byte_data::FeagiFullByteData;
+use crate::byte_structures::feagi_byte_structure::FeagiFullByteData;
 use crate::error::DataProcessingError;
 //use b001_json::*;
 //use b009_multi_struct_holder::*;

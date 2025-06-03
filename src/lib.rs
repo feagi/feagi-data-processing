@@ -13,24 +13,6 @@
 //! - [`error`]: Centralized error handling for all data processing operations
 //! - [`neuron_data`]: Core data structures for managing neuron information and properties
 //! - [`cortical_data`]: Cortical area identification and management utilities
-//!
-//! ## Examples
-//!
-//! ```rust
-//! use feagi_core_data_structures_and_processing::neuron_data::NeuronXYZPArrays;
-//! use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
-//! use std::collections::HashMap;
-//!
-//! // Create a cortical ID
-//! let cortical_id = CorticalID::from_str("iv00CC").unwrap();
-//!
-//! // Create neuron data structure
-//! let mut neuron_data = NeuronXYZPArrays::new(1000).unwrap();
-//!
-//! // Organize by cortical areas
-//! let mut cortical_mapped_data = HashMap::new();
-//! cortical_mapped_data.insert(cortical_id, neuron_data);
-//! ```
 
 /// Byte structure serialization and deserialization framework.
 /// 

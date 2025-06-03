@@ -31,19 +31,7 @@
 //! }
 //! ```
 
-
-/// Deserialization implementations for converting byte formats back to FEAGI data structures.
-///
-/// Contains deserializer implementations that can reconstruct FEAGI data structures
-/// from their serialized byte representations, with proper error handling and validation.
-pub mod deserializers;
-
-/// Serialization implementations for converting FEAGI data structures to byte formats.
-///
-/// Contains serializer implementations for all supported byte structure formats,
-/// each implementing the [`FeagiByteSerializer`] trait for consistent interface.
-pub mod serializers;
-pub mod feagi_full_byte_data;
+pub mod feagi_byte_structure;
 
 use std::cmp::PartialEq;
 use crate::error::DataProcessingError;

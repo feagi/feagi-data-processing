@@ -41,7 +41,7 @@ pub mod b009_multi_struct_holder;
 
 use crate::byte_structures::FeagiByteStructureType;
 use crate::error::DataProcessingError;
-use super::feagi_full_byte_data::FeagiFullByteData;
+use super::feagi_byte_structure::FeagiFullByteData;
 
 /// Trait defining the interface for all FEAGI byte structure serializers.
 /// 

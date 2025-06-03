@@ -1,17 +1,10 @@
-//! Provides data structures and functions for handling neuron data in FEAGI.
-//! This module contains utilities for managing, transforming, and serializing neuron position
-//! and properties data organized by cortical areas.
-
 use std::collections::HashMap;
-use bytemuck::{cast_slice, Pod, Zeroable};
+use byteorder::{ByteOrder, LittleEndian};
+use crate::byte_structures::GLOBAL_HEADER_SIZE;
+use crate::byte_structures::FeagiByteStructureType;
+use crate::byte_structures::feagi_byte_structure::FeagiByteStructureCompatible;
 use crate::cortical_data::CorticalID;
 use crate::error::DataProcessingError;
-
-/// A mapping from cortical IDs to their corresponding neuron data arrays.
-/// This structure is used to organize neuron data by cortical area.
-pub type CorticalMappedNeuronData = HashMap<CorticalID, NeuronXYZPArrays>;
-
-// TODO individual neuron abstraction
 
 /// Represents neuron data as four parallel arrays for X, Y, channel, and potential values.
 /// This structure provides an efficient memory layout for serialization and processing of neuron data.
@@ -30,8 +23,7 @@ pub struct NeuronXYZPArrays {
 impl NeuronXYZPArrays {
     /// Number of bytes used to represent a single neuron in memory (going across x y z p elements)
     pub const NUMBER_BYTES_PER_NEURON: usize = 16;
-    pub const PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 14; // TODO move?
-    
+
     /// Creates a new NeuronXYCPArrays instance with capacity for the specified maximum number of neurons.
     ///
     /// # Arguments
@@ -61,7 +53,7 @@ impl NeuronXYZPArrays {
     pub fn new_from_resolution(resolution: (usize, usize, usize)) -> Result<Self, DataProcessingError> {
         NeuronXYZPArrays::new(resolution.0 * resolution.1 * resolution.2)
     }
-    
+
     pub fn new_from_vectors(x: Vec<u32>, y: Vec<u32>, z: Vec<u32>, p: Vec<f32>) -> Result<Self, DataProcessingError> {
         let len = x.len();
         if len != y.len() || len != z.len() || len != p.len() {
@@ -74,8 +66,8 @@ impl NeuronXYZPArrays {
             p
         })
     }
-    
-    
+
+
     /// Updates the internal vectors using an external function.
     /// This allows for custom in-place modifications of the neuron data vectors.
     ///
@@ -102,13 +94,13 @@ impl NeuronXYZPArrays {
     pub fn get_max_neuron_capacity_without_reallocating(&self) -> usize {
         self.x.capacity() / 4 // 4 * 4 / 4
     }
-    
+
     /// Expands the capacity of the vectors if the new required maximum exceeds the current maximum.
     ///
     /// # Arguments
     /// * `new_max_neuron_count` - The new maximum number of neurons required
     pub fn expand_to_new_max_count_if_required(&mut self, new_max_neuron_count: usize) {
-        
+
         if new_max_neuron_count > self.get_max_neuron_capacity_without_reallocating() // only expand if needed
         {
             self.x = Vec::with_capacity(NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * new_max_neuron_count);
@@ -134,7 +126,7 @@ impl NeuronXYZPArrays {
     pub fn validate_equal_vector_lengths(&self) -> Result<(), DataProcessingError> { // TODO make internal
         let len = self.x.len();
         if !((self.y.len() == len) && (self.x.len() == len) && (self.z.len() == len)) {
-             return Err(DataProcessingError::InternalError("Internal XYCP Arrays do not have equal lengths!".into()));
+            return Err(DataProcessingError::InternalError("Internal XYCP Arrays do not have equal lengths!".into()));
         }
         Ok(())
     }
@@ -147,11 +139,34 @@ impl NeuronXYZPArrays {
         self.p.len() // all of these are of equal length
     }
 
-    pub fn get_number_of_bytes_needed_if_serialized(&self) -> usize {
-        self.get_number_of_neurons_used() * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON
-    }
-    
     pub fn borrow_xyzp_vectors(&self) -> (&Vec<u32>, &Vec<u32>, &Vec<u32>, &Vec<f32>) {
         (&self.x, &self.y, &self.z, &self.p)
+    }
+
+    pub fn write_neural_data_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), DataProcessingError> {
+        const U32_F32_LENGTH: usize = 4;
+        let number_of_neurons_to_write: usize = self.get_number_of_neurons_used();
+        let number_bytes_needed = NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * number_of_neurons_to_write;
+        if bytes_to_write_to.len() != number_bytes_needed {
+            return Err(DataProcessingError::InvalidByteStructure(format!("Need exactly {} bytes to write xyzp neuron data, but given a space of {} bytes!", bytes_to_write_to.len(), number_bytes_needed).into()))
+        }
+        let mut x_offset: usize = 0;
+        let mut y_offset = number_of_neurons_to_write * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON / 4; // we want to be a quarter way
+        let mut z_offset = y_offset * 2; // half way
+        let mut p_offset = y_offset * 3; // three quarters way
+
+        for i in 0 .. number_of_neurons_to_write {
+            LittleEndian::write_u32(&mut bytes_to_write_to[x_offset .. x_offset + U32_F32_LENGTH], self.x[i]);
+            LittleEndian::write_u32(&mut bytes_to_write_to[y_offset .. y_offset + U32_F32_LENGTH], self.y[i]);
+            LittleEndian::write_u32(&mut bytes_to_write_to[z_offset .. z_offset + U32_F32_LENGTH], self.z[i]);
+            LittleEndian::write_f32(&mut bytes_to_write_to[p_offset .. p_offset + U32_F32_LENGTH], self.p[i]);
+
+            x_offset += U32_F32_LENGTH;
+            y_offset += U32_F32_LENGTH;
+            z_offset += U32_F32_LENGTH;
+            p_offset += U32_F32_LENGTH;
+        };
+
+        Ok(())
     }
 }

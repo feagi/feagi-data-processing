@@ -10,7 +10,9 @@ use super::image_frame::ImageFrame;
 use crate::error::DataProcessingError;
 use super::descriptors::*;
 use crate::cortical_data::CorticalID;
-use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYZPArrays};
+use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
+use crate::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
+
 
 /// A frame divided into nine segments with different resolutions for peripheral vision simulation.
 ///
@@ -381,13 +383,13 @@ impl SegmentedVisionFrame {
     /// // After updating segments with source data...
     /// // let neuron_data = segmented_frame.export_as_new_cortical_mapped_neuron_data(0).unwrap();
     /// ```
-    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: u8) -> Result<CorticalMappedNeuronData, DataProcessingError> {
+    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: u8) -> Result<CorticalMappedXYZPNeuronData, DataProcessingError> {
 
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
         let cortical_ids: [CorticalID; 9] = SegmentedVisionFrame::create_ordered_cortical_ids(camera_index, ordered_refs[0].get_color_channel_count() == 1)?;
         
-        let mut output: CorticalMappedNeuronData = CorticalMappedNeuronData::new();
+        let mut output: CorticalMappedXYZPNeuronData = CorticalMappedXYZPNeuronData::new();
         
         for index in 0..9 {
             let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
@@ -423,7 +425,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     /// use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
-    /// use feagi_core_data_structures_and_processing::neuron_data::CorticalMappedNeuronData;
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
     ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
@@ -439,10 +441,10 @@ impl SegmentedVisionFrame {
     ///     CorticalID::from_str("iv00BL").unwrap(), // lower_left
     ///     // ... other IDs
     /// ];
-    /// let mut neuron_data = CorticalMappedNeuronData::new();
+    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
     /// // segmented_frame.inplace_export_cortical_mapped_neuron_data(&cortical_ids, &mut neuron_data).unwrap();
     /// ```
-    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedNeuronData) -> Result<(), DataProcessingError> {
+    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData) -> Result<(), DataProcessingError> {
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
         for index in 0..9 {

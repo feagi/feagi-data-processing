@@ -44,7 +44,7 @@
 use serde_json;
 use crate::byte_structures::GLOBAL_HEADER_SIZE;
 use crate::error::DataProcessingError;
-use crate::byte_structures::feagi_full_byte_data::FeagiFullByteData;
+use crate::byte_structures::feagi_byte_structure::FeagiFullByteData;
 use super::FeagiByteSerializer;
 
 /// JSON serializer implementation for FEAGI byte structures (Format Type 1, Version 1).
