@@ -11,6 +11,8 @@ use crate::error::DataProcessingError;
 /// This structure is used to organize neuron data by cortical area.
 pub type CorticalMappedNeuronData = HashMap<CorticalID, NeuronXYZPArrays>;
 
+// TODO individual neuron abstraction
+
 /// Represents neuron data as four parallel arrays for X, Y, channel, and potential values.
 /// This structure provides an efficient memory layout for serialization and processing of neuron data.
 #[derive(Clone)]

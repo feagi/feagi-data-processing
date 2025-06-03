@@ -43,8 +43,10 @@ pub mod deserializers;
 /// Contains serializer implementations for all supported byte structure formats,
 /// each implementing the [`FeagiByteSerializer`] trait for consistent interface.
 pub mod serializers;
+pub mod feagi_full_byte_data;
 
 use std::cmp::PartialEq;
+use crate::error::DataProcessingError;
 
 /// Size in bytes of the global header that prefixes all FEAGI byte structures.
 /// 
@@ -76,6 +78,17 @@ pub enum FeagiByteStructureType {
     /// Binary format specifically designed for neuron data
     /// with X, Y, Z coordinates and potential (P) values.
     NeuronCategoricalXYZP = 11
+}
+
+impl FeagiByteStructureType {
+    fn try_from(value: u8) -> Result<Self, DataProcessingError> {
+        match value { 
+            1 => Ok(FeagiByteStructureType::JSON),
+            9 => Ok(FeagiByteStructureType::MultiStructHolder),
+            11 => Ok(FeagiByteStructureType::NeuronCategoricalXYZP),
+            _ => Err(DataProcessingError::InvalidByteStructure(format!("Unknown FeagiByteStructure type {}", value)))
+        }
+    }
 }
 
 
