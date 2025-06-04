@@ -84,19 +84,19 @@ fn test_serialize_deserialize_neuron_mapped_areas() {
     // deserialize (lets pretend 'bytes' was sent over the network)
     let received_byte_structure = FeagiByteStructure::create_from_bytes(bytes).unwrap();
     let received_cortical_mappings = CorticalMappedXYZPNeuronData::new_from_feagi_byte_structure(received_byte_structure).unwrap();
-    
+
     assert_eq!(received_cortical_mappings.get_number_contained_areas(), 2);
     assert!(received_cortical_mappings.contains(CorticalID::from_str("AAAAAA").unwrap()));
     assert!(received_cortical_mappings.contains(CorticalID::from_str("BBBBBB").unwrap()));
-    
+
     let rec_neurons_a = received_cortical_mappings.borrow(&CorticalID::from_str("AAAAAA").unwrap()).unwrap();
     let rec_neurons_b = received_cortical_mappings.borrow(&CorticalID::from_str("BBBBBB").unwrap()).unwrap();
-    
+
     let rec_neuron_1_a = rec_neurons_a.copy_as_neuron_xyzp_vec()[0].clone();
     let rec_neuron_2_b = rec_neurons_b.copy_as_neuron_xyzp_vec()[1].clone();
-    
+
     assert_eq!(rec_neuron_1_a, neuron_a_1);
     assert_eq!(rec_neuron_2_b, neuron_b_2);
-    
+
 }
 
