@@ -34,7 +34,6 @@
 pub mod feagi_byte_structure;
 
 use std::cmp::PartialEq;
-use crate::byte_structures::feagi_byte_structure::FeagiByteStructure;
 use crate::error::DataProcessingError;
 
 /// Size in bytes of the global header that prefixes all FEAGI byte structures.

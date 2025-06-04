@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 use byteorder::{ByteOrder, LittleEndian};
-use crate::byte_structures::GLOBAL_HEADER_SIZE;
-use crate::byte_structures::FeagiByteStructureType;
-use crate::byte_structures::feagi_byte_structure::FeagiByteStructureCompatible;
-use crate::cortical_data::CorticalID;
 use crate::error::DataProcessingError;
+use super::neurons::NeuronXYZP;
 
 /// Represents neuron data as four parallel arrays for X, Y, channel, and potential values.
 /// This structure provides an efficient memory layout for serialization and processing of neuron data.
@@ -117,6 +114,21 @@ impl NeuronXYZPArrays {
         self.y.truncate(0);
         self.z.truncate(0);
         self.p.truncate(0);
+    }
+    
+    pub fn add_neuron(&mut self, neuron: &NeuronXYZP) {
+        self.x.push(neuron.x);
+        self.y.push(neuron.y);
+        self.z.push(neuron.z);
+        self.p.push(neuron.p);
+    }
+    
+    pub fn copy_as_neuron_xyzp_vec(&self) -> Vec<NeuronXYZP> {
+        let mut output: Vec<NeuronXYZP> = Vec::new();
+        for i in 0..self.x.len() {
+            output.push(NeuronXYZP::new(self.x[i], self.y[i], self.z[i], self.p[i]));
+        };
+        return output;
     }
 
     /// Validates that all four internal vectors have the same length.

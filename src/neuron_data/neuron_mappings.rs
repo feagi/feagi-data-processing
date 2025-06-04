@@ -7,6 +7,7 @@ use crate::byte_structures::{FeagiByteStructureType, GLOBAL_HEADER_SIZE};
 use crate::byte_structures::feagi_byte_structure::{FeagiByteStructureCompatible, verify_matching_structure_type_and_version, FeagiByteStructure};
 use super::neuron_arrays::{NeuronXYZPArrays};
 
+#[derive(Clone)]
 pub struct CorticalMappedXYZPNeuronData {
     pub mappings: HashMap<CorticalID, NeuronXYZPArrays>,
 }
@@ -135,6 +136,10 @@ impl CorticalMappedXYZPNeuronData {
     
     pub fn insert(&mut self, cortical_id: CorticalID, neuron_data: NeuronXYZPArrays) -> Option<NeuronXYZPArrays> {
         self.mappings.insert(cortical_id, neuron_data)
+    }
+    
+    pub fn contains(&self, cortical_id: CorticalID) -> bool {
+        self.mappings.contains_key(&cortical_id)
     }
     
     pub fn get_mut(&mut self, cortical_id: &CorticalID) -> Option<&mut NeuronXYZPArrays> {
