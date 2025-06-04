@@ -449,7 +449,7 @@ impl SegmentedVisionFrame {
         
         for index in 0..9 {
             let cortical_id = &ordered_cortical_ids[index];
-            let mapped_neuron_data = all_mapped_neuron_data.get_mut(cortical_id);
+            let mapped_neuron_data = all_mapped_neuron_data.borrow_mut(cortical_id);
             match mapped_neuron_data { 
                 None => {
                     return Err(DataProcessingError::InternalError("Unable to find cortical area to unwrap!".into())); // TODO specific error?
