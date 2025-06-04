@@ -34,6 +34,7 @@
 pub mod feagi_byte_structure;
 
 use std::cmp::PartialEq;
+use crate::byte_structures::feagi_byte_structure::FeagiByteStructure;
 use crate::error::DataProcessingError;
 
 /// Size in bytes of the global header that prefixes all FEAGI byte structures.
@@ -84,14 +85,8 @@ impl FeagiByteStructureType {
         }
         FeagiByteStructureType::try_from(bytes[0])
     }
+
 }
 
-
-pub fn try_get_version_from_bytes(bytes: &[u8]) -> Result<u8, DataProcessingError> {
-    if bytes.len() < 2 {
-        return Err(DataProcessingError::InvalidByteStructure("Cannot ascertain type of 0/1 long byte array!".into()))
-    }
-    Ok(bytes[1])
-}
 
 

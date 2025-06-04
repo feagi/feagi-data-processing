@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use byteorder::{ByteOrder, LittleEndian};
+use bytemuck::{cast_slice};
 use crate::error::DataProcessingError;
 use crate::cortical_data::CorticalID;
 use crate::byte_structures::{FeagiByteStructureType, GLOBAL_HEADER_SIZE};
-use crate::byte_structures::feagi_byte_structure::FeagiByteStructureCompatible;
+use crate::byte_structures::feagi_byte_structure::{FeagiByteStructureCompatible, verify_matching_structure_type_and_version, FeagiByteStructure};
 use super::neuron_arrays::{NeuronXYZPArrays};
 
 pub struct CorticalMappedXYZPNeuronData {
@@ -11,8 +12,8 @@ pub struct CorticalMappedXYZPNeuronData {
 }
 
 impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
-    fn get_type(&self) -> FeagiByteStructureType { FeagiByteStructureType::NeuronCategoricalXYZP }
-    fn get_version(&self) -> u8 { 1 }
+    fn get_type(&self) -> FeagiByteStructureType { Self::BYTE_STRUCT_TYPE }
+    fn get_version(&self) -> u8 { Self::BYTE_STRUCT_VERSION }
     fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, DataProcessingError> {
         const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
         const PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 8;
@@ -57,11 +58,79 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
         }
         number_neurons * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON
     }
+
+    fn new_from_feagi_byte_structure(feagi_byte_structure: FeagiByteStructure) -> Result<Self, DataProcessingError> {
+        verify_matching_structure_type_and_version(&feagi_byte_structure,
+                                                   Self::BYTE_STRUCT_TYPE,
+                                                   Self::BYTE_STRUCT_VERSION)?;
+
+        const GLOBAL_HEADER_SIZE: usize = crate::byte_structures::GLOBAL_HEADER_SIZE;
+        const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
+        
+        let bytes = feagi_byte_structure.borrow_data_as_slice();
+        let number_cortical_areas: u16 = LittleEndian::read_u16(&bytes[2..4]);
+
+        let min_array_length_with_cortical_headers: usize = GLOBAL_HEADER_SIZE +  CORTICAL_COUNT_HEADER_SIZE +
+            (Self::BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE * number_cortical_areas as usize);
+
+        if bytes.len() < min_array_length_with_cortical_headers {
+            return Err(DataProcessingError::InvalidByteStructure(format!("Byte structure for NeuronCategoricalXYZPV1 needs a length of {} to fit just the cortical details header, but is a length of {}",
+                                                                         min_array_length_with_cortical_headers, bytes.len())));
+        }
+
+        let number_cortical_areas: usize = number_cortical_areas as usize;
+        let mut output: CorticalMappedXYZPNeuronData = CorticalMappedXYZPNeuronData::new_with_capacity(number_cortical_areas);
+
+        let mut reading_index: usize = GLOBAL_HEADER_SIZE + CORTICAL_COUNT_HEADER_SIZE;
+
+        for _cortical_index in 0..number_cortical_areas {
+            let cortical_id = CorticalID::from_bytes_at(
+                &bytes[reading_index..reading_index + 6]
+            )?;
+
+            let data_start_reading: usize = LittleEndian::read_u32(&bytes[reading_index + 6..reading_index + 10]) as usize;
+            let number_bytes_to_read: usize = LittleEndian::read_u32(&bytes[reading_index + 10..reading_index + 14]) as usize * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON;
+
+            if bytes.len() < min_array_length_with_cortical_headers + data_start_reading + number_bytes_to_read {
+                return Err(DataProcessingError::InvalidByteStructure("Byte structure for NeuronCategoricalXYZPV1 is too short to fit the data the header says it contains!".into()));
+            }
+
+            let neuron_bytes = &bytes[data_start_reading..data_start_reading + number_bytes_to_read];
+            let bytes_length = neuron_bytes.len();
+            if bytes_length % NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON != 0 {
+                return Err(DataProcessingError::InvalidByteStructure("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input byte array must be divisible by 16!".into()));
+            }
+            let x_end = bytes_length / 4; // q1
+            let y_end = bytes_length / 2; // q2
+            let z_end = x_end * 3; // q3
+
+            let neurons = NeuronXYZPArrays::new_from_vectors(
+                cast_slice::<u8, u32>(&neuron_bytes[0..x_end]).to_vec(),
+                cast_slice::<u8, u32>(&neuron_bytes[x_end..y_end]).to_vec(),
+                cast_slice::<u8, u32>(&neuron_bytes[y_end..z_end]).to_vec(),
+                cast_slice::<u8, f32>(&neuron_bytes[z_end..]).to_vec(),
+            )?;
+
+            output.insert(cortical_id, neurons);
+            reading_index += Self::BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
+        };
+        
+        Ok(output)
+    }
 }
 
 impl CorticalMappedXYZPNeuronData {
+    const BYTE_STRUCT_TYPE: FeagiByteStructureType = FeagiByteStructureType::NeuronCategoricalXYZP;
+    const BYTE_STRUCT_VERSION: u8 = 1;
+    const BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 8;
+    
+    
     pub fn new() -> CorticalMappedXYZPNeuronData {
         CorticalMappedXYZPNeuronData {mappings: HashMap::new()}
+    }
+    
+    pub fn new_with_capacity(capacity: usize) -> CorticalMappedXYZPNeuronData {
+        CorticalMappedXYZPNeuronData {mappings: HashMap::with_capacity(capacity)}
     }
     
     pub fn insert(&mut self, cortical_id: CorticalID, neuron_data: NeuronXYZPArrays) -> Option<NeuronXYZPArrays> {

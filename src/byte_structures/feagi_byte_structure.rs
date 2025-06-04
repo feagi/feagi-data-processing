@@ -7,6 +7,7 @@ pub trait FeagiByteStructureCompatible {
     fn get_version(&self) -> u8;
     fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, DataProcessingError>;
     fn max_number_bytes_needed(&self) -> usize;
+    fn new_from_feagi_byte_structure(feagi_byte_structure: FeagiByteStructure) -> Result<Self, DataProcessingError> where Self: Sized;
     
     fn verify_slice_has_enough_space(&self, slice: &[u8]) -> Result<(), DataProcessingError> {
         if slice.len() < self.max_number_bytes_needed() {
@@ -19,6 +20,7 @@ pub trait FeagiByteStructureCompatible {
         _ = self.overwrite_feagi_byte_structure_slice(&mut bytes)?; // theoretically some bytes may be wasted
         FeagiByteStructure::create_from_bytes(bytes)
     }
+    
 }
 
 
@@ -87,4 +89,23 @@ impl FeagiByteStructure {
         (self.bytes.len() as f32 / self.bytes.capacity() as f32) * 100.0
     }
     
+}
+
+pub fn try_get_version_from_bytes(bytes: &[u8]) -> Result<u8, DataProcessingError> {
+    if bytes.len() < 2 {
+        return Err(DataProcessingError::InvalidByteStructure("Cannot ascertain type of 0/1 long byte array!".into()))
+    }
+    Ok(bytes[1])
+}
+
+pub fn verify_matching_structure_type_and_version(feagi_byte_structure: &FeagiByteStructure, expected_type: FeagiByteStructureType, expected_version: u8) -> Result<(), DataProcessingError> {
+    if feagi_byte_structure.try_get_structure_type()? != expected_type {
+        return Err(DataProcessingError::InvalidByteStructure(format!(
+            "Given structure of type {} cannot be instantiated for entity corresponding to type {}!", feagi_byte_structure.try_get_structure_type().unwrap() as u8, expected_type as u8)));
+    }
+    if feagi_byte_structure.get_version() != expected_version {
+        return Err(DataProcessingError::InvalidByteStructure(format!(
+            "Given structure of version {} cannot be instantiated for entity corresponding to version {}!", feagi_byte_structure.get_version(), expected_version)));
+    }
+    Ok(())
 }
