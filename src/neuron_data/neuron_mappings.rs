@@ -142,7 +142,12 @@ impl CorticalMappedXYZPNeuronData {
         self.mappings.contains_key(&cortical_id)
     }
     
-    pub fn get_mut(&mut self, cortical_id: &CorticalID) -> Option<&mut NeuronXYZPArrays> {
+    pub fn borrow(&self, cortical_id: &CorticalID) -> Option<&NeuronXYZPArrays> {
+        self.mappings.get(cortical_id)
+    }
+    
+    pub fn borrow_mut(&mut self, cortical_id: &CorticalID) -> Option<&mut NeuronXYZPArrays> {
         self.mappings.get_mut(&cortical_id)
     }
+    
 }
