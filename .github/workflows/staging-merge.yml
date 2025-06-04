@@ -80,7 +80,7 @@ jobs:
     - name: Package crate (test version)
       run: |
         echo "Packaging crate with test name: ${{ steps.modify_name.outputs.test_name }}"
-        cargo package --verbose
+        cargo package --verbose --allow-dirty
     
     - name: Publish to test registry
       run: |
