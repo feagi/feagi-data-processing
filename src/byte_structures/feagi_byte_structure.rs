@@ -23,7 +23,7 @@ pub trait FeagiByteStructureCompatible {
     
 }
 
-
+#[derive(Clone)]
 pub struct FeagiByteStructure {
     bytes: Vec<u8>,
 }
