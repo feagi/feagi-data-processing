@@ -226,9 +226,6 @@ impl QuickImageDiff {
             let cortical_mapped_data_ref = self.cortical_mapped_data.as_mut().unwrap();
             self.outputted_segmented_frame.inplace_export_cortical_mapped_neuron_data(&self.ordered_cortical_ids, cortical_mapped_data_ref)?;
         }
-        
-        // TODO this can be cached
-        let cortical_mapped_data = self.outputted_segmented_frame.export_as_new_cortical_mapped_neuron_data(camera_index)?;
 
         let cortical_mapped_data_ref = self.cortical_mapped_data.as_ref().unwrap();
         NeuronXYCPArrays::cortical_mapped_neuron_data_to_bytes(cortical_mapped_data_ref)

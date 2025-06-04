@@ -5,11 +5,10 @@
 //! image processing operations like cropping, resizing, brightness/contrast adjustment,
 //! and conversion to neuron data for FEAGI processing.
 
-use std::cmp::max;
 use ndarray::{s, Array3, ArrayView3};
 use crate::brain_input::vision::descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::DataProcessingError;
-use crate::neuron_data::NeuronXYCPArrays;
+use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
 
 /// Represents an image frame with pixel data and metadata for FEAGI vision processing.
 /// 
@@ -381,8 +380,7 @@ impl ImageFrame {
         let shape: &[usize] = self.pixels.shape();
         (shape[0], shape[1])
     }
-
-
+    
     /// Returns the internal shape of the image array in row-major order.
     ///
     /// The shape is returned as (height, width, channels) representing the dimensions
@@ -965,13 +963,13 @@ impl ImageFrame {
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// use feagi_core_data_structures_and_processing::neuron_data::NeuronXYCPArrays;
-    /// 
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let mut neuron_arrays = NeuronXYCPArrays::new(30000).unwrap();
+    /// let mut neuron_arrays = NeuronXYZPArrays::new(30000).unwrap();
     /// // frame.write_thresholded_xyzp_neuron_arrays(0.5, &mut neuron_arrays).unwrap();
     /// ```
-    pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronXYCPArrays) -> Result<(), DataProcessingError> {
+    pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronXYZPArrays) -> Result<(), DataProcessingError> {
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
         write_target.expand_to_new_max_count_if_required(self.get_max_capacity_neuron_count()); // make sure there's enough capacity
         write_target.reset_indexes(); // Ensure we push from the start
@@ -1054,7 +1052,7 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(ImageFrame) if the crop region is valid and fits within the source frame
     /// - Err(DataProcessingError) if the crop region would not fit in the source frame
-    fn create_from_source_frame_crop(source_frame: &ImageFrame, corners_crop: &CornerPoints) -> Result<ImageFrame, DataProcessingError> {
+    pub fn create_from_source_frame_crop(source_frame: &ImageFrame, corners_crop: &CornerPoints) -> Result<ImageFrame, DataProcessingError> {
         let source_resolution = source_frame.get_internal_resolution(); // TODO ?
         if !corners_crop.does_fit_in_frame_of_width_height(source_resolution) {
             return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))

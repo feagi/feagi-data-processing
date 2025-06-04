@@ -36,17 +36,17 @@ pub enum CameraType {
  */
 
 
-/// Length of Cortical Area ID As ASCII characters / bytes
-const CORTICAL_ID_LENGTH: usize = 6;
-
 /// Represents an ID for a cortical area in the brain
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct CorticalID {
     /// The raw byte representation of the cortical identifier
-    id: [u8; CORTICAL_ID_LENGTH]
+    id: [u8; CorticalID::CORTICAL_ID_LENGTH]
 }
 
 impl CorticalID {
+    /// Length of Cortical Area ID As ASCII characters / bytes
+    pub const CORTICAL_ID_LENGTH: usize = 6;
+    
     /// Creates a new CorticalID from a string representation
     ///
     /// # Arguments
@@ -64,7 +64,7 @@ impl CorticalID {
     /// * The input string length doesn't match CORTICAL_ID_LENGTH
     /// * The input string contains non-ASCII characters
     pub fn from_str(id: &str) -> Result<CorticalID, DataProcessingError> {
-        if id.len() != CORTICAL_ID_LENGTH {
+        if id.len() != CorticalID::CORTICAL_ID_LENGTH {
             return Err(DataProcessingError::InvalidInputBounds("Cortical Area ID Incorrect Length!".into()));
         }
         let bytes = id.as_bytes();
@@ -73,7 +73,7 @@ impl CorticalID {
             return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));
         }
 
-        let mut inner = [0u8; CORTICAL_ID_LENGTH];
+        let mut inner = [0u8; CorticalID::CORTICAL_ID_LENGTH];
         inner.copy_from_slice(bytes);
         Ok(CorticalID { id: inner })
     }
@@ -94,9 +94,9 @@ impl CorticalID {
     /// Returns an error if:
     /// * There aren't enough bytes available from the offset
     /// * The bytes contain non-ASCII characters
-    pub fn from_bytes_at(bytes: &[u8]) -> Result<CorticalID, DataProcessingError> { // TODO do not use offsets
-        if CORTICAL_ID_LENGTH != bytes.len() {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Expected exactly {} bytes for getting the cortical ID! Received a slice of {} bytes!", CORTICAL_ID_LENGTH, bytes.len()).into()));
+    pub fn from_bytes_at(bytes: &[u8]) -> Result<CorticalID, DataProcessingError> {
+        if CorticalID::CORTICAL_ID_LENGTH != bytes.len() {
+            return Err(DataProcessingError::InvalidInputBounds(format!("Expected exactly {} bytes for getting the cortical ID! Received a slice of {} bytes!", CorticalID::CORTICAL_ID_LENGTH, bytes.len()).into()));
         }
         
 
@@ -104,7 +104,7 @@ impl CorticalID {
             return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));
         }
 
-        let mut inner = [0u8; CORTICAL_ID_LENGTH];
+        let mut inner = [0u8; CorticalID::CORTICAL_ID_LENGTH];
         inner.copy_from_slice(bytes);
         Ok(CorticalID { id: inner })
     }
@@ -152,8 +152,8 @@ impl CorticalID {
     /// assert_eq!(&buffer, b"iv00CC");
     /// ```
     pub fn write_bytes_at(&self, bytes_to_write_at: &mut [u8]) -> Result<(), DataProcessingError> {
-        if bytes_to_write_at.len() != CORTICAL_ID_LENGTH {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Cortical Area ID need a length of exactly {} bytes to fit!", CORTICAL_ID_LENGTH).into()));
+        if bytes_to_write_at.len() != CorticalID::CORTICAL_ID_LENGTH {
+            return Err(DataProcessingError::InvalidInputBounds(format!("Cortical Area ID need a length of exactly {} bytes to fit!", CorticalID::CORTICAL_ID_LENGTH).into()));
         };
         bytes_to_write_at.copy_from_slice(&self.id);
         Ok(())

@@ -10,7 +10,9 @@ use super::image_frame::ImageFrame;
 use crate::error::DataProcessingError;
 use super::descriptors::*;
 use crate::cortical_data::CorticalID;
-use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
+use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
+use crate::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
+
 
 /// A frame divided into nine segments with different resolutions for peripheral vision simulation.
 ///
@@ -50,7 +52,7 @@ use crate::neuron_data::{CorticalMappedNeuronData, NeuronXYCPArrays};
 ///     (640, 480)
 /// ).unwrap();
 /// ```
-#[derive(Clone)]
+#[derive(Clone)]  // TODO Shouldnt this be called Segmented Image Frame?
 pub struct SegmentedVisionFrame {
     /// Lower-left segment of the vision frame
     lower_left: ImageFrame,
@@ -181,7 +183,7 @@ impl SegmentedVisionFrame {
         }
         
         Ok(output) // same order as other struct members
-    }
+    } // TODO why is this here?
     
     //endregion
     
@@ -341,7 +343,6 @@ impl SegmentedVisionFrame {
     
     //endregion
     
-    
     //region neuron export
     
     /// Exports all segments as a new cortical-mapped neuron data structure.
@@ -382,17 +383,17 @@ impl SegmentedVisionFrame {
     /// // After updating segments with source data...
     /// // let neuron_data = segmented_frame.export_as_new_cortical_mapped_neuron_data(0).unwrap();
     /// ```
-    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: u8) -> Result<CorticalMappedNeuronData, DataProcessingError> {
+    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: u8) -> Result<CorticalMappedXYZPNeuronData, DataProcessingError> {
 
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
         let cortical_ids: [CorticalID; 9] = SegmentedVisionFrame::create_ordered_cortical_ids(camera_index, ordered_refs[0].get_color_channel_count() == 1)?;
         
-        let mut output: CorticalMappedNeuronData = CorticalMappedNeuronData::new();
+        let mut output: CorticalMappedXYZPNeuronData = CorticalMappedXYZPNeuronData::new();
         
         for index in 0..9 {
             let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
-            let mut data: NeuronXYCPArrays = NeuronXYCPArrays::new(max_neurons)?;
+            let mut data: NeuronXYZPArrays = NeuronXYZPArrays::new(max_neurons)?;
             ordered_refs[index].write_thresholded_xyzp_neuron_arrays(10.0, &mut data)?;
             output.insert(cortical_ids[index].clone(), data);
         }
@@ -424,7 +425,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     /// use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
-    /// use feagi_core_data_structures_and_processing::neuron_data::CorticalMappedNeuronData;
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
     ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
@@ -440,15 +441,15 @@ impl SegmentedVisionFrame {
     ///     CorticalID::from_str("iv00BL").unwrap(), // lower_left
     ///     // ... other IDs
     /// ];
-    /// let mut neuron_data = CorticalMappedNeuronData::new();
+    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
     /// // segmented_frame.inplace_export_cortical_mapped_neuron_data(&cortical_ids, &mut neuron_data).unwrap();
     /// ```
-    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedNeuronData) -> Result<(), DataProcessingError> {
+    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData) -> Result<(), DataProcessingError> {
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
         for index in 0..9 {
             let cortical_id = &ordered_cortical_ids[index];
-            let mapped_neuron_data = all_mapped_neuron_data.get_mut(cortical_id);
+            let mapped_neuron_data = all_mapped_neuron_data.borrow_mut(cortical_id);
             match mapped_neuron_data { 
                 None => {
                     return Err(DataProcessingError::InternalError("Unable to find cortical area to unwrap!".into())); // TODO specific error?
