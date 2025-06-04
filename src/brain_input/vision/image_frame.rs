@@ -5,7 +5,6 @@
 //! image processing operations like cropping, resizing, brightness/contrast adjustment,
 //! and conversion to neuron data for FEAGI processing.
 
-use std::cmp::max;
 use ndarray::{s, Array3, ArrayView3};
 use crate::brain_input::vision::descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::DataProcessingError;

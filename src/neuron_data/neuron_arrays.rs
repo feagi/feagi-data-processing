@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use ndarray::{s, Array1, ArrayView1};
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::DataProcessingError;
 use super::neurons::NeuronXYZP;
@@ -15,7 +15,7 @@ pub struct NeuronXYZPArrays {
     z: Vec<u32>,
     /// Potential/activation values of neurons
     p: Vec<f32>,
-}
+} 
 
 impl NeuronXYZPArrays {
     /// Number of bytes used to represent a single neuron in memory (going across x y z p elements)
@@ -64,6 +64,13 @@ impl NeuronXYZPArrays {
         })
     }
 
+    pub fn new_from_ndarrays(x_nd: Array1<u32>, y_nd: Array1<u32>, z_nd: Array1<u32>, p_nd: Array1<f32>) -> Result<Self, DataProcessingError> {
+        let len = x_nd.len();
+        if len != y_nd.len() || len != z_nd.len() || len != p_nd.len() {
+            return Err(DataProcessingError::InvalidInputBounds("ND Arrays are not the same length!".into()));
+        }
+        Ok(NeuronXYZPArrays{ x: x_nd.to_vec(), y: y_nd.to_vec(), z: z_nd.to_vec(), p: p_nd.to_vec()})
+    }
 
     /// Updates the internal vectors using an external function.
     /// This allows for custom in-place modifications of the neuron data vectors.
@@ -129,6 +136,15 @@ impl NeuronXYZPArrays {
             output.push(NeuronXYZP::new(self.x[i], self.y[i], self.z[i], self.p[i]));
         };
         return output;
+    }
+    
+    pub fn copy_as_tuple_of_nd_arrays(&self) -> ((Array1<u32>, Array1<u32>, Array1<u32>, Array1<f32>)) {
+        (
+            Array1::from_vec(self.x.clone()),
+            Array1::from_vec(self.y.clone()),
+            Array1::from_vec(self.z.clone()),
+            Array1::from_vec(self.p.clone())
+        )
     }
 
     /// Validates that all four internal vectors have the same length.
