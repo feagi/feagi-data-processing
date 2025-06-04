@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NeuronXYZP {
     pub x: u32,
     pub y: u32,

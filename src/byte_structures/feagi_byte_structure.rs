@@ -62,13 +62,17 @@ impl FeagiByteStructure {
         &mut self.bytes
     }
     
+    pub fn copy_out_as_byte_vector(&self) -> Vec<u8> {
+        self.bytes.clone()
+    }
+    
     pub fn ensure_capacity_of_at_least(&mut self, size: usize) -> Result<(), DataProcessingError> {
         if size < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
             return Err(DataProcessingError::InvalidInputBounds(format!("Cannot set capacity to less than minimum required capacity of {}!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID)));
         }
         
         if self.bytes.capacity() < size {
-            self.bytes.reserve(self.bytes.capacity() - size);
+            //self.bytes.reserve(size - self.bytes.capacity());
         }
         Ok(())
     }

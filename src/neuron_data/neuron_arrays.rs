@@ -179,9 +179,9 @@ impl NeuronXYZPArrays {
             return Err(DataProcessingError::InvalidByteStructure(format!("Need exactly {} bytes to write xyzp neuron data, but given a space of {} bytes!", bytes_to_write_to.len(), number_bytes_needed).into()))
         }
         let mut x_offset: usize = 0;
-        let mut y_offset = number_of_neurons_to_write * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON / 4; // we want to be a quarter way
-        let mut z_offset = y_offset * 2; // half way
-        let mut p_offset = y_offset * 3; // three quarters way
+        let mut y_offset = number_of_neurons_to_write * U32_F32_LENGTH; // quarter way through the total bytes
+        let mut z_offset = number_of_neurons_to_write * U32_F32_LENGTH * 2; // half way through the total bytes
+        let mut p_offset = number_of_neurons_to_write * U32_F32_LENGTH * 3; // three quarters way through the total bytes
 
         for i in 0 .. number_of_neurons_to_write {
             LittleEndian::write_u32(&mut bytes_to_write_to[x_offset .. x_offset + U32_F32_LENGTH], self.x[i]);
