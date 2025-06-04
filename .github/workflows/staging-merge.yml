@@ -62,7 +62,7 @@ jobs:
       run: |
         # Create a test version of the crate name
         ORIGINAL_NAME="${{ steps.version.outputs.original_name }}"
-        TEST_NAME="${ORIGINAL_NAME}_staging_test"
+        TEST_NAME="${ORIGINAL_NAME}_nightly"
         
         echo "Temporarily changing crate name from '$ORIGINAL_NAME' to '$TEST_NAME' for test registry"
         
