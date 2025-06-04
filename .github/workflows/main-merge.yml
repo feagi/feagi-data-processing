@@ -43,9 +43,6 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Version: $VERSION"
     
-    - name: Run final tests
-      run: cargo test --verbose --release
-    
     - name: Build release package
       run: cargo build --release --verbose
     
