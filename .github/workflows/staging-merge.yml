@@ -87,7 +87,7 @@ jobs:
         echo "Publishing version ${{ steps.version.outputs.version }} of ${{ steps.modify_name.outputs.test_name }} to crates.io..."
         
         # Publish to the official crates.io registry
-        cargo publish --token ${{ secrets.CARGO_PUSH_TOKEN }}
+        cargo publish --allow-dirty --token ${{ secrets.CARGO_PUSH_TOKEN }}
         
         echo "✅ Package published successfully to crates.io"
         echo "Note: Crate name temporarily changed to ${{ steps.modify_name.outputs.test_name }} for nightly publishing"
