@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use byteorder::{ByteOrder, LittleEndian};
-use bytemuck::{cast_slice};
 use crate::error::DataProcessingError;
 use crate::cortical_data::CorticalID;
 use crate::byte_structures::{FeagiByteStructureType, GLOBAL_HEADER_SIZE};
@@ -16,6 +15,10 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
     fn get_type(&self) -> FeagiByteStructureType { Self::BYTE_STRUCT_TYPE }
     fn get_version(&self) -> u8 { Self::BYTE_STRUCT_VERSION }
     fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, DataProcessingError> {
+        
+        if self.mappings.len() == 0 {
+            return Err(DataProcessingError::InvalidByteStructure("Cannot generate a byte structure export with an empty cortical mappings object!".into()))
+        }
         
         let num_bytes_needed: usize = self.max_number_bytes_needed();
         if slice.len() < num_bytes_needed {
@@ -57,7 +60,7 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
         }
         let bytes_needed_for_neurons = number_neurons * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON;
         GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE + 
-            (self.get_number_contained_areas() * Self::BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE) +
+            (self.get_number_contained_areas() * Self::BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as usize) +
             bytes_needed_for_neurons
     }
 
@@ -79,16 +82,16 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
 
         let number_cortical_areas: usize = number_cortical_areas as usize;
         let mut output: CorticalMappedXYZPNeuronData = CorticalMappedXYZPNeuronData::new_with_capacity(number_cortical_areas);
-
-        let mut reading_index: usize = GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE;
+        
+        let mut reading_header_index: usize = GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE;
 
         for _cortical_index in 0..number_cortical_areas {
             let cortical_id = CorticalID::from_bytes_at(
-                &bytes[reading_index..reading_index + 6]
+                &bytes[reading_header_index..reading_header_index + 6]
             )?;
 
-            let data_start_reading: usize = LittleEndian::read_u32(&bytes[reading_index + 6..reading_index + 10]) as usize;
-            let number_bytes_to_read: usize = LittleEndian::read_u32(&bytes[reading_index + 10..reading_index + 14]) as usize;
+            let data_start_reading: usize = LittleEndian::read_u32(&bytes[reading_header_index + 6..reading_header_index + 10]) as usize;
+            let number_bytes_to_read: usize = LittleEndian::read_u32(&bytes[reading_header_index + 10..reading_header_index + 14]) as usize;
 
             if bytes.len() < data_start_reading + number_bytes_to_read {
                 return Err(DataProcessingError::InvalidByteStructure("Byte structure for NeuronCategoricalXYZPV1 is too short to fit the data the header says it contains!".into()));
@@ -96,22 +99,60 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
 
             let neuron_bytes = &bytes[data_start_reading..data_start_reading + number_bytes_to_read];
             let bytes_length = neuron_bytes.len();
+            dbg!(bytes_length);
+            if bytes_length % NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON != 0 {
+                return Err(DataProcessingError::InvalidByteStructure("Byte structure for NeuronCategoricalXYZPV1 seems invalid! Size is nonsensical given neuron data size!".into()));
+            }
+            
             if bytes_length % NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON != 0 {
                 return Err(DataProcessingError::InvalidByteStructure("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input byte array must be divisible by 16!".into()));
             }
             let x_end = bytes_length / 4; // q1
             let y_end = bytes_length / 2; // q2
             let z_end = x_end * 3; // q3
+            dbg!(x_end, y_end, z_end);
+            dbg!(&neuron_bytes[0..x_end], &neuron_bytes[x_end..y_end], &neuron_bytes[y_end..z_end], &neuron_bytes[z_end..]);
+
+            // Create vectors using byteorder to avoid alignment issues
+            let num_neurons = bytes_length / NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON;
+            let mut x_coords = Vec::with_capacity(num_neurons);
+            let mut y_coords = Vec::with_capacity(num_neurons);
+            let mut z_coords = Vec::with_capacity(num_neurons);
+            let mut potentials = Vec::with_capacity(num_neurons);
+
+            // Read u32 values for x coordinates
+            for i in 0..num_neurons {
+                let start_idx = i * 4;
+                x_coords.push(LittleEndian::read_u32(&neuron_bytes[start_idx..start_idx + 4]));
+            }
+
+            // Read u32 values for y coordinates
+            for i in 0..num_neurons {
+                let start_idx = x_end + (i * 4);
+                y_coords.push(LittleEndian::read_u32(&neuron_bytes[start_idx..start_idx + 4]));
+            }
+
+            // Read u32 values for z coordinates
+            for i in 0..num_neurons {
+                let start_idx = y_end + (i * 4);
+                z_coords.push(LittleEndian::read_u32(&neuron_bytes[start_idx..start_idx + 4]));
+            }
+
+            // Read f32 values for potentials
+            for i in 0..num_neurons {
+                let start_idx = z_end + (i * 4);
+                potentials.push(LittleEndian::read_f32(&neuron_bytes[start_idx..start_idx + 4]));
+            }
 
             let neurons = NeuronXYZPArrays::new_from_vectors(
-                cast_slice::<u8, u32>(&neuron_bytes[0..x_end]).to_vec(),
-                cast_slice::<u8, u32>(&neuron_bytes[x_end..y_end]).to_vec(),
-                cast_slice::<u8, u32>(&neuron_bytes[y_end..z_end]).to_vec(),
-                cast_slice::<u8, f32>(&neuron_bytes[z_end..]).to_vec(),
+                x_coords,
+                y_coords,
+                z_coords,
+                potentials,
             )?;
 
             output.insert(cortical_id, neurons);
-            reading_index += Self::BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
+            reading_header_index += Self::BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE;
         };
         
         Ok(output)
