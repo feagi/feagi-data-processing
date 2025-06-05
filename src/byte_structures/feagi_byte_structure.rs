@@ -1,28 +1,6 @@
 use crate::error::DataProcessingError;
 use super::FeagiByteStructureType;
 
-pub trait FeagiByteStructureCompatible {
-    
-    fn get_type(&self) -> FeagiByteStructureType;
-    fn get_version(&self) -> u8;
-    fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, DataProcessingError>;
-    fn max_number_bytes_needed(&self) -> usize;
-    fn new_from_feagi_byte_structure(feagi_byte_structure: FeagiByteStructure) -> Result<Self, DataProcessingError> where Self: Sized;
-    
-    fn verify_slice_has_enough_space(&self, slice: &[u8]) -> Result<(), DataProcessingError> {
-        if slice.len() < self.max_number_bytes_needed() {
-            return Err(DataProcessingError::IncompatibleInplace(format!("Given slice is only {} bytes long when {} bytes of space are required!", slice.len(), self.max_number_bytes_needed())));
-        }
-        Ok(())
-    }
-    fn as_new_feagi_byte_structure(&self) -> Result<FeagiByteStructure, DataProcessingError> {
-        let mut bytes: Vec<u8> = vec![0; self.max_number_bytes_needed()];
-        _ = self.overwrite_feagi_byte_structure_slice(&mut bytes)?; // theoretically some bytes may be wasted
-        FeagiByteStructure::create_from_bytes(bytes)
-    }
-    
-}
-
 #[derive(Clone)]
 pub struct FeagiByteStructure {
     bytes: Vec<u8>,
@@ -36,7 +14,7 @@ impl FeagiByteStructure {
             return Err(DataProcessingError::InvalidByteStructure(format!("Byte structure needs to be at least {} long to be considered valid. Given structure is only {} long!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID, bytes.len())));
         }
         _ = FeagiByteStructureType::try_from(bytes[0])?; // check if structure type is valid
-        if bytes[1] == 0 {return Err(DataProcessingError::InvalidByteStructure("Byte structure cannot have version number 0!".into()));}
+        if bytes[1] == 0 {return Err(DataProcessingError::InvalidByteStructure("Byte structure cannot have version number of 0!".into()));}
         // NOTE: Other checks go here
         
         Ok(Self { bytes })

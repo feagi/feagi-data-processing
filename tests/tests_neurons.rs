@@ -2,8 +2,9 @@ use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
 use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
 use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
 use feagi_core_data_structures_and_processing::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
-use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure::{FeagiByteStructureCompatible, FeagiByteStructure};
+use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure::FeagiByteStructure;
 use ndarray::prelude::*;
+use feagi_core_data_structures_and_processing::byte_structures::FeagiByteStructureCompatible;
 
 #[test]
 fn test_minimal_memory_corruption_debug() {
