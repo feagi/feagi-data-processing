@@ -3,6 +3,7 @@ use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::Neuro
 use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
 use feagi_core_data_structures_and_processing::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
 use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure::{FeagiByteStructureCompatible, FeagiByteStructure};
+use ndarray::prelude::*;
 
 #[test]
 fn test_minimal_memory_corruption_debug() {
@@ -11,37 +12,37 @@ fn test_minimal_memory_corruption_debug() {
     let neuron = NeuronXYZP::new(1, 2, 3, 0.5);
     let mut neurons = NeuronXYZPArrays::new(1).unwrap();
     neurons.add_neuron(&neuron);
-    
+
     let mut cortical_mappings = CorticalMappedXYZPNeuronData::new();
     cortical_mappings.insert(cortical_id, neurons);
-    
+
     // Test 1: Check if max_number_bytes_needed is consistent
     let size1 = cortical_mappings.max_number_bytes_needed();
     let size2 = cortical_mappings.max_number_bytes_needed();
     println!("Size check: {} == {}", size1, size2);
     assert_eq!(size1, size2);
-    
+
     // Test 2: Create a manual byte vector and serialize to it
     let mut manual_bytes = vec![0u8; size1];
     println!("Manual bytes before serialization: {:?}", &manual_bytes[0..4.min(manual_bytes.len())]);
-    
+
     let result = cortical_mappings.overwrite_feagi_byte_structure_slice(&mut manual_bytes);
     println!("Serialization result: {:?}", result);
     println!("Manual bytes after serialization: {:?}", &manual_bytes[0..4.min(manual_bytes.len())]);
-    
+
     // Test 3: Create FeagiByteStructure and immediately check
     let structure = FeagiByteStructure::create_from_bytes(manual_bytes.clone()).unwrap();
     let slice_view = structure.borrow_data_as_slice();
     println!("Slice view: {:?}", &slice_view[0..4.min(slice_view.len())]);
-    
+
     // Test 4: Clone the slice reference
     let cloned_from_slice = slice_view.to_vec();
     println!("Cloned from slice: {:?}", &cloned_from_slice[0..4.min(cloned_from_slice.len())]);
-    
+
     // Test 5: Use the new copy method
     let copied_vector = structure.copy_out_as_byte_vector();
     println!("Copied vector: {:?}", &copied_vector[0..4.min(copied_vector.len())]);
-    
+
     // Check if they're all the same
     assert_eq!(manual_bytes[0..4], cloned_from_slice[0..4]);
     assert_eq!(manual_bytes[0..4], copied_vector[0..4]);
@@ -72,11 +73,22 @@ fn test_serialize_deserialize_neuron_mapped_areas() {
         neurons_b.get_number_of_neurons_used()
     );
 
+    // lets add cortical are C using arrays
+    let cortical_id_c = CorticalID::from_str("CCCCCC").unwrap();
+    let neurons_c_x = array![1,2,3];
+    let neurons_c_y = array![4,5,6];
+    let neurons_c_z = array![7,8,9];
+    let neurons_c_p: Array::<f32, Ix1>  = array![0.1,0.2,0.3];
+    let neurons_c = NeuronXYZPArrays::new_from_ndarrays(neurons_c_x,
+                                                            neurons_c_y, neurons_c_z, neurons_c_p).unwrap();
+
+
     // cortical mappings
     let mut cortical_mappings = CorticalMappedXYZPNeuronData::new();
     cortical_mappings.insert(cortical_id_a, neurons_a);
     cortical_mappings.insert(cortical_id_b, neurons_b);
-    
+    cortical_mappings.insert(cortical_id_c, neurons_c);
+
     // byte data serialization
     let sending_byte_structure = cortical_mappings.as_new_feagi_byte_structure().unwrap();
     let bytes = sending_byte_structure.copy_out_as_byte_vector(); // raw bytes
@@ -85,7 +97,7 @@ fn test_serialize_deserialize_neuron_mapped_areas() {
     let received_byte_structure = FeagiByteStructure::create_from_bytes(bytes).unwrap();
     let received_cortical_mappings = CorticalMappedXYZPNeuronData::new_from_feagi_byte_structure(received_byte_structure).unwrap();
 
-    assert_eq!(received_cortical_mappings.get_number_contained_areas(), 2);
+    assert_eq!(received_cortical_mappings.get_number_contained_areas(), 3);
     assert!(received_cortical_mappings.contains(CorticalID::from_str("AAAAAA").unwrap()));
     assert!(received_cortical_mappings.contains(CorticalID::from_str("BBBBBB").unwrap()));
 
