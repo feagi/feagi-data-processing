@@ -110,38 +110,24 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
             let x_end = bytes_length / 4; // q1
             let y_end = bytes_length / 2; // q2
             let z_end = x_end * 3; // q3
-            dbg!(x_end, y_end, z_end);
-            dbg!(&neuron_bytes[0..x_end], &neuron_bytes[x_end..y_end], &neuron_bytes[y_end..z_end], &neuron_bytes[z_end..]);
 
             // Create vectors using byteorder to avoid alignment issues
             let num_neurons = bytes_length / NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON;
-            let mut x_coords = Vec::with_capacity(num_neurons);
-            let mut y_coords = Vec::with_capacity(num_neurons);
-            let mut z_coords = Vec::with_capacity(num_neurons);
-            let mut potentials = Vec::with_capacity(num_neurons);
-
-            // Read u32 values for x coordinates
+            let mut x_coords: Vec<u32> = Vec::with_capacity(num_neurons);
+            let mut y_coords: Vec<u32> = Vec::with_capacity(num_neurons);
+            let mut z_coords: Vec<u32> = Vec::with_capacity(num_neurons);
+            let mut potentials: Vec<f32> = Vec::with_capacity(num_neurons);
+            
             for i in 0..num_neurons {
-                let start_idx = i * 4;
-                x_coords.push(LittleEndian::read_u32(&neuron_bytes[start_idx..start_idx + 4]));
-            }
+                let x_start = i * 4;
+                let y_start = x_end + x_start;
+                let z_start = y_end + x_start;
+                let p_start = z_end + x_start;
 
-            // Read u32 values for y coordinates
-            for i in 0..num_neurons {
-                let start_idx = x_end + (i * 4);
-                y_coords.push(LittleEndian::read_u32(&neuron_bytes[start_idx..start_idx + 4]));
-            }
-
-            // Read u32 values for z coordinates
-            for i in 0..num_neurons {
-                let start_idx = y_end + (i * 4);
-                z_coords.push(LittleEndian::read_u32(&neuron_bytes[start_idx..start_idx + 4]));
-            }
-
-            // Read f32 values for potentials
-            for i in 0..num_neurons {
-                let start_idx = z_end + (i * 4);
-                potentials.push(LittleEndian::read_f32(&neuron_bytes[start_idx..start_idx + 4]));
+                x_coords.push(LittleEndian::read_u32(&neuron_bytes[x_start..x_start + 4]));
+                y_coords.push(LittleEndian::read_u32(&neuron_bytes[y_start..y_start + 4]));
+                z_coords.push(LittleEndian::read_u32(&neuron_bytes[z_start..z_start + 4]));
+                potentials.push(LittleEndian::read_f32(&neuron_bytes[p_start..p_start + 4]));
             }
 
             let neurons = NeuronXYZPArrays::new_from_vectors(
