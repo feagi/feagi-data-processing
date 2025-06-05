@@ -850,7 +850,6 @@ impl ImageFrame {
     /// - Ok(()) if the operation was successful
     /// - Err(DataProcessingError) if the frames are incompatible or crop region is invalid
     pub fn in_place_crop_and_nearest_neighbor_resize(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
-        const EPSILON: f32 = 0.0001;
         
         let crop_resolution: (usize, usize) = source_cropping_points.enclosed_area_width_height();
         if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&self, source) {
