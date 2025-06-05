@@ -39,11 +39,6 @@
 //! // ... apply processing pipeline
 //! ```
 
-use ndarray::{s, Array3, ArrayView3};
-use crate::error::DataProcessingError;
-use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
-use descriptors::*;
-
 /// Segmented vision processing for region-based image analysis.
 /// 
 /// Provides functionality for processing images into a central segment and peripheral

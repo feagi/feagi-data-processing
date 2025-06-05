@@ -1,4 +1,4 @@
-use ndarray::{s, Array1, ArrayView1};
+use ndarray::{Array1};
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::DataProcessingError;
 use super::neurons::NeuronXYZP;
@@ -138,7 +138,7 @@ impl NeuronXYZPArrays {
         return output;
     }
     
-    pub fn copy_as_tuple_of_nd_arrays(&self) -> ((Array1<u32>, Array1<u32>, Array1<u32>, Array1<f32>)) {
+    pub fn copy_as_tuple_of_nd_arrays(&self) -> (Array1<u32>, Array1<u32>, Array1<u32>, Array1<f32>) {
         (
             Array1::from_vec(self.x.clone()),
             Array1::from_vec(self.y.clone()),
