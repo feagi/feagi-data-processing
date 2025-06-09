@@ -148,6 +148,18 @@ impl FeagiByteStructure {
             }
         }
     }
+    
+    pub fn copy_out_single_byte_structure_from_multiple(&self, index: usize) -> Result<FeagiByteStructure, DataProcessingError> {
+        if !self.is_multistruct()? {
+            return Ok(self.clone());
+        }
+        if index > self.contained_structure_count()? {
+            return Err(DataProcessingError::InvalidInputBounds(format!("Given struct index {} is out of bounds given this multistruct only contains {} elements!", index, self.contained_structure_count()?)));
+        }
+        Ok(FeagiByteStructure::create_from_bytes(
+            self.get_multistruct_specific_slice(index).to_vec()
+        )?)
+    }
 
     pub fn copy_out_as_byte_vector(&self) -> Vec<u8> {
         self.bytes.clone()
