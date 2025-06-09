@@ -34,6 +34,7 @@
 pub mod feagi_byte_structure;
 
 use std::cmp::PartialEq;
+use std::fmt::{Display, Formatter};
 use crate::byte_structures::feagi_byte_structure::FeagiByteStructure;
 use crate::error::DataProcessingError;
 
@@ -70,6 +71,17 @@ pub enum FeagiByteStructureType {
     NeuronCategoricalXYZP = 11
 }
 
+impl Display for FeagiByteStructureType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            FeagiByteStructureType::JSON => "JSON",
+            FeagiByteStructureType::MultiStructHolder => "MultiStructHolder",
+            FeagiByteStructureType::NeuronCategoricalXYZP => "NeuronCategoricalXYZP",
+        };
+        write!(f, "{name}")
+    }
+}
+
 impl FeagiByteStructureType {
     pub fn try_from(value: u8) -> Result<Self, DataProcessingError> {
         match value {
@@ -94,7 +106,7 @@ pub trait FeagiByteStructureCompatible {
     fn get_version(&self) -> u8;
     fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, DataProcessingError>;
     fn max_number_bytes_needed(&self) -> usize;
-    fn new_from_feagi_byte_structure(feagi_byte_structure: FeagiByteStructure) -> Result<Self, DataProcessingError> where Self: Sized;
+    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, DataProcessingError> where Self: Sized;
 
     fn verify_slice_has_enough_space(&self, slice: &[u8]) -> Result<(), DataProcessingError> {
         if slice.len() < self.max_number_bytes_needed() {

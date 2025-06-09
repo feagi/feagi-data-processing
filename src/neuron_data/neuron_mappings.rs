@@ -64,7 +64,7 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
             bytes_needed_for_neurons
     }
 
-    fn new_from_feagi_byte_structure(feagi_byte_structure: FeagiByteStructure) -> Result<Self, DataProcessingError> {
+    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, DataProcessingError> {
         verify_matching_structure_type_and_version(&feagi_byte_structure,
                                                    Self::BYTE_STRUCT_TYPE,
                                                    Self::BYTE_STRUCT_VERSION)?;

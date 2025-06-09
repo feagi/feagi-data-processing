@@ -1,5 +1,6 @@
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::DataProcessingError;
+use crate::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData; 
 use super::{FeagiByteStructureCompatible, FeagiByteStructureType};
 
 #[derive(Clone)]
@@ -70,9 +71,11 @@ impl FeagiByteStructure {
         object.as_new_feagi_byte_structure()
     }
     
+    /*
     pub fn create_from_multiple_compatible(objects: Vec<Box<dyn FeagiByteStructureCompatible>>) -> Result<FeagiByteStructure, DataProcessingError> {
         todo!()
     }
+     */
     //endregion
     
     //region Get Properties
@@ -120,6 +123,30 @@ impl FeagiByteStructure {
             return Ok(output);
         }
         Ok(vec![self.try_get_structure_type()?])
+    }
+    
+    pub fn copy_out_single_object(&self) -> Result<Box<dyn FeagiByteStructureCompatible>, DataProcessingError> {
+        let this_struct_type = self.try_get_structure_type()?;
+        if this_struct_type == FeagiByteStructureType::MultiStructHolder {
+            return Err(DataProcessingError::InvalidByteStructure("Cannot return a multistruct holding multiple structs as a single object!".into()))
+        }
+        
+        // Factory pattern to create the appropriate concrete type based on structure type
+        match this_struct_type {
+            FeagiByteStructureType::JSON => {
+                Err(DataProcessingError::NotImplemented)
+            },
+            FeagiByteStructureType::NeuronCategoricalXYZP => {
+                Ok(Box::new(CorticalMappedXYZPNeuronData::new_from_feagi_byte_structure(self)?))
+            },
+            FeagiByteStructureType::MultiStructHolder => {
+                // This case is already handled above, but included for completeness
+                Err(DataProcessingError::InvalidByteStructure("Cannot return a multistruct holding multiple structs as a single object!".into()))
+            }
+            _ => {
+                Err(DataProcessingError::InternalError(format!("Missing export definition for FBS object type {}!", this_struct_type)))
+            }
+        }
     }
 
     pub fn copy_out_as_byte_vector(&self) -> Vec<u8> {
