@@ -124,8 +124,20 @@ impl FeagiByteStructure {
         }
         Ok(vec![self.try_get_structure_type()?])
     }
+
+    pub fn copy_out_single_byte_structure_from_multistruct(&self, index: usize) -> Result<FeagiByteStructure, DataProcessingError> {
+        if !self.is_multistruct()? {
+            return Ok(self.clone());
+        }
+        if index > self.contained_structure_count()? {
+            return Err(DataProcessingError::InvalidInputBounds(format!("Given struct index {} is out of bounds given this multistruct only contains {} elements!", index, self.contained_structure_count()?)));
+        }
+        Ok(FeagiByteStructure::create_from_bytes(
+            self.get_multistruct_specific_slice(index).to_vec()
+        )?)
+    }
     
-    pub fn copy_out_single_object(&self) -> Result<Box<dyn FeagiByteStructureCompatible>, DataProcessingError> {
+    pub fn copy_out_single_object_from_single_struct(&self) -> Result<Box<dyn FeagiByteStructureCompatible>, DataProcessingError> {
         let this_struct_type = self.try_get_structure_type()?;
         if this_struct_type == FeagiByteStructureType::MultiStructHolder {
             return Err(DataProcessingError::InvalidByteStructure("Cannot return a multistruct holding multiple structs as a single object!".into()))
@@ -149,16 +161,13 @@ impl FeagiByteStructure {
         }
     }
     
-    pub fn copy_out_single_byte_structure_from_multiple(&self, index: usize) -> Result<FeagiByteStructure, DataProcessingError> {
+    pub fn copy_out_single_object_from_multistruct(&self, index: usize) -> Result<Box<dyn FeagiByteStructureCompatible>, DataProcessingError> {
+        // TODO this method is slow, we should have a dedicated create from byte slice for FeagiByteStructureCompatible
         if !self.is_multistruct()? {
-            return Ok(self.clone());
+            return Err(DataProcessingError::InvalidByteStructure("Cannot treat this object as a multistruct when it is not!".into()))
         }
-        if index > self.contained_structure_count()? {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Given struct index {} is out of bounds given this multistruct only contains {} elements!", index, self.contained_structure_count()?)));
-        }
-        Ok(FeagiByteStructure::create_from_bytes(
-            self.get_multistruct_specific_slice(index).to_vec()
-        )?)
+        let internal = self.copy_out_single_byte_structure_from_multistruct(index)?;
+        internal.copy_out_single_object_from_single_struct()
     }
 
     pub fn copy_out_as_byte_vector(&self) -> Vec<u8> {
