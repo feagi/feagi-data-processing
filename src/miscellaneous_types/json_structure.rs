@@ -3,6 +3,7 @@ use crate::byte_structures::{FeagiByteStructureCompatible, FeagiByteStructureTyp
 use crate::byte_structures::feagi_byte_structure::{FeagiByteStructure, verify_matching_structure_type_and_version};
 use crate::error::DataProcessingError;
 
+#[derive(Clone)]
 pub struct JsonStructure {
     json: serde_json::Value,
 }
