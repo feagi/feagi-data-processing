@@ -40,6 +40,7 @@ pub mod neuron_data;
 
 /// Cortical area identification and management.
 pub mod cortical_data;
+pub mod miscellaneous_types;
 
 #[cfg(test)]
 mod tests {

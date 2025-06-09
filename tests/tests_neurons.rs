@@ -2,8 +2,9 @@ use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
 use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
 use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
 use feagi_core_data_structures_and_processing::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
-use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure::{FeagiByteStructureCompatible, FeagiByteStructure};
+use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure::FeagiByteStructure;
 use ndarray::prelude::*;
+use feagi_core_data_structures_and_processing::byte_structures::FeagiByteStructureCompatible;
 
 #[test]
 fn test_minimal_memory_corruption_debug() {
@@ -95,7 +96,7 @@ fn test_serialize_deserialize_neuron_mapped_areas() {
     
     // deserialize (lets pretend 'bytes' was sent over the network)
     let received_byte_structure = FeagiByteStructure::create_from_bytes(bytes).unwrap();
-    let received_cortical_mappings = CorticalMappedXYZPNeuronData::new_from_feagi_byte_structure(received_byte_structure).unwrap();
+    let received_cortical_mappings = CorticalMappedXYZPNeuronData::new_from_feagi_byte_structure(&received_byte_structure).unwrap();
 
     assert_eq!(received_cortical_mappings.get_number_contained_areas(), 3);
     assert!(received_cortical_mappings.contains(CorticalID::from_str("AAAAAA").unwrap()));
