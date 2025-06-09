@@ -29,12 +29,25 @@ impl FeagiByteStructure {
         Ok(Self { bytes })
     }
     
-    pub fn create_from_2_existing(a: FeagiByteStructure, b: FeagiByteStructure) -> Result<FeagiByteStructure, DataProcessingError> {
-        todo!()
+    pub fn create_from_2_existing(a: &FeagiByteStructure, b: &FeagiByteStructure) -> Result<FeagiByteStructure, DataProcessingError> {
+        // TODO Using vectors here is easier now, but we can squeeze a bit more performance by making a specific 2 slice system
+        let structs = vec!(a, b);
+        FeagiByteStructure::create_from_multiple_existing(structs)
     }
     
-    pub fn create_from_multiple_existing(existing: Vec<FeagiByteStructure>) -> Result<FeagiByteStructure, DataProcessingError> {
-        todo!()
+    pub fn create_from_multiple_existing(existing: Vec<&FeagiByteStructure>) -> Result<FeagiByteStructure, DataProcessingError> {
+        
+        // Break apart any input multistructs, we don't want nesting. Assuming FeagiByteStructures are Valid
+        let mut slices: Vec<&[u8]> = Vec::new();
+        for input in existing {
+            if input.is_multistruct()? {
+                slices.extend(input.get_all_multistruct_internal_slices())
+            }
+            else {
+                slices.push(input.borrow_data_as_slice())
+            }
+        }
+        Ok(FeagiByteStructure::build_multistruct_from_slices(slices))
     }
     
     pub fn create_from_compatible(object: Box<dyn FeagiByteStructureCompatible>) -> Result<FeagiByteStructure, DataProcessingError> {
