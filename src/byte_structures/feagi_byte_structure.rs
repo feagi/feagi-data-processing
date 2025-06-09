@@ -189,7 +189,7 @@ impl FeagiByteStructure {
         if self.bytes[0] != FeagiByteStructureType::MultiStructHolder as u8 { // faster header check
             return Err(DataProcessingError::InternalError("Byte structure is not identified as a multistruct!".into()))
         }
-        if self.bytes[2] != 0 {
+        if self.bytes[2] == 0 {
             return Err(DataProcessingError::InternalError("Multistruct reports 0 contained structures!".into()))
         }
         Ok(())
@@ -293,6 +293,7 @@ impl FeagiByteStructure {
             (Self::MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES * slice_count);
         
         let total_output_length = header_output_length + total_slices_byte_count;
+        dbg!(total_output_length);
         
         // Write output data
         let mut output_bytes: Vec<u8> = Vec::with_capacity(total_output_length);
@@ -303,7 +304,7 @@ impl FeagiByteStructure {
         output_bytes[1] = Self::SUPPORTED_VERSION_MULTI_STRUCT;
         
         // struct count subheader
-        output_bytes[3] = slice_count as u8;
+        output_bytes[2] = slice_count as u8;
         
         // subheader + data
         let mut subheader_write_index: usize =  Self::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + Self::MULTISTRUCT_STRUCT_COUNT_BYTE_SIZE;
@@ -324,6 +325,9 @@ impl FeagiByteStructure {
             output_bytes[data_write_index..data_write_index + slice_length].copy_from_slice(
                 slice
             );
+
+            subheader_write_index += Self::MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES;
+            data_write_index += slice_length;
         };
         
         // Skip any checks and instantiate directly
