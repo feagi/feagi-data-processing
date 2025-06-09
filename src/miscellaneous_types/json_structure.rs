@@ -18,7 +18,7 @@ impl FeagiByteStructureCompatible for JsonStructure {
         let json_string = self.json.to_string();
         let json_bytes = json_string.as_bytes();
         
-        let num_bytes_needed: usize = json_bytes.len();
+        let num_bytes_needed: usize = GLOBAL_HEADER_SIZE + json_bytes.len();
         if slice.len() < num_bytes_needed {
             return Err(DataProcessingError::IncompatibleInplace(format!("Not enough space given to store JSON data! Need {} bytes but given {}!", num_bytes_needed, slice.len())));
         }
