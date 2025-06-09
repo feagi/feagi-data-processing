@@ -37,6 +37,15 @@ impl FeagiByteStructure {
     
     pub fn create_from_multiple_existing(existing: Vec<&FeagiByteStructure>) -> Result<FeagiByteStructure, DataProcessingError> {
         
+        if existing.is_empty() {
+            return Err(DataProcessingError::InvalidInputBounds("You must specify at least one byte structure to put into a multistruct!".into()));
+        }
+        
+        if existing.len() == 1 {
+            // No need to make a whole new structure, just copy this
+            return Ok(existing[0].clone());
+        }
+        
         // Break apart any input multistructs, we don't want nesting. Assuming FeagiByteStructures are Valid
         let mut slices: Vec<&[u8]> = Vec::new();
         for input in existing {
@@ -47,11 +56,18 @@ impl FeagiByteStructure {
                 slices.push(input.borrow_data_as_slice())
             }
         }
+
+        if slices.len() > 255 {
+            // wtf are you doing
+            return Err(DataProcessingError::InvalidInputBounds("The maximum number of structures that can exist in a multistruct is 255!".into()));
+        }
+        
         Ok(FeagiByteStructure::build_multistruct_from_slices(slices))
     }
     
     pub fn create_from_compatible(object: Box<dyn FeagiByteStructureCompatible>) -> Result<FeagiByteStructure, DataProcessingError> {
-        todo!()
+        // Essentially just an alias
+        object.as_new_feagi_byte_structure()
     }
     
     pub fn create_from_multiple_compatible(objects: Vec<Box<dyn FeagiByteStructureCompatible>>) -> Result<FeagiByteStructure, DataProcessingError> {
