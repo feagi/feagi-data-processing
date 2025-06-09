@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::DataProcessingError;
 use crate::cortical_data::CorticalID;
-use crate::byte_structures::{FeagiByteStructureType, GLOBAL_HEADER_SIZE};
-use crate::byte_structures::feagi_byte_structure::{FeagiByteStructureCompatible, verify_matching_structure_type_and_version, FeagiByteStructure};
-use super::neuron_arrays::{NeuronXYZPArrays};
+use crate::byte_structures::{FeagiByteStructureCompatible, FeagiByteStructureType, GLOBAL_HEADER_SIZE};
+use crate::byte_structures::feagi_byte_structure::{verify_matching_structure_type_and_version, FeagiByteStructure};
+use super::neuron_arrays::NeuronXYZPArrays;
 
 #[derive(Clone)]
 pub struct CorticalMappedXYZPNeuronData {
@@ -64,7 +64,7 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
             bytes_needed_for_neurons
     }
 
-    fn new_from_feagi_byte_structure(feagi_byte_structure: FeagiByteStructure) -> Result<Self, DataProcessingError> {
+    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, DataProcessingError> {
         verify_matching_structure_type_and_version(&feagi_byte_structure,
                                                    Self::BYTE_STRUCT_TYPE,
                                                    Self::BYTE_STRUCT_VERSION)?;
