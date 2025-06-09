@@ -99,7 +99,6 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
 
             let neuron_bytes = &bytes[data_start_reading..data_start_reading + number_bytes_to_read];
             let bytes_length = neuron_bytes.len();
-            dbg!(bytes_length);
             if bytes_length % NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON != 0 {
                 return Err(DataProcessingError::InvalidByteStructure("Byte structure for NeuronCategoricalXYZPV1 seems invalid! Size is nonsensical given neuron data size!".into()));
             }
