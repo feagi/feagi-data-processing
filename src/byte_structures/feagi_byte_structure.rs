@@ -13,6 +13,10 @@ impl FeagiByteStructure {
     const MULTISTRUCT_STRUCT_COUNT_BYTE_SIZE: usize = 1;
     const MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES: usize = 8;
     
+    const SUPPORTED_VERSION_JSON: u8 = 1;
+    const SUPPORTED_VERSION_MULTI_STRUCT: u8 = 1;
+    const SUPPORTED_VERSION_NEURON_XYZP: u8 = 1;
+    
     //region Constructors
     pub fn create_from_bytes(bytes: Vec<u8>) -> Result<FeagiByteStructure, DataProcessingError> {
         if bytes.len() < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
@@ -88,11 +92,16 @@ impl FeagiByteStructure {
         }
         Ok(vec![self.try_get_structure_type()?])
     }
+
+    pub fn copy_out_as_byte_vector(&self) -> Vec<u8> {
+        self.bytes.clone()
+    }
     
     //endregion
     
     //region Verifications
-    // NOTE: These functions are used to ensure internal data is reasonable
+    // NOTE: These functions are used to ensure internal data is reasonable. Not all have all
+    // safety checks/
     
     fn verify_valid_multistruct_internal_count(&self) -> Result<(), DataProcessingError> {
         let len = self.bytes.len();
@@ -143,12 +152,105 @@ impl FeagiByteStructure {
         Ok(())
     }
     
+    //endregion
     
+    //region Borrow Data
+
+    pub fn borrow_data_as_slice(&self) -> &[u8] {
+        &self.bytes
+    }
+
+    pub fn borrow_data_as_mut_slice(&mut self) -> &mut [u8] {
+        &mut self.bytes
+    }
+
+    pub fn borrow_data_as_mut_vec(&mut self) -> &mut Vec<u8> {
+        &mut self.bytes
+    }
+    
+    //endregion
+    
+    //region Interactions with Internal Vector
+
+    pub fn get_wasted_capacity_count(&self) -> usize {
+        self.bytes.capacity() - self.bytes.len()
+    }
+
+    pub fn get_utilized_capacity_percentage(&self) -> f32 {
+        (self.bytes.len() as f32 / self.bytes.capacity() as f32) * 100.0
+    }
+
+    pub fn ensure_capacity_of_at_least(&mut self, size: usize) -> Result<(), DataProcessingError> {
+        if size < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
+            return Err(DataProcessingError::InvalidInputBounds(format!("Cannot set capacity to less than minimum required capacity of {}!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID)));
+        }
+
+        if self.bytes.capacity() < size {
+            //self.bytes.reserve(size - self.bytes.capacity());
+        }
+        Ok(())
+    }
+
+    pub fn shed_wasted_capacity(&mut self) {
+        self.bytes.shrink_to_fit();
+    }
+
+    pub fn reset_write_index(&mut self) {
+        self.bytes.truncate(0);
+    }
     
     //endregion
     
     //region Internals
     // WARNING: Most of these functions do not check for byte structure validity, be cautious
+
+    fn build_multistruct_from_slices(all_slices: Vec<&[u8]>) -> FeagiByteStructure {
+        // NOTE: does not check if internal slices are sensible
+        let slice_count = all_slices.len();
+        let mut total_slices_byte_count: usize = 0;
+        for slice in &all_slices {
+            total_slices_byte_count += slice.len();
+        };
+        let header_output_length = Self::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + Self::MULTISTRUCT_STRUCT_COUNT_BYTE_SIZE +
+            (Self::MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES * slice_count);
+        
+        let total_output_length = header_output_length + total_slices_byte_count;
+        
+        // Write output data
+        let mut output_bytes: Vec<u8> = Vec::with_capacity(total_output_length);
+        output_bytes.resize(total_output_length, 0);
+        
+        // global header
+        output_bytes[0] = FeagiByteStructureType::MultiStructHolder as u8;
+        output_bytes[1] = Self::SUPPORTED_VERSION_MULTI_STRUCT;
+        
+        // struct count subheader
+        output_bytes[3] = slice_count as u8;
+        
+        // subheader + data
+        let mut subheader_write_index: usize =  Self::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + Self::MULTISTRUCT_STRUCT_COUNT_BYTE_SIZE;
+        let mut data_write_index: usize = header_output_length; // start right after header
+        
+        for slice in &all_slices {
+            let slice_length = slice.len();
+            
+            // sub header
+            output_bytes[subheader_write_index.. subheader_write_index + 4].copy_from_slice(
+                &(data_write_index as u32).to_le_bytes() // location
+            );
+            output_bytes[subheader_write_index + 4.. subheader_write_index + 8].copy_from_slice(
+                &(slice_length as u32).to_le_bytes() // length
+            );
+            
+            // data
+            output_bytes[data_write_index..data_write_index + slice_length].copy_from_slice(
+                slice
+            );
+        };
+        
+        // Skip any checks and instantiate directly
+        FeagiByteStructure {bytes: output_bytes}
+    }
     
     fn get_multistruct_contained_count(&self) -> usize {
         // NOTE no safety checks, make sure your vector is a valid multistruct
@@ -174,53 +276,6 @@ impl FeagiByteStructure {
     
     
     //endregion
-    
-    
-    
-    
-    
-    pub fn borrow_data_as_slice(&self) -> &[u8] {
-        &self.bytes
-    }
-    
-    pub fn borrow_data_as_mut_slice(&mut self) -> &mut [u8] {
-        &mut self.bytes
-    }
-    
-    pub fn borrow_data_as_mut_vec(&mut self) -> &mut Vec<u8> {
-        &mut self.bytes
-    }
-    
-    pub fn copy_out_as_byte_vector(&self) -> Vec<u8> {
-        self.bytes.clone()
-    }
-    
-    pub fn ensure_capacity_of_at_least(&mut self, size: usize) -> Result<(), DataProcessingError> {
-        if size < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Cannot set capacity to less than minimum required capacity of {}!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID)));
-        }
-        
-        if self.bytes.capacity() < size {
-            //self.bytes.reserve(size - self.bytes.capacity());
-        }
-        Ok(())
-    }
-    
-    pub fn shed_wasted_capacity(&mut self) {
-        self.bytes.shrink_to_fit();
-    }
-    
-    pub fn reset_write_index(&mut self) {
-        self.bytes.truncate(0);
-    }
-    
-    pub fn get_wasted_capacity_count(&self) -> usize {
-        self.bytes.capacity() - self.bytes.len()
-    }
-    
-    pub fn get_utilized_capacity_percentage(&self) -> f32 {
-        (self.bytes.len() as f32 / self.bytes.capacity() as f32) * 100.0
-    }
     
 }
 
