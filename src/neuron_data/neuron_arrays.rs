@@ -62,6 +62,19 @@ impl NeuronXYZPArrays {
     ///
     /// # Returns
     /// * `Result<Self, DataProcessingError>` - A new instance or an error if the vectors have different lengths
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// 
+    /// let x = vec![1, 2, 3];
+    /// let y = vec![4, 5, 6];
+    /// let z = vec![7, 8, 9];
+    /// let p = vec![0.1, 0.2, 0.3];
+    /// 
+    /// let arrays = NeuronXYZPArrays::new_from_vectors(x, y, z, p).unwrap();
+    /// assert_eq!(arrays.get_number_of_neurons_used(), 3);
+    /// ```
     pub fn new_from_vectors(x: Vec<u32>, y: Vec<u32>, z: Vec<u32>, p: Vec<f32>) -> Result<Self, DataProcessingError> {
         let len = x.len();
         if len != y.len() || len != z.len() || len != p.len() {
@@ -85,6 +98,20 @@ impl NeuronXYZPArrays {
     ///
     /// # Returns
     /// * `Result<Self, DataProcessingError>` - A new instance or an error if the arrays have different lengths
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// use ndarray::Array1;
+    /// 
+    /// let x_nd = Array1::from_vec(vec![1, 2, 3]);
+    /// let y_nd = Array1::from_vec(vec![4, 5, 6]);
+    /// let z_nd = Array1::from_vec(vec![7, 8, 9]);
+    /// let p_nd = Array1::from_vec(vec![0.1, 0.2, 0.3]);
+    /// 
+    /// let arrays = NeuronXYZPArrays::new_from_ndarrays(x_nd, y_nd, z_nd, p_nd).unwrap();
+    /// assert_eq!(arrays.get_number_of_neurons_used(), 3);
+    /// ```
     pub fn new_from_ndarrays(x_nd: Array1<u32>, y_nd: Array1<u32>, z_nd: Array1<u32>, p_nd: Array1<f32>) -> Result<Self, DataProcessingError> {
         let len = x_nd.len();
         if len != y_nd.len() || len != z_nd.len() || len != p_nd.len() {
@@ -148,6 +175,17 @@ impl NeuronXYZPArrays {
     ///
     /// # Arguments
     /// * `neuron` - The NeuronXYZP instance to add
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
+    /// 
+    /// let mut arrays = NeuronXYZPArrays::new(1).unwrap();
+    /// let neuron = NeuronXYZP::new(1, 2, 3, 0.5);
+    /// arrays.add_neuron(&neuron);
+    /// assert_eq!(arrays.get_number_of_neurons_used(), 1);
+    /// ```
     pub fn add_neuron(&mut self, neuron: &NeuronXYZP) {
         self.x.push(neuron.x);
         self.y.push(neuron.y);
@@ -159,6 +197,21 @@ impl NeuronXYZPArrays {
     ///
     /// # Returns
     /// * `Vec<NeuronXYZP>` - A vector containing all neurons as individual NeuronXYZP instances
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
+    /// 
+    /// let mut arrays = NeuronXYZPArrays::new(2).unwrap();
+    /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// arrays.add_neuron(&NeuronXYZP::new(4, 5, 6, 0.7));
+    /// 
+    /// let neurons = arrays.copy_as_neuron_xyzp_vec();
+    /// assert_eq!(neurons.len(), 2);
+    /// assert_eq!(neurons[0].x, 1);
+    /// assert_eq!(neurons[1].p, 0.7);
+    /// ```
     pub fn copy_as_neuron_xyzp_vec(&self) -> Vec<NeuronXYZP> {
         let mut output: Vec<NeuronXYZP> = Vec::new();
         for i in 0..self.x.len() {
@@ -171,6 +224,22 @@ impl NeuronXYZPArrays {
     ///
     /// # Returns
     /// * `(Array1<u32>, Array1<u32>, Array1<u32>, Array1<f32>)` - A tuple containing the four arrays
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
+    /// 
+    /// let mut arrays = NeuronXYZPArrays::new(2).unwrap();
+    /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// arrays.add_neuron(&NeuronXYZP::new(4, 5, 6, 0.7));
+    /// 
+    /// let (x, y, z, p) = arrays.copy_as_tuple_of_nd_arrays();
+    /// assert_eq!(x[0], 1);
+    /// assert_eq!(y[1], 5);
+    /// assert_eq!(z[0], 3);
+    /// assert_eq!(p[1], 0.7);
+    /// ```
     pub fn copy_as_tuple_of_nd_arrays(&self) -> (Array1<u32>, Array1<u32>, Array1<u32>, Array1<f32>) {
         (
             Array1::from_vec(self.x.clone()),
@@ -184,6 +253,25 @@ impl NeuronXYZPArrays {
     ///
     /// # Returns
     /// * `impl Iterator<Item=NeuronXYZP> + '_` - An iterator yielding NeuronXYZP instances
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
+    /// 
+    /// let mut arrays = NeuronXYZPArrays::new(2).unwrap();
+    /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// arrays.add_neuron(&NeuronXYZP::new(4, 5, 6, 0.7));
+    /// 
+    /// let mut iter = arrays.iter();
+    /// let first = iter.next().unwrap();
+    /// assert_eq!(first.x, 1);
+    /// assert_eq!(first.p, 0.5);
+    /// 
+    /// let second = iter.next().unwrap();
+    /// assert_eq!(second.y, 5);
+    /// assert_eq!(second.z, 6);
+    /// ```
     pub fn iter(&self) -> impl Iterator<Item=NeuronXYZP> + '_ {
         self.x.iter()
             .zip(&self.y)
@@ -221,6 +309,17 @@ impl NeuronXYZPArrays {
     ///
     /// # Returns
     /// * `bool` - True if there are no neurons stored, false otherwise
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// 
+    /// let mut arrays = NeuronXYZPArrays::new(1).unwrap();
+    /// assert!(arrays.is_empty());
+    /// 
+    /// arrays.add_neuron(&feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP::new(1, 2, 3, 0.5));
+    /// assert!(!arrays.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.x.is_empty()
     }
@@ -229,6 +328,21 @@ impl NeuronXYZPArrays {
     ///
     /// # Returns
     /// * `(&Vec<u32>, &Vec<u32>, &Vec<u32>, &Vec<f32>)` - References to the x, y, z, and p vectors
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
+    /// 
+    /// let mut arrays = NeuronXYZPArrays::new(1).unwrap();
+    /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// 
+    /// let (x, y, z, p) = arrays.borrow_xyzp_vectors();
+    /// assert_eq!(x[0], 1);
+    /// assert_eq!(y[0], 2);
+    /// assert_eq!(z[0], 3);
+    /// assert_eq!(p[0], 0.5);
+    /// ```
     pub fn borrow_xyzp_vectors(&self) -> (&Vec<u32>, &Vec<u32>, &Vec<u32>, &Vec<f32>) {
         (&self.x, &self.y, &self.z, &self.p)
     }
@@ -243,6 +357,18 @@ impl NeuronXYZPArrays {
     ///
     /// # Returns
     /// * `Result<(), DataProcessingError>` - Success or an error if the buffer size is incorrect
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
+    /// 
+    /// let mut arrays = NeuronXYZPArrays::new(1).unwrap();
+    /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// 
+    /// let mut buffer = vec![0u8; NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON];
+    /// arrays.write_neural_data_to_bytes(&mut buffer).unwrap();
+    /// ```
     pub fn write_neural_data_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), DataProcessingError> {
         const U32_F32_LENGTH: usize = 4;
         let number_of_neurons_to_write: usize = self.get_number_of_neurons_used();
@@ -279,6 +405,26 @@ impl NeuronXYZPArrays {
     ///
     /// # Returns
     /// * `Result<NeuronXYZPArrays, DataProcessingError>` - A new instance containing only neurons within the specified ranges
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
+    /// use std::ops::RangeInclusive;
+    /// 
+    /// let mut arrays = NeuronXYZPArrays::new(3).unwrap();
+    /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// arrays.add_neuron(&NeuronXYZP::new(4, 5, 6, 0.7));
+    /// arrays.add_neuron(&NeuronXYZP::new(7, 8, 9, 0.9));
+    /// 
+    /// let filtered = arrays.filter_neurons_by_location_bounds(
+    ///     RangeInclusive::new(1, 4),
+    ///     RangeInclusive::new(2, 5),
+    ///     RangeInclusive::new(3, 6)
+    /// ).unwrap();
+    /// 
+    /// assert_eq!(filtered.get_number_of_neurons_used(), 2);
+    /// ```
     pub fn filter_neurons_by_location_bounds(&self, x_range: RangeInclusive<u32>, y_range: RangeInclusive<u32>, z_range: RangeInclusive<u32>) -> Result<NeuronXYZPArrays, DataProcessingError> {
         let mut xv: Vec<u32> = Vec::new();
         let mut yv: Vec<u32> = Vec::new();
