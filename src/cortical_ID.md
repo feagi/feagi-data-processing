@@ -96,7 +96,7 @@ Following the "i", the next 3 characters refer to the sensor type, and the last 
 - **ilid00**
   - Lidar
 - **iear00**
--   Audio
+  - Audio
 
 
 ### Output Cortical Area
