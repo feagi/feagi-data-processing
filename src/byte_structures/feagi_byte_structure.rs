@@ -111,8 +111,8 @@ impl FeagiByteStructure {
     
     pub fn get_ordered_object_types(&self) -> Result<Vec<FeagiByteStructureType>, DataProcessingError> {
         if self.is_multistruct()? {
-            self.verify_valid_multistruct_internal_count();
-            self.verify_valid_multistruct_internal_positionings_header();
+            self.verify_valid_multistruct_internal_count()?;
+            self.verify_valid_multistruct_internal_positionings_header()?;
             
             let struct_slices = self.get_all_multistruct_internal_slices();
             self.verify_valid_multistruct_internal_slices_header_and_size(&struct_slices)?;
@@ -209,7 +209,7 @@ impl FeagiByteStructure {
         
         let len = len as u32;
         let mut struct_header_start_index = Self::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + Self::MULTISTRUCT_STRUCT_COUNT_BYTE_SIZE;
-        for c in 0..contained_struct_count {
+        for _ in 0..contained_struct_count {
             let struct_start_index = LittleEndian::read_u32(&self.bytes[struct_header_start_index..struct_header_start_index + 4]);
             let struct_length = LittleEndian::read_u32(&self.bytes[struct_header_start_index + 4..struct_header_start_index + 8]);
             if struct_start_index + struct_length > len {

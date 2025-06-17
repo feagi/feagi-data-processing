@@ -1,9 +1,7 @@
-use std::result;
 use std::ops::RangeInclusive;
 use crate::error::DataProcessingError;
 use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
 use crate::cortical_data::CorticalDimensions;
-use crate::neuron_data::neurons::NeuronXYZP;
 
 #[derive(Clone)]
 pub struct RelativeServoOutput {
