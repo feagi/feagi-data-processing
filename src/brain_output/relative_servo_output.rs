@@ -50,6 +50,19 @@ impl RelativeServoOutput {
         Ok(output)
     }
     
+    pub fn get_float_values_for_all_channels(&self) -> Result<Vec<f32>, DataProcessingError> {
+        let num_channels = self.get_channel_count();
+        let mut output: Vec<f32> = Vec::with_capacity(num_channels);
+        for i in 0..num_channels { // TODO this can be parallelized
+            output.push(self.get_float_value_from_channel(i)?);
+        };
+        Ok(output)
+    }
+    
+    pub fn overwrite_all_neuron_data(&mut self, neuron_data: NeuronXYZPArrays) -> Result<(), DataProcessingError> {
+        self.neuron_data = neuron_data;
+        Ok(())
+    }
     
     fn filter_neurons_for_channel(&self, channel: usize) -> Result<NeuronXYZPArrays, DataProcessingError> {
         if channel > self.get_channel_count() {
