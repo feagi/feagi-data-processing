@@ -1,3 +1,4 @@
+use std::ops::RangeInclusive;
 use ndarray::{Array1};
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::DataProcessingError;
@@ -166,6 +167,10 @@ impl NeuronXYZPArrays {
     pub fn get_number_of_neurons_used(&self) -> usize {
         self.p.len() // all of these are of equal length
     }
+    
+    pub fn is_empty(&self) -> bool {
+        self.x.is_empty()
+    }
 
     pub fn borrow_xyzp_vectors(&self) -> (&Vec<u32>, &Vec<u32>, &Vec<u32>, &Vec<f32>) {
         (&self.x, &self.y, &self.z, &self.p)
@@ -196,5 +201,30 @@ impl NeuronXYZPArrays {
         };
 
         Ok(())
+    }
+    
+    pub fn filter_neurons_by_location_bounds(&self, x_range: RangeInclusive<u32>, y_range: RangeInclusive<u32>, z_range: RangeInclusive<u32>) -> Result<NeuronXYZPArrays, DataProcessingError> {
+        let mut xv: Vec<u32> = Vec::new();
+        let mut yv: Vec<u32> = Vec::new();
+        let mut zv: Vec<u32> = Vec::new();
+        let mut pv: Vec<f32> = Vec::new();
+        
+        // TODO Could this be optimized at all?
+        for (&x, (&y, (&z, &p))) in self.x.iter()
+            .zip(self.y.iter()
+                .zip(self.z.iter()
+                    .zip(self.p.iter()))) {
+            if x_range.contains(&x)
+                && y_range.contains(&y)
+                && z_range.contains(&z)
+            {
+                xv.push(x);
+                yv.push(y);
+                zv.push(z);
+                pv.push(p);
+            }
+        };
+        
+        NeuronXYZPArrays::new_from_vectors(xv, yv, zv, pv)
     }
 }
