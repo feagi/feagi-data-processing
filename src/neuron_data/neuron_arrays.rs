@@ -147,6 +147,19 @@ impl NeuronXYZPArrays {
             Array1::from_vec(self.p.clone())
         )
     }
+    
+    pub fn iter(&self) -> impl Iterator<Item=NeuronXYZP> + '_ {
+        self.x.iter()
+            .zip(&self.y)
+            .zip(&self.z)
+            .zip(&self.p)
+            .map(|(((x,y),z),p)| NeuronXYZP {
+            x: *x,
+            y: *y,
+            z: *z,
+            p: *p
+        })
+    }
 
     /// Validates that all four internal vectors have the same length.
     ///
