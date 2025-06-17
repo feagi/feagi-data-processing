@@ -293,7 +293,6 @@ impl FeagiByteStructure {
             (Self::MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES * slice_count);
         
         let total_output_length = header_output_length + total_slices_byte_count;
-        dbg!(total_output_length);
         
         // Write output data
         let mut output_bytes: Vec<u8> = Vec::with_capacity(total_output_length);
