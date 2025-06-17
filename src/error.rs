@@ -60,11 +60,13 @@ pub enum DataProcessingError {
     /// Users encountering this error should check for updates or file an issue
     /// requesting the feature.
     NotImplemented,
+    InvalidCorticalID(String),
 }
 
 impl fmt::Display for DataProcessingError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self{
+            DataProcessingError::InvalidCorticalID(e) => write!(f, "Cortical ID is invalid! {}", e),
             DataProcessingError::InvalidInputBounds(e) => write!(f, "Invalid Bounds! {}", e),
             DataProcessingError::IncompatibleInplace(e) => write!(f, "Unable to perform inplace operation! {}", e),
             DataProcessingError::IncompatibleInputArray(e) => write!(f, "Incompatible input array for images! {}", e),
