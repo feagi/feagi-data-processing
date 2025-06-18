@@ -35,21 +35,23 @@ macro_rules! define_indexed_cortical_enum_and_cortical_types {
         
         impl $cortical_type_enum_name {
             
-            fn from_bytes(bytes: &[u8; CorticalID_LENGTH]) -> Result<(Self, u8), DataProcessingError> {
+            
+            fn from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<(Self, u8), DataProcessingError> {
                 // We assume that the structure is all ASCII, and the first letter is correct
-                let mut comparing_base_slice: [u8; CorticalID_LENGTH] = b"000000"
-                comparing_base_slice[0..4].copy_from_slice(bytes[0..4]);
-                match comparing_base_slice {
+                let mut comparing_base_slice: [u8; CORTICAL_ID_LENGTH] = *b"000000";
+                comparing_base_slice[0..4].copy_from_slice(&bytes[0..4]);
+                
+                match &comparing_base_slice {
                     $(
                         $base_ascii => {
                             let index: u8 = hex_chars_to_u8(bytes[4] as char, bytes[5] as char)?;
                             let cortical_type = Self::$cortical_type_key;
-                            Ok(cortical_type, index)
+                            Ok((cortical_type, index))
                         }
                     ),*,
                     _ => {
                         let bytes_as_ascii = safe_bytes_to_string(bytes);
-                        return Err(DataProcessingError::InvalidCorticalID(format!("Given ID '{}' is not a known {}!", bytes_as_ascii, $cortical_type_enum_name:ident)));
+                        return Err(DataProcessingError::InvalidCorticalID(format!("Given ID '{}' is not a known {}!", bytes_as_ascii, stringify!($cortical_type_enum_name))));
                     },
                 }
             }
@@ -67,8 +69,6 @@ macro_rules! define_indexed_cortical_enum_and_cortical_types {
                     ),*
                 }
             }
-            
-
         }
     }
 }
