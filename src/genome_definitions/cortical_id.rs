@@ -3,64 +3,74 @@ use crate::error::DataProcessingError;
 
 pub const CORTICAL_ID_LENGTH: usize = 6;
 
-macro_rules! define_indexed_cortical_enum {
+macro_rules! define_indexed_cortical_enum_and_cortical_types {
     (
-        $enum_name:ident {
+        $cortical_type_enum_name:ident {
             $(
-                $variant:ident => {
-                    name: $display_name:expr,
+                $cortical_type_key:ident => {
+                    friendly_debug_name: $display_name:expr,
                     base_ascii: $base_ascii:expr
                 }
             ),* $(,)?
         }
     ) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        #[derive(Hash)]
-pub enum $enum_name {
+        
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub enum $cortical_type_enum_name {
             $(
-                $variant(u8)
+                $cortical_type_key
             ),*
         }
-
-        impl std::fmt::Display for $enum_name {
+        
+        impl std::fmt::Display for $cortical_type_enum_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let ch = match self {
                     $(
-                        Self::$variant(v) => format!("{} Index: {}", $display_name, v)
+                        Self::$cortical_type_key => $display_name
                     ),*
                 };
                 write!(f, "{}", ch)
             }
         }
-
-        impl $enum_name {
-            pub fn from_bytes(mut bytes: [u8; CORTICAL_ID_LENGTH]) -> Result<Self, DataProcessingError> {
-                let index = hex_chars_to_u8(bytes[4] as char, bytes[5] as char)?;
-                bytes[4] = 0;
-                bytes[5] = 0;
-                match &bytes {
+        
+        impl $cortical_type_enum_name {
+            
+            fn from_bytes(bytes: &[u8; CorticalID_LENGTH]) -> Result<(Self, u8), DataProcessingError> {
+                // We assume that the structure is all ASCII, and the first letter is correct
+                let mut comparing_base_slice: [u8; CorticalID_LENGTH] = b"000000"
+                comparing_base_slice[0..4].copy_from_slice(bytes[0..4]);
+                match comparing_base_slice {
                     $(
-                        $base_ascii => Ok(Self::$variant(index))
+                        $base_ascii => {
+                            let index: u8 = hex_chars_to_u8(bytes[4] as char, bytes[5] as char)?;
+                            let cortical_type = Self::$cortical_type_key;
+                            Ok(cortical_type, index)
+                        }
                     ),*,
-                    _ => Err(handle_byte_id_mapping_fail(bytes)),
+                    _ => {
+                        let bytes_as_ascii = safe_bytes_to_string(bytes);
+                        return Err(DataProcessingError::InvalidCorticalID(format!("Given ID '{}' is not a known {}!", bytes_as_ascii, $cortical_type_enum_name:ident)));
+                    },
                 }
             }
-
-            pub fn to_bytes(&self) -> [u8; CORTICAL_ID_LENGTH] {
+            
+            fn to_bytes(&self, index: u8) -> [u8; CORTICAL_ID_LENGTH] {
                 match self {
                     $(
-                        Self::$variant(v) => {
-                            let mut output: [u8; CORTICAL_ID_LENGTH] = *$base_ascii;
-                            let (high, low) = u8_to_hex_char_u8(*v);
-                            output[4] = high;
-                            output[5] = low;
-                            output
+                        Self::$cortical_type_key => {
+                            let mut ascii: [u8; CORTICAL_ID_LENGTH] = *$base_ascii;
+                            let (upper, lower) = u8_to_hex_char_u8(index);
+                            ascii[4] = upper;
+                            ascii[5] = lower;
+                            ascii
                         }
                     ),*
                 }
             }
+            
+
         }
-    };
+    }
 }
 
 
@@ -69,9 +79,9 @@ pub enum $enum_name {
 pub enum CorticalID {
     Custom([u8; CORTICAL_ID_LENGTH]),
     Memory([u8; CORTICAL_ID_LENGTH]),
-    Core(CoreCorticalID),
-    Input(InputCorticalID),
-    Output(OutputCorticalID),
+    Core(CoreCorticalType),
+    Input((InputCorticalType, u8)),
+    Output((OutputCorticalType, u8)),
 }
 
 impl fmt::Display for CorticalID {
@@ -87,10 +97,10 @@ impl fmt::Display for CorticalID {
                 format!("Core '{}' Cortical Area", v.to_string() )
             }
             CorticalID::Input(v) => {
-                format!("Input '{}' Cortical Area", v.to_string() )
+                format!("Input '{}' Cortical Area", v.0.to_string_with_index(v.1) )
             }
             CorticalID::Output(v) => {
-                format!("Output '{}' Cortical Area", v.to_string() )
+                format!("Output '{}' Cortical Area", v.0.to_string_with_index(v.1) )
             }
         };
         write!(f, "{}", ch)
@@ -127,9 +137,10 @@ impl CorticalID {
         }
         let first_char = bytes[0];
         match first_char {
-            b'_' => CoreCorticalID::from_bytes(*bytes).map(Self::Core),
+            b'_' => CoreCorticalType::from_bytes(*bytes).map(Self::Core),
             b'c' => Ok(CorticalID::Custom(*bytes)),
             b'm' => Ok(CorticalID::Memory(*bytes)),
+            b'i' => InputCorticalID::from_bytes(*bytes)?,
             b'i' => InputCorticalID::from_bytes(*bytes).map(Self::Input),
             b'o' => OutputCorticalID::from_bytes(*bytes).map(Self::Output),
             _ => Err(DataProcessingError::InvalidCorticalID(format!("Invalid cortical ID: {}", safe_bytes_to_string(bytes)).into())),
@@ -141,9 +152,8 @@ impl CorticalID {
             return Err(DataProcessingError::InvalidInputBounds("Cortical Area ID Incorrect Length!".into()));
         }
         let bytes: &[u8] = string.as_bytes();
-        let mut inner = [0u8; CORTICAL_ID_LENGTH]; // TODO there has to be a better way than this
-        inner.copy_from_slice(bytes);
-        CorticalID::from_bytes(&inner)
+        let bytes: &[u8; CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
+        CorticalID::from_bytes(&bytes)
     }
 
     pub fn to_bytes(&self) -> [u8; CORTICAL_ID_LENGTH] {
@@ -198,216 +208,219 @@ impl CorticalID {
 }
 
 
-//region Cortical ID Types
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Hash)]
-pub enum CoreCorticalID {
-    Death,
-    Power
-}
-
-impl fmt::Display for CoreCorticalID {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let ch = match self {
-            CoreCorticalID::Death => "Death",
-            CoreCorticalID::Power => "Power"
-        };
-        write!(f, "{}", ch)
-    }
-}
-
-impl CoreCorticalID {
-
-    fn from_bytes(bytes: [u8; CORTICAL_ID_LENGTH]) -> Result<CoreCorticalID, DataProcessingError> {
-        match &bytes {
-            b"_death" => Ok(CoreCorticalID::Death),
-            b"_power" => Ok(CoreCorticalID::Power),
-            _ => Err(handle_byte_id_mapping_fail(bytes)),
-        }
-    }
-    
-    fn to_bytes(&self) -> &'static [u8; CORTICAL_ID_LENGTH] {
-        match self {
-            CoreCorticalID::Death => b"_death",
-            CoreCorticalID::Power => b"___pwr"
-        }
-    }
-}
+//region Other Cortical ID Types
 
 // Inputs
-define_indexed_cortical_enum! {
-    InputCorticalID {
+define_indexed_cortical_enum_and_cortical_types! {
+    InputCorticalType {
         Infrared => {
-            name: "Infrared Sensor",
+            friendly_debug_name: "Infrared Sensor",
             base_ascii: b"iinf00"
         },
         ReverseInfrared => {
-            name: "Reverse Infrared Sensor",
+            friendly_debug_name: "Reverse Infrared Sensor",
             base_ascii: b"iiif00"
         },
         Proximity => {
-            name: "Proximity Sensor",
+            friendly_debug_name: "Proximity Sensor",
             base_ascii: b"ipro00"
         },
         DigitalGPIO => {
-            name: "Digital GPIO input",
+            friendly_debug_name: "Digital GPIO input",
             base_ascii: b"igpd00"
         },
         AnalogGPIO=> {
-            name: "Analog GPIO Input",
+            friendly_debug_name: "Analog GPIO Input",
             base_ascii: b"igpa00"
         },
         Accelerometer => {
-            name: "Accelerometer Input",
+            friendly_debug_name: "Accelerometer Input",
             base_ascii: b"iacc00"
         },
         Gyro => {
-            name: "Gyro Input",
+            friendly_debug_name: "Gyro Input",
             base_ascii: b"igyr00"
         },
         Euler => {
-            name: "Euler Input",
+            friendly_debug_name: "Euler Input",
             base_ascii: b"ieul00"
         },
         Shock => {
-            name: "Shock Input",
+            friendly_debug_name: "Shock Input",
             base_ascii: b"isho00"
         },
         Battery => {
-            name: "Battery Input",
+            friendly_debug_name: "Battery Input",
             base_ascii: b"ibat00"
         },
         Compass => {
-            name: "Compass Input",
+            friendly_debug_name: "Compass Input",
             base_ascii: b"icom00"
         },
         VisionCenterGray => {
-            name: "Center Vision Input (Grayscale)",
+            friendly_debug_name: "Center Vision Input (Grayscale)",
             base_ascii: b"ivcc00"
         },
         VisionTopLeftGray => {
-            name: "Top Left Vision Input (Grayscale)",
+            friendly_debug_name: "Top Left Vision Input (Grayscale)",
             base_ascii: b"ivtl00"
         },
         VisionTopMiddleGray => {
-            name: "Top Middle Vision Input (Grayscale)",
+            friendly_debug_name: "Top Middle Vision Input (Grayscale)",
             base_ascii: b"ivtm00"
         },
         VisionTopRightGray => {
-            name: "Top Right Vision Input (Grayscale)",
+            friendly_debug_name: "Top Right Vision Input (Grayscale)",
             base_ascii: b"ivtr00"
         },
         VisionMiddleLeftGray => {
-            name: "Middle Left Vision Input (Grayscale)",
+            friendly_debug_name: "Middle Left Vision Input (Grayscale)",
             base_ascii: b"ivml00"
         },
         VisionMiddleRightGray => {
-            name: "Middle Right Vision Input (Grayscale)",
+            friendly_debug_name: "Middle Right Vision Input (Grayscale)",
             base_ascii: b"ivmr00"
         },
         VisionBottomLeftGray => {
-            name: "Bottom Left Vision Input (Grayscale)",
+            friendly_debug_name: "Bottom Left Vision Input (Grayscale)",
             base_ascii: b"ivbl00"
         },
         VisionBottomMiddleGray => {
-            name: "Bottom Middle Vision Input (Grayscale)",
+            friendly_debug_name: "Bottom Middle Vision Input (Grayscale)",
             base_ascii: b"ivbm00"
         },
         VisionBottomRightGray => {
-            name: "Bottom Right Vision Input (Grayscale)",
+            friendly_debug_name: "Bottom Right Vision Input (Grayscale)",
             base_ascii: b"ivbr00"
         },
         VisionCenterColor => {
-            name: "Center Vision Input (Color)",
+            friendly_debug_name: "Center Vision Input (Color)",
             base_ascii: b"iVcc00"
         },
         VisionTopLeftColor => {
-            name: "Top Left Vision Input (Color)",
+            friendly_debug_name: "Top Left Vision Input (Color)",
             base_ascii: b"iVtl00"
         },
         VisionTopMiddleColor => {
-            name: "Top Middle Vision Input (Color)",
+            friendly_debug_name: "Top Middle Vision Input (Color)",
             base_ascii: b"iVtm00"
         },
         VisionTopRightColor => {
-            name: "Top Right Vision Input (Color)",
+            friendly_debug_name: "Top Right Vision Input (Color)",
             base_ascii: b"iVtr00"
         },
         VisionMiddleLeftColor => {
-            name: "Middle Left Vision Input (Color)",
+            friendly_debug_name: "Middle Left Vision Input (Color)",
             base_ascii: b"iVml00"
         },
         VisionMiddleRightColor => {
-            name: "Middle Right Vision Input (Color)",
+            friendly_debug_name: "Middle Right Vision Input (Color)",
             base_ascii: b"iVmr00"
         },
         VisionBottomLeftColor => {
-            name: "Bottom Left Vision Input (Color)",
+            friendly_debug_name: "Bottom Left Vision Input (Color)",
             base_ascii: b"iVbl00"
         },
         VisionBottomMiddleColor => {
-            name: "Bottom Middle Vision Input (Color)",
+            friendly_debug_name: "Bottom Middle Vision Input (Color)",
             base_ascii: b"iVbm00"
         },
         VisionBottomRightColor => {
-            name: "Bottom Right Vision Input (Color)",
+            friendly_debug_name: "Bottom Right Vision Input (Color)",
             base_ascii: b"iVbr00"
         },
         Miscellaneous => {
-            name: "Miscellaneous",
+            friendly_debug_name: "Miscellaneous",
             base_ascii: b"imis00"
         },
         ServoPosition => {
-            name: "Servo Position",
+            friendly_debug_name: "Servo Position",
             base_ascii: b"ispo00"
         },
         ServoMotion => {
-            name: "Servo Motion",
+            friendly_debug_name: "Servo Motion",
             base_ascii: b"ismo00"
         },
         IDTrainer => {
-            name: "ID Trainer",
+            friendly_debug_name: "ID Trainer",
             base_ascii: b"iidt00"
         },
         Pressure => {
-            name: "Pressure",
+            friendly_debug_name: "Pressure",
             base_ascii: b"ipre00"
         },
         Lidar => {
-            name: "Lidar",
+            friendly_debug_name: "Lidar",
             base_ascii: b"ilid00"
         },
         Audio => {
-            name: "Audio",
+            friendly_debug_name: "Audio",
             base_ascii: b"iear00"
         }
     }
 }
 
 // Outputs
-define_indexed_cortical_enum! {
-    OutputCorticalID {
+define_indexed_cortical_enum_and_cortical_types! {
+    OutputCorticalType {
         SpinningMotor => {
-            name: "Spinning Motor",
+            friendly_debug_name: "Spinning Motor",
             base_ascii: b"omot00"
         },
         ServoMotion => {
-            name: "Servo (Delta Motion)",
+            friendly_debug_name: "Servo (Delta Motion)",
             base_ascii: b"osmo00"
         },
         ServoPosition => {
-            name: "Servo (Absolute Position)",
+            friendly_debug_name: "Servo (Absolute Position)",
             base_ascii: b"ospo00"
         },
         MotionControl => {
-            name: "Motion Control",
+            friendly_debug_name: "Motion Control",
             base_ascii: b"omcl00"
         },
         Battery => {
-            name: "Battery",
+            friendly_debug_name: "Battery",
             base_ascii: b"pbat00"
         },
+    }
+}
+
+// Core
+
+//NOTE: No need for an internal ID implementation for this
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CoreCorticalType {
+    Death,
+    Power
+}
+
+impl fmt::Display for CoreCorticalType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ch = match self {
+            CoreCorticalType::Death => "Death",
+            CoreCorticalType::Power => "Power"
+        };
+        write!(f, "{}", ch)
+    }
+}
+
+impl CoreCorticalType {
+
+    fn from_bytes(bytes: [u8; CORTICAL_ID_LENGTH]) -> Result<CoreCorticalType, DataProcessingError> {
+        match &bytes {
+            b"_death" => Ok(CoreCorticalType::Death),
+            b"_power" => Ok(CoreCorticalType::Power),
+            _ => Err(handle_byte_id_mapping_fail(bytes)),
+        }
+    }
+
+    fn to_bytes(&self) -> &'static [u8; CORTICAL_ID_LENGTH] {
+        match self {
+            CoreCorticalType::Death => b"_death",
+            CoreCorticalType::Power => b"___pwr"
+        }
     }
 }
 
@@ -429,11 +442,11 @@ fn hex_chars_to_u8(high: char, low: char) -> Result<u8, DataProcessingError> {
     Ok((hi << 4) | lo)
 }
 
-fn u8_to_hex_char_u8(byte: u8) -> (u8, u8) {
+fn u8_to_hex_char_u8(index: u8) -> (u8, u8) {
     const HEX_CHARS: &[u8; 16] = b"0123456789ABCDEF";
 
-    let high = HEX_CHARS[(byte >> 4) as usize];
-    let low = HEX_CHARS[(byte & 0x0F) as usize];
+    let high = HEX_CHARS[(index >> 4) as usize];
+    let low = HEX_CHARS[(index & 0x0F) as usize];
 
     (high, low)
 }
