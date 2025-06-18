@@ -36,10 +36,9 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
 
         for (cortical_id, neuron_data) in &self.mappings {
             // Write cortical subheader
-            let write_target: &mut [u8; CORTICAL_ID_LENGTH] = &mut slice[subheader_write_index .. subheader_write_index + CORTICAL_ID_LENGTH].try_into().unwrap();
-            dbg!(&write_target);
+            let write_target = &mut slice[subheader_write_index .. subheader_write_index + CORTICAL_ID_LENGTH];
+            let write_target = write_target.try_into().unwrap();
             cortical_id.write_bytes_at(write_target)?;
-            dbg!(&write_target);
             let reading_start: u32 = neuron_data_write_index;
             let reading_length: u32 = neuron_data.get_number_of_neurons_used() as u32 * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON as u32;
             LittleEndian::write_u32(&mut slice[subheader_write_index + 6 .. subheader_write_index + 10], reading_start);
