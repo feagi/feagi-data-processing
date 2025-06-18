@@ -115,6 +115,10 @@ impl CoreCorticalID {
 
 define_indexed_cortical_enum! {
     InputCorticalID {
+        InfraredSensor => {
+            name: "Infrared Sensor",
+            base_ascii: b"iinf00"
+        },
         VisionCenterGray => {
             name: "Center Vision Grayscale",
             base_ascii: b"ivcc00"
@@ -122,7 +126,8 @@ define_indexed_cortical_enum! {
         VisionTopLeftGray => {
             name: "Top Left Vision Grayscale",
             base_ascii: b"ivtl00"
-        }
+        },
+        
     }
 }
 
@@ -143,14 +148,7 @@ define_indexed_cortical_enum! {
 
 
 
-
-
-
-
-
-
-
-
+//region Local Helper Functions
 fn hex_chars_to_u8(high: char, low: char) -> Result<u8, DataProcessingError> {
     fn hex_value(c: char) -> Result<u8, DataProcessingError> {
         match c {
@@ -184,3 +182,4 @@ fn handle_byte_id_mapping_fail(bytes: [u8; CORTICAL_ID_LENGTH]) -> DataProcessin
         DataProcessingError::InvalidCorticalID(format!("Invalid cortical ID '{}'!", as_string.unwrap()))
     }
 }
+//endregion
