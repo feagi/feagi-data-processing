@@ -98,6 +98,7 @@ impl fmt::Display for CorticalID {
 }
 
 impl CorticalID {
+    
     pub fn from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<Self, DataProcessingError> {
         if !bytes.iter().all(|&b| b.is_ascii()) {
             return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));

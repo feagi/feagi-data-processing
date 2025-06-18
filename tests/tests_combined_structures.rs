@@ -2,7 +2,7 @@ use feagi_core_data_structures_and_processing::miscellaneous_types::json_structu
 use feagi_core_data_structures_and_processing::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
 use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
 use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
-use feagi_core_data_structures_and_processing::cortical_data::CorticalID;
+use feagi_core_data_structures_and_processing::genome_definitions::cortical_id::CorticalID;
 use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure::FeagiByteStructure;
 use feagi_core_data_structures_and_processing::byte_structures::{FeagiByteStructureCompatible, FeagiByteStructureType};
 use serde_json::json;
@@ -25,14 +25,14 @@ fn test_combined_neuron_json_multistruct_serialize_deserialize() {
     let json_structure = JsonStructure::from_json_value(json_data.clone());
 
     // Create neuron structure (similar to the neuron tests)
-    let cortical_id_a = CorticalID::from_str("AAAAAA").unwrap();
+    let cortical_id_a = CorticalID::Custom(*b"cAAAAA");
     let neuron_a_1 = NeuronXYZP::new(10, 20, 30, 0.75);
     let neuron_a_2 = NeuronXYZP::new(40, 50, 60, 0.25);
     let mut neurons_a = NeuronXYZPArrays::new(2).unwrap();
     neurons_a.add_neuron(&neuron_a_1);
     neurons_a.add_neuron(&neuron_a_2);
 
-    let cortical_id_b = CorticalID::from_str("BBBBBB").unwrap();
+    let cortical_id_b = CorticalID::Custom(*b"cBBBBB");
     let neuron_b_1 = NeuronXYZP::new(100, 200, 300, 0.8);
     let mut neurons_b = NeuronXYZPArrays::new(1).unwrap();
     neurons_b.add_neuron(&neuron_b_1);
@@ -94,11 +94,11 @@ fn test_combined_neuron_json_multistruct_serialize_deserialize() {
 
     // Verify neuron data integrity
     assert_eq!(recovered_neuron_mappings.get_number_contained_areas(), 2);
-    assert!(recovered_neuron_mappings.contains(CorticalID::from_str("AAAAAA").unwrap()));
-    assert!(recovered_neuron_mappings.contains(CorticalID::from_str("BBBBBB").unwrap()));
+    assert!(recovered_neuron_mappings.contains(CorticalID::Custom(*b"cAAAAA")));
+    assert!(recovered_neuron_mappings.contains(CorticalID::Custom(*b"cBBBBB")));
 
-    let recovered_neurons_a = recovered_neuron_mappings.borrow(&CorticalID::from_str("AAAAAA").unwrap()).unwrap();
-    let recovered_neurons_b = recovered_neuron_mappings.borrow(&CorticalID::from_str("BBBBBB").unwrap()).unwrap();
+    let recovered_neurons_a = recovered_neuron_mappings.borrow(&CorticalID::Custom(*b"cAAAAA")).unwrap();
+    let recovered_neurons_b = recovered_neuron_mappings.borrow(&CorticalID::Custom(*b"cBBBBB")).unwrap();
 
     let recovered_neuron_vec_a = recovered_neurons_a.copy_as_neuron_xyzp_vec();
     let recovered_neuron_vec_b = recovered_neurons_b.copy_as_neuron_xyzp_vec();
@@ -119,14 +119,14 @@ fn test_multistruct_with_multiple_json_and_neuron_structures() {
     let json2 = JsonStructure::from_json_value(json!({"type": "metadata", "value": 2}));
 
     // Create multiple neuron structures
-    let cortical_id_1 = CorticalID::from_str("TEST01").unwrap();
+    let cortical_id_1 = CorticalID::Custom(*b"cAAAAA");
     let neuron_1 = NeuronXYZP::new(1, 1, 1, 0.1);
     let mut neurons_1 = NeuronXYZPArrays::new(1).unwrap();
     neurons_1.add_neuron(&neuron_1);
     let mut neuron_mappings_1 = CorticalMappedXYZPNeuronData::new();
     neuron_mappings_1.insert(cortical_id_1, neurons_1);
 
-    let cortical_id_2 = CorticalID::from_str("TEST02").unwrap();
+    let cortical_id_2 = CorticalID::from_ascii_string("cTES02").unwrap();
     let neuron_2 = NeuronXYZP::new(2, 2, 2, 0.2);
     let mut neurons_2 = NeuronXYZPArrays::new(1).unwrap();
     neurons_2.add_neuron(&neuron_2);

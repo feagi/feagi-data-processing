@@ -10,6 +10,7 @@ use super::image_frame::ImageFrame;
 use crate::error::DataProcessingError;
 use super::descriptors::*;
 use crate::genome_definitions::cortical_id::CorticalID;
+use crate::genome_definitions::cortical_id::InputCorticalID::*;
 use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
 use crate::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
 
@@ -171,18 +172,33 @@ impl SegmentedVisionFrame {
     /// let cortical_ids = SegmentedVisionFrame::create_ordered_cortical_ids(0, false).unwrap();
     /// assert_eq!(cortical_ids.len(), 9);
     /// ```
-    pub fn create_ordered_cortical_ids(_camera_index: u8, is_grayscale: bool) -> Result<[CorticalID; 9], DataProcessingError> {
-        let mut output = [CorticalID::from_str("iv00_C")?, // TODO use camera index
-            CorticalID::from_str("iv00BL")?, CorticalID::from_str("iv00ML")?,
-            CorticalID::from_str("iv00TL")?, CorticalID::from_str("iv00TM")?,
-            CorticalID::from_str("iv00TR")?, CorticalID::from_str("iv00MR")?,
-            CorticalID::from_str("iv00BR")?, CorticalID::from_str("iv00BM")?];
-        
-        if !is_grayscale {
-            output[0] = CorticalID::from_str("iv00CC")?;
+    pub fn create_ordered_cortical_ids(camera_index: u8, is_grayscale: bool) -> Result<[CorticalID; 9], DataProcessingError> {
+        if is_grayscale {
+            return Ok([
+                CorticalID::Input(VisionCenterGray(camera_index)),
+                CorticalID::Input(VisionBottomLeftGray(camera_index)),
+                CorticalID::Input(VisionMiddleLeftGray(camera_index)),
+                CorticalID::Input(VisionTopLeftGray(camera_index)),
+                CorticalID::Input(VisionTopMiddleGray(camera_index)),
+                CorticalID::Input(VisionTopRightGray(camera_index)),
+                CorticalID::Input(VisionMiddleRightGray(camera_index)),
+                CorticalID::Input(VisionBottomRightGray(camera_index)),
+                CorticalID::Input(VisionBottomMiddleGray(camera_index)),
+            ])
         }
-        
-        Ok(output) // same order as other struct members
+        else {
+            return Ok([ // TODO Shouldn't these all be in color?
+                CorticalID::Input(VisionCenterColor(camera_index)), 
+                CorticalID::Input(VisionBottomLeftGray(camera_index)),
+                CorticalID::Input(VisionMiddleLeftGray(camera_index)),
+                CorticalID::Input(VisionTopLeftGray(camera_index)),
+                CorticalID::Input(VisionTopMiddleGray(camera_index)),
+                CorticalID::Input(VisionTopRightGray(camera_index)),
+                CorticalID::Input(VisionMiddleRightGray(camera_index)),
+                CorticalID::Input(VisionBottomRightGray(camera_index)),
+                CorticalID::Input(VisionBottomMiddleGray(camera_index)),
+            ])
+        }
     } // TODO why is this here?
     
     //endregion

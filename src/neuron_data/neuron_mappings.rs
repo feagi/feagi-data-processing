@@ -37,7 +37,9 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
         for (cortical_id, neuron_data) in &self.mappings {
             // Write cortical subheader
             let write_target: &mut [u8; CORTICAL_ID_LENGTH] = &mut slice[subheader_write_index .. subheader_write_index + CORTICAL_ID_LENGTH].try_into().unwrap();
+            dbg!(&write_target);
             cortical_id.write_bytes_at(write_target)?;
+            dbg!(&write_target);
             let reading_start: u32 = neuron_data_write_index;
             let reading_length: u32 = neuron_data.get_number_of_neurons_used() as u32 * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON as u32;
             LittleEndian::write_u32(&mut slice[subheader_write_index + 6 .. subheader_write_index + 10], reading_start);
@@ -87,11 +89,11 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
         let mut reading_header_index: usize = GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE;
 
         for _cortical_index in 0..number_cortical_areas {
-            
+            dbg!(&bytes[reading_header_index..reading_header_index + 6]);
             let cortical_id = CorticalID::from_bytes(
                 <&[u8; 6]>::try_from(&bytes[reading_header_index..reading_header_index + 6]).unwrap()
             )?;
-
+            dbg!(cortical_id);
             let data_start_reading: usize = LittleEndian::read_u32(&bytes[reading_header_index + 6..reading_header_index + 10]) as usize;
             let number_bytes_to_read: usize = LittleEndian::read_u32(&bytes[reading_header_index + 10..reading_header_index + 14]) as usize;
 
