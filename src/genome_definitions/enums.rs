@@ -63,9 +63,6 @@ macro_rules! define_indexed_cortical_enum {
 }
 
 
-
-
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CorticalID {
     Custom([u8; CORTICAL_ID_LENGTH]),
@@ -75,7 +72,79 @@ pub enum CorticalID {
     Output(OutputCorticalID),
 }
 
+impl fmt::Display for CorticalID {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ch = match self {
+            CorticalID::Custom(v) => {
+                format!("Custom (inter) Cortical Area of ID: {}", safe_bytes_to_string(v) )
+            }
+            CorticalID::Memory(v) => {
+                format!("Memory Cortical Area of ID: {}", safe_bytes_to_string(v) )
+            }
+            CorticalID::Core(v) => {
+                format!("Core '{}' Cortical Area", v.to_string() )
+            }
+            CorticalID::Input(v) => {
+                format!("Input '{}' Cortical Area", v.to_string() )
+            }
+            CorticalID::Output(v) => {
+                format!("Output '{}' Cortical Area", v.to_string() )
+            }
+        };
+        write!(f, "{}", ch)
+    }
+}
 
+impl CorticalID {
+    pub fn from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<Self, DataProcessingError> {
+        if !bytes.iter().all(|&b| b.is_ascii()) {
+            return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));
+        }
+        let first_char = bytes[0];
+        match first_char { 
+            b'_' => CoreCorticalID::from_bytes(*bytes).map(Self::Core),
+            b'c' => Ok(CorticalID::Custom(*bytes)),
+            b'm' => Ok(CorticalID::Memory(*bytes)),
+            b'i' => InputCorticalID::from_bytes(*bytes).map(Self::Input),
+            b'o' => OutputCorticalID::from_bytes(*bytes).map(Self::Output),
+            _ => Err(DataProcessingError::InvalidCorticalID(format!("Invalid cortical ID: {}", safe_bytes_to_string(bytes)).into())),
+        }
+    }
+    
+    pub fn from_ascii_string(string: &str) -> Result<Self, DataProcessingError> {
+        if string.len() != CORTICAL_ID_LENGTH {
+            return Err(DataProcessingError::InvalidInputBounds("Cortical Area ID Incorrect Length!".into()));
+        }
+        let bytes: &[u8] = string.as_bytes();
+        let mut inner = [0u8; CORTICAL_ID_LENGTH]; // TODO there has to be a better way than this
+        inner.copy_from_slice(bytes);
+        CorticalID::from_bytes(&inner)
+    }
+    
+    pub fn to_bytes(&self) -> [u8; CORTICAL_ID_LENGTH] {
+        match self {
+            CorticalID::Core(v) => {*v.to_bytes()}
+            CorticalID::Custom(v) => *v,
+            CorticalID::Memory(v) => *v,
+            CorticalID::Input(v) => v.to_bytes(),
+            CorticalID::Output(v) => v.to_bytes(),
+        }
+    }
+    
+    pub fn write_bytes_at(&self, target: &mut [u8; CORTICAL_ID_LENGTH]) -> Result<(), DataProcessingError> {
+        let bytes = self.to_bytes();
+        target.copy_from_slice(&bytes);
+        Ok(())
+    }
+    
+    pub fn to_identifier_ascii_string(&self) -> String {
+        let bytes = self.to_bytes();
+        safe_bytes_to_string(&bytes)
+    }
+}
+
+
+//region Cortical ID Types
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CoreCorticalID {
@@ -111,8 +180,7 @@ impl CoreCorticalID {
     }
 }
 
-
-
+// Inputs
 define_indexed_cortical_enum! {
     InputCorticalID {
         Infrared => {
@@ -262,6 +330,7 @@ define_indexed_cortical_enum! {
     }
 }
 
+// Outputs
 define_indexed_cortical_enum! {
     OutputCorticalID {
         SpinningMotor => {
@@ -287,9 +356,7 @@ define_indexed_cortical_enum! {
     }
 }
 
-
-
-
+//endregion
 
 //region Local Helper Functions
 fn hex_chars_to_u8(high: char, low: char) -> Result<u8, DataProcessingError> {
@@ -316,6 +383,12 @@ fn u8_to_hex_char_u8(byte: u8) -> (u8, u8) {
     (high, low)
 }
 
+// This function assumes that we know the bytes are valid ASCII
+fn safe_bytes_to_string(bytes: &[u8; CORTICAL_ID_LENGTH]) -> String {
+    String::from_utf8(bytes.to_vec()).unwrap()
+}
+
+// Used when we know something is wrong, we just want the right error
 fn handle_byte_id_mapping_fail(bytes: [u8; CORTICAL_ID_LENGTH]) -> DataProcessingError {
     let as_string = String::from_utf8(bytes.to_vec());
     if as_string.is_err() {

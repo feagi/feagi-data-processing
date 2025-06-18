@@ -5,6 +5,7 @@
 //! failure modes that can occur during data processing operations.
 //! ```
 
+use std::error::Error;
 use std::fmt;
 
 /// Comprehensive error type for all FEAGI data processing operations.
@@ -61,6 +62,10 @@ pub enum DataProcessingError {
     /// requesting the feature.
     NotImplemented,
     InvalidCorticalID(String),
+}
+
+impl Error for DataProcessingError {
+    
 }
 
 impl fmt::Display for DataProcessingError {
