@@ -115,19 +115,150 @@ impl CoreCorticalID {
 
 define_indexed_cortical_enum! {
     InputCorticalID {
-        InfraredSensor => {
+        Infrared => {
             name: "Infrared Sensor",
             base_ascii: b"iinf00"
         },
+        ReverseInfrared => {
+            name: "Reverse Infrared Sensor",
+            base_ascii: b"iiif00"
+        },
+        Proximity => {
+            name: "Proximity Sensor",
+            base_ascii: b"ipro00"
+        },
+        DigitalGPIO => {
+            name: "Digital GPIO input",
+            base_ascii: b"igpd00"
+        },
+        AnalogGPIO=> {
+            name: "Analog GPIO Input",
+            base_ascii: b"igpa00"
+        },
+        Accelerometer => {
+            name: "Accelerometer Input",
+            base_ascii: b"iacc00"
+        },
+        Gyro => {
+            name: "Gyro Input",
+            base_ascii: b"igyr00"
+        },
+        Euler => {
+            name: "Euler Input",
+            base_ascii: b"ieul00"
+        },
+        Shock => {
+            name: "Shock Input",
+            base_ascii: b"isho00"
+        },
+        Battery => {
+            name: "Battery Input",
+            base_ascii: b"ibat00"
+        },
+        Compass => {
+            name: "Compass Input",
+            base_ascii: b"icom00"
+        },
         VisionCenterGray => {
-            name: "Center Vision Grayscale",
+            name: "Center Vision Input (Grayscale)",
             base_ascii: b"ivcc00"
         },
         VisionTopLeftGray => {
-            name: "Top Left Vision Grayscale",
+            name: "Top Left Vision Input (Grayscale)",
             base_ascii: b"ivtl00"
         },
-        
+        VisionTopMiddleGray => {
+            name: "Top Middle Vision Input (Grayscale)",
+            base_ascii: b"ivtm00"
+        },
+        VisionTopRightGray => {
+            name: "Top Right Vision Input (Grayscale)",
+            base_ascii: b"ivtr00"
+        },
+        VisionMiddleLeftGray => {
+            name: "Middle Left Vision Input (Grayscale)",
+            base_ascii: b"ivml00"
+        },
+        VisionMiddleRightGray => {
+            name: "Middle Right Vision Input (Grayscale)",
+            base_ascii: b"ivmr00"
+        },
+        VisionBottomLeftGray => {
+            name: "Bottom Left Vision Input (Grayscale)",
+            base_ascii: b"ivbl00"
+        },
+        VisionBottomMiddleGray => {
+            name: "Bottom Middle Vision Input (Grayscale)",
+            base_ascii: b"ivbm00"
+        },
+        VisionBottomRightGray => {
+            name: "Bottom Right Vision Input (Grayscale)",
+            base_ascii: b"ivbr00"
+        },
+        VisionCenterColor => {
+            name: "Center Vision Input (Color)",
+            base_ascii: b"iVcc00"
+        },
+        VisionTopLeftColor => {
+            name: "Top Left Vision Input (Color)",
+            base_ascii: b"iVtl00"
+        },
+        VisionTopMiddleColor => {
+            name: "Top Middle Vision Input (Color)",
+            base_ascii: b"iVtm00"
+        },
+        VisionTopRightColor => {
+            name: "Top Right Vision Input (Color)",
+            base_ascii: b"iVtr00"
+        },
+        VisionMiddleLeftColor => {
+            name: "Middle Left Vision Input (Color)",
+            base_ascii: b"iVml00"
+        },
+        VisionMiddleRightColor => {
+            name: "Middle Right Vision Input (Color)",
+            base_ascii: b"iVmr00"
+        },
+        VisionBottomLeftColor => {
+            name: "Bottom Left Vision Input (Color)",
+            base_ascii: b"iVbl00"
+        },
+        VisionBottomMiddleColor => {
+            name: "Bottom Middle Vision Input (Color)",
+            base_ascii: b"iVbm00"
+        },
+        VisionBottomRightColor => {
+            name: "Bottom Right Vision Input (Color)",
+            base_ascii: b"iVbr00"
+        },
+        Miscellaneous => {
+            name: "Miscellaneous",
+            base_ascii: b"imis00"
+        },
+        ServoPosition => {
+            name: "Servo Position",
+            base_ascii: b"ispo00"
+        },
+        ServoMotion => {
+            name: "Servo Motion",
+            base_ascii: b"ismo00"
+        },
+        IDTrainer => {
+            name: "ID Trainer",
+            base_ascii: b"iidt00"
+        },
+        Pressure => {
+            name: "Pressure",
+            base_ascii: b"ipre00"
+        },
+        Lidar => {
+            name: "Lidar",
+            base_ascii: b"ilid00"
+        },
+        Audio => {
+            name: "Audio",
+            base_ascii: b"iear00"
+        }
     }
 }
 
@@ -140,7 +271,19 @@ define_indexed_cortical_enum! {
         ServoMotion => {
             name: "Servo (Delta Motion)",
             base_ascii: b"osmo00"
-        }
+        },
+        ServoPosition => {
+            name: "Servo (Absolute Position)",
+            base_ascii: b"ospo00"
+        },
+        MotionControl => {
+            name: "Motion Control",
+            base_ascii: b"omcl00"
+        },
+        Battery => {
+            name: "Battery",
+            base_ascii: b"pbat00"
+        },
     }
 }
 
