@@ -1,8 +1,6 @@
 use std::fmt;
 use crate::error::DataProcessingError;
 
-pub const CORTICAL_ID_LENGTH: usize = 6;
-
 macro_rules! define_indexed_cortical_enum_and_cortical_types {
     (
         $cortical_type_enum_name:ident {
@@ -14,14 +12,14 @@ macro_rules! define_indexed_cortical_enum_and_cortical_types {
             ),* $(,)?
         }
     ) => {
-        
+
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
         pub enum $cortical_type_enum_name {
             $(
                 $cortical_type_key
             ),*
         }
-        
+
         impl std::fmt::Display for $cortical_type_enum_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 let ch = match self {
@@ -32,18 +30,18 @@ macro_rules! define_indexed_cortical_enum_and_cortical_types {
                 write!(f, "{}", ch)
             }
         }
-        
+
         impl $cortical_type_enum_name {
-            
+
             pub fn to_string_with_index(&self, index: u8) -> String {
                 format!("{} (Index: {})", self, index)
             }
-            
+
             fn from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<(Self, u8), DataProcessingError> {
                 // We assume that the structure is all ASCII, and the first letter is correct
                 let mut comparing_base_slice: [u8; CORTICAL_ID_LENGTH] = *b"000000";
                 comparing_base_slice[0..4].copy_from_slice(&bytes[0..4]);
-                
+
                 match &comparing_base_slice {
                     $(
                         $base_ascii => {
@@ -58,7 +56,7 @@ macro_rules! define_indexed_cortical_enum_and_cortical_types {
                     },
                 }
             }
-            
+
             fn to_bytes(&self, index: u8) -> [u8; CORTICAL_ID_LENGTH] {
                 match self {
                     $(
@@ -76,143 +74,194 @@ macro_rules! define_indexed_cortical_enum_and_cortical_types {
     }
 }
 
+//region Cortical IDs
+pub const CORTICAL_ID_LENGTH: usize = 6;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Hash)]
-pub enum CorticalID {
-    Custom([u8; CORTICAL_ID_LENGTH]),
-    Memory([u8; CORTICAL_ID_LENGTH]),
-    Core(CoreCorticalType),
-    Input((InputCorticalType, u8)),
-    Output((OutputCorticalType, u8)),
+
+pub use hidden_cortical_id_internals::CorticalID; // We are blocking the ability to create this enum directly, which would bypass safety checks
+
+mod hidden_cortical_id_internals {
+    use std::fmt;
+    use crate::error::DataProcessingError;
+    use crate::genome_definitions::identifiers::{safe_bytes_to_string, CORTICAL_ID_LENGTH};
+    use crate::genome_definitions::identifiers::CoreCorticalType;
+    use crate::genome_definitions::identifiers::InputCorticalType;
+    use crate::genome_definitions::identifiers::OutputCorticalType;
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub enum CorticalID {
+        Custom([u8; CORTICAL_ID_LENGTH]),
+        Memory([u8; CORTICAL_ID_LENGTH]),
+        Core(CoreCorticalType),
+        Input((InputCorticalType, u8)),
+        Output((OutputCorticalType, u8)),
+    }
+
+    impl fmt::Display for CorticalID {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            let ch = match self {
+                CorticalID::Custom(v) => {
+                    format!("Custom (inter) Cortical Area of ID: {}", safe_bytes_to_string(v) )
+                }
+                CorticalID::Memory(v) => {
+                    format!("Memory Cortical Area of ID: {}", safe_bytes_to_string(v) )
+                }
+                CorticalID::Core(v) => {
+                    format!("Core '{}' Cortical Area", v.to_string() )
+                }
+                CorticalID::Input(v) => {
+                    format!("Input '{}' Cortical Area", v.0.to_string_with_index(v.1) )
+                }
+                CorticalID::Output(v) => {
+                    format!("Output '{}' Cortical Area", v.0.to_string_with_index(v.1) )
+                }
+            };
+            write!(f, "{}", ch)
+        }
+    }
+
+    impl CorticalID {
+        pub fn new_custom_cortical_area_id(desired_id_string: String) -> Result<Self, DataProcessingError> {
+            CorticalID::verify_all_universal_id_rules(&desired_id_string)?;
+            let bytes = desired_id_string.as_bytes();
+            let bytes: &[u8; CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
+            if bytes[0] != b'c' {
+                return Err(DataProcessingError::InvalidCorticalID(format!("A custom cortical area ID must start with 'c'! Cortical area given: {}", desired_id_string)));
+            }
+            Ok(CorticalID::Custom(*bytes))
+        }
+
+        pub fn new_memory_cortical_area_id(desired_id_string: String) -> Result<Self, DataProcessingError> {
+            CorticalID::verify_all_universal_id_rules(&desired_id_string)?;
+            let bytes = desired_id_string.as_bytes();
+            let bytes: &[u8; CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
+            if bytes[0] != b'm' {
+                return Err(DataProcessingError::InvalidCorticalID(format!("A memory cortical area ID must start with 'm'! Cortical area given: {}", desired_id_string)));
+            }
+            Ok(CorticalID::Memory(*bytes))
+        }
+
+        pub fn new_core_cortical_area_id(core_type: CoreCorticalType) -> Result<Self, DataProcessingError> {
+            Ok(CorticalID::Core(core_type))
+        }
+
+        pub fn new_input_cortical_area_id(input_type: InputCorticalType, input_index: u8) -> Result<Self, DataProcessingError> {
+            Ok(CorticalID::Input((input_type, input_index)))
+        }
+
+        pub fn new_output_cortical_area_id(output_type: OutputCorticalType, output_index: u8) -> Result<Self, DataProcessingError> {
+            Ok(CorticalID::Output((output_type, output_index)))
+        }
+        
+        pub fn create_ordered_cortical_areas_for_segmented_vision(camera_index: u8, is_grayscale: bool) -> [CorticalID; 9] {
+            if is_grayscale {
+                return [
+                    CorticalID::Input((InputCorticalType::VisionCenterGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionBottomLeftGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionMiddleLeftGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionTopLeftGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionTopMiddleGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionTopRightGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionMiddleRightGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionBottomRightGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionBottomMiddleGray, camera_index)),
+                ]
+            }
+            else {
+                return [ // TODO Shouldn't these all be in color?
+                    CorticalID::Input((InputCorticalType::VisionCenterColor, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionBottomLeftGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionMiddleLeftGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionTopLeftGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionTopMiddleGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionTopRightGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionMiddleRightGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionBottomRightGray, camera_index)),
+                    CorticalID::Input((InputCorticalType::VisionBottomMiddleGray, camera_index)),
+                ]
+            }
+            }
+
+        pub fn from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<Self, DataProcessingError> {
+            if !bytes.iter().all(|&b| b.is_ascii()) {
+                return Err(DataProcessingError::InvalidCorticalID("Cortical ID must contain only ASCII characters!".into()));
+            }
+            let first_char = bytes[0];
+            match first_char {
+                b'_' => CoreCorticalType::from_bytes(*bytes).map(Self::Core),
+                b'c' => Ok(CorticalID::Custom(*bytes)),
+                b'm' => Ok(CorticalID::Memory(*bytes)),
+                b'i' => InputCorticalType::from_bytes(bytes).map(Self::Input),
+                b'o' => OutputCorticalType::from_bytes(bytes).map(Self::Output),
+                _ => Err(DataProcessingError::InvalidCorticalID(format!("Invalid cortical ID: {}", safe_bytes_to_string(bytes)).into())),
+            }
+        }
+
+        pub fn from_ascii_string(string: &str) -> Result<Self, DataProcessingError> {
+            if string.len() != CORTICAL_ID_LENGTH {
+                return Err(DataProcessingError::InvalidInputBounds("Cortical Area ID Incorrect Length!".into()));
+            }
+            let bytes: &[u8] = string.as_bytes();
+            let bytes: &[u8; CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
+            CorticalID::from_bytes(&bytes) // further checks handled here
+        }
+
+        pub fn to_bytes(&self) -> [u8; CORTICAL_ID_LENGTH] {
+            match self {
+                CorticalID::Core(v) => {*v.to_bytes()}
+                CorticalID::Custom(v) => *v,
+                CorticalID::Memory(v) => *v,
+                CorticalID::Input(v) => v.0.to_bytes(v.1),
+                CorticalID::Output(v) => v.0.to_bytes(v.1),
+            }
+        }
+
+        pub fn write_bytes_at(&self, target: &mut [u8; CORTICAL_ID_LENGTH]) -> Result<(), DataProcessingError> {
+            let bytes = self.to_bytes();
+            target.copy_from_slice(&bytes);
+            Ok(())
+        }
+
+        pub fn to_identifier_ascii_string(&self) -> String {
+            let bytes = self.to_bytes();
+            safe_bytes_to_string(&bytes)
+        }
+
+        fn verify_all_universal_id_rules(string: &String)  -> Result<(), DataProcessingError> {
+            CorticalID::verify_input_length(string)?;
+            CorticalID::verify_input_ascii(string)?;
+            CorticalID::verify_allowed_characters(string)?;
+            Ok(())
+        }
+
+        fn verify_input_length(string: &String) -> Result<(), DataProcessingError> {
+            if string.len() != CORTICAL_ID_LENGTH {
+                return Err(DataProcessingError::InvalidCorticalID(format!("A cortical ID must have a length of {}! Given cortical ID '{}' is not!", CORTICAL_ID_LENGTH, string)).into());
+            }
+            Ok(())
+        }
+
+        fn verify_input_ascii(string: &String) -> Result<(), DataProcessingError> {
+            if !string.is_ascii() {
+                return Err(DataProcessingError::InvalidCorticalID(format!("A cortical ID must be entirely ASCII! Given cortical ID '{}' is not!", string)).into());
+            }
+            Ok(())
+        }
+
+        fn verify_allowed_characters(string: &String) -> Result<(), DataProcessingError> {
+            if !string.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+                return Err(DataProcessingError::InvalidCorticalID(format!("A cortical ID must be made only of alphanumeric characters and underscores! Given cortical ID '{}' is not!", string)).into());
+            }
+            Ok(())
+        }
+
+    }
 }
+//endregion
 
-impl fmt::Display for CorticalID {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let ch = match self {
-            CorticalID::Custom(v) => {
-                format!("Custom (inter) Cortical Area of ID: {}", safe_bytes_to_string(v) )
-            }
-            CorticalID::Memory(v) => {
-                format!("Memory Cortical Area of ID: {}", safe_bytes_to_string(v) )
-            }
-            CorticalID::Core(v) => {
-                format!("Core '{}' Cortical Area", v.to_string() )
-            }
-            CorticalID::Input(v) => {
-                format!("Input '{}' Cortical Area", v.0.to_string_with_index(v.1) )
-            }
-            CorticalID::Output(v) => {
-                format!("Output '{}' Cortical Area", v.0.to_string_with_index(v.1) )
-            }
-        };
-        write!(f, "{}", ch)
-    }
-}
+//region Cortical Types
 
-impl CorticalID {
-
-    pub fn new_custom_cortical_area_id(desired_id_string: String) -> Result<Self, DataProcessingError> {
-        CorticalID::verify_all_universal_id_rules(&desired_id_string)?;
-        let bytes = desired_id_string.as_bytes();
-        let bytes: &[u8; CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
-        if bytes[0] != b'c' {
-            return Err(DataProcessingError::InvalidCorticalID(format!("A custom cortical area ID must start with 'c'! Cortical area given: {}", desired_id_string)));
-        }
-        Ok(CorticalID::Custom(*bytes))
-    }
-
-    pub fn new_memory_cortical_area_id(desired_id_string: String) -> Result<Self, DataProcessingError> {
-        CorticalID::verify_all_universal_id_rules(&desired_id_string)?;
-        let bytes = desired_id_string.as_bytes();
-        let bytes: &[u8; CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
-        if bytes[0] != b'm' {
-            return Err(DataProcessingError::InvalidCorticalID(format!("A memory cortical area ID must start with 'm'! Cortical area given: {}", desired_id_string)));
-        }
-        Ok(CorticalID::Memory(*bytes))
-    }
-    
-    
-
-    pub fn from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<Self, DataProcessingError> {
-        if !bytes.iter().all(|&b| b.is_ascii()) {
-            return Err(DataProcessingError::InvalidCorticalID("Cortical ID must contain only ASCII characters!".into()));
-        }
-        let first_char = bytes[0];
-        match first_char {
-            b'_' => CoreCorticalType::from_bytes(*bytes).map(Self::Core),
-            b'c' => Ok(CorticalID::Custom(*bytes)),
-            b'm' => Ok(CorticalID::Memory(*bytes)),
-            b'i' => InputCorticalType::from_bytes(bytes).map(Self::Input),
-            b'o' => OutputCorticalType::from_bytes(bytes).map(Self::Output),
-            _ => Err(DataProcessingError::InvalidCorticalID(format!("Invalid cortical ID: {}", safe_bytes_to_string(bytes)).into())),
-        }
-    }
-
-    pub fn from_ascii_string(string: &str) -> Result<Self, DataProcessingError> {
-        if string.len() != CORTICAL_ID_LENGTH {
-            return Err(DataProcessingError::InvalidInputBounds("Cortical Area ID Incorrect Length!".into()));
-        }
-        let bytes: &[u8] = string.as_bytes();
-        let bytes: &[u8; CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
-        CorticalID::from_bytes(&bytes)
-    }
-
-    pub fn to_bytes(&self) -> [u8; CORTICAL_ID_LENGTH] {
-        match self {
-            CorticalID::Core(v) => {*v.to_bytes()}
-            CorticalID::Custom(v) => *v,
-            CorticalID::Memory(v) => *v,
-            CorticalID::Input(v) => v.0.to_bytes(v.1),
-            CorticalID::Output(v) => v.0.to_bytes(v.1),
-        }
-    }
-
-    pub fn write_bytes_at(&self, target: &mut [u8; CORTICAL_ID_LENGTH]) -> Result<(), DataProcessingError> {
-        let bytes = self.to_bytes();
-        target.copy_from_slice(&bytes);
-        Ok(())
-    }
-
-    pub fn to_identifier_ascii_string(&self) -> String {
-        let bytes = self.to_bytes();
-        safe_bytes_to_string(&bytes)
-    }
-
-    fn verify_all_universal_id_rules(string: &String)  -> Result<(), DataProcessingError> {
-        CorticalID::verify_input_length(string)?;
-        CorticalID::verify_input_ascii(string)?;
-        CorticalID::verify_allowed_characters(string)?;
-        Ok(())
-    }
-
-    fn verify_input_length(string: &String) -> Result<(), DataProcessingError> {
-        if string.len() != CORTICAL_ID_LENGTH {
-            return Err(DataProcessingError::InvalidCorticalID(format!("A cortical ID must have a length of {}! Given cortical ID '{}' is not!", CORTICAL_ID_LENGTH, string)).into());
-        }
-        Ok(())
-    }
-
-    fn verify_input_ascii(string: &String) -> Result<(), DataProcessingError> {
-        if !string.is_ascii() {
-            return Err(DataProcessingError::InvalidCorticalID(format!("A cortical ID must be entirely ASCII! Given cortical ID '{}' is not!", string)).into());
-        }
-        Ok(())
-    }
-
-    fn verify_allowed_characters(string: &String) -> Result<(), DataProcessingError> {
-        if !string.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-            return Err(DataProcessingError::InvalidCorticalID(format!("A cortical ID must be made only of alphanumeric characters and underscores! Given cortical ID '{}' is not!", string)).into());
-        }
-        Ok(())
-    }
-
-}
-
-
-//region Other Cortical ID Types
-
-// Inputs
+// Cortical Input Types
 define_indexed_cortical_enum_and_cortical_types! {
     InputCorticalType {
         Infrared => {
@@ -362,7 +411,7 @@ define_indexed_cortical_enum_and_cortical_types! {
     }
 }
 
-// Outputs
+// Cortical Output Types
 define_indexed_cortical_enum_and_cortical_types! {
     OutputCorticalType {
         SpinningMotor => {
@@ -388,10 +437,7 @@ define_indexed_cortical_enum_and_cortical_types! {
     }
 }
 
-// Core
-
-//NOTE: No need for an internal ID implementation for this
-
+// Cortical Core Types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CoreCorticalType {
     Death,

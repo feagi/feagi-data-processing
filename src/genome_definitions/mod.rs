@@ -1,6 +1,6 @@
 use crate::error::DataProcessingError;
 
-pub mod cortical_id;
+pub mod identifiers;
 
 /// Represents the dimensions of a cortical area. All dimension directions must be non-zero
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]

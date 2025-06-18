@@ -9,8 +9,8 @@
 use super::image_frame::ImageFrame;
 use crate::error::DataProcessingError;
 use super::descriptors::*;
-use crate::genome_definitions::cortical_id::CorticalID;
-use crate::genome_definitions::cortical_id::InputCorticalID::*;
+use crate::genome_definitions::identifiers::CorticalID;
+use crate::genome_definitions::identifiers::InputCorticalID::*;
 use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
 use crate::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
 
@@ -440,8 +440,8 @@ impl SegmentedVisionFrame {
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// use feagi_core_data_structures_and_processing::genome_definitions::cortical_id::*;
-    /// use feagi_core_data_structures_and_processing::genome_definitions::cortical_id::InputCorticalID::*;
+    /// use feagi_core_data_structures_and_processing::genome_definitions::identifiers::*;
+    /// use feagi_core_data_structures_and_processing::genome_definitions::identifiers::InputCorticalID::*;
     /// use feagi_core_data_structures_and_processing::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
     ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
