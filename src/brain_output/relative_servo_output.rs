@@ -1,7 +1,7 @@
 use std::ops::RangeInclusive;
 use crate::error::DataProcessingError;
 use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
-use crate::cortical_data::CorticalDimensions;
+use crate::genome_definitions::CorticalDimensions;
 
 /// Represents a relative servo output that processes neuron data for servo control.
 /// This structure handles the conversion of neuron activations into relative servo positions
@@ -25,7 +25,7 @@ impl RelativeServoOutput {
     /// # Examples
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_output::relative_servo_output::RelativeServoOutput;
-    /// use feagi_core_data_structures_and_processing::cortical_data::CorticalDimensions;
+    /// use feagi_core_data_structures_and_processing::genome_definitions::CorticalDimensions;
     /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
     ///
     /// let dimensions = CorticalDimensions::new(4, 1, 3).unwrap(); // x must be even, y must be 1
@@ -54,7 +54,7 @@ impl RelativeServoOutput {
     /// # Examples
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_output::relative_servo_output::RelativeServoOutput;
-    /// use feagi_core_data_structures_and_processing::cortical_data::CorticalDimensions;
+    /// use feagi_core_data_structures_and_processing::genome_definitions::CorticalDimensions;
     /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
     ///
     /// let dimensions = CorticalDimensions::new(4, 1, 3).unwrap();
@@ -78,7 +78,7 @@ impl RelativeServoOutput {
     /// # Examples
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_output::relative_servo_output::RelativeServoOutput;
-    /// use feagi_core_data_structures_and_processing::cortical_data::CorticalDimensions;
+    /// use feagi_core_data_structures_and_processing::genome_definitions::CorticalDimensions;
     /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
     /// use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
     ///
@@ -86,7 +86,7 @@ impl RelativeServoOutput {
     /// let mut neuron_data = NeuronXYZPArrays::new_from_resolution((4, 1, 3)).unwrap();
     /// neuron_data.add_neuron(&NeuronXYZP::new(0, 0, 0, 0.5)); // Positive activation
     /// neuron_data.add_neuron(&NeuronXYZP::new(1, 0, 1, 0.3)); // Negative activation
-    /// 
+    ///
     /// let servo_output = RelativeServoOutput::new(neuron_data, dimensions).unwrap();
     /// let value = servo_output.get_float_value_from_channel(0).unwrap();
     /// ```
@@ -120,7 +120,7 @@ impl RelativeServoOutput {
     /// # Examples
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_output::relative_servo_output::RelativeServoOutput;
-    /// use feagi_core_data_structures_and_processing::cortical_data::CorticalDimensions;
+    /// use feagi_core_data_structures_and_processing::genome_definitions::CorticalDimensions;
     /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
     /// use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
     ///
@@ -128,7 +128,7 @@ impl RelativeServoOutput {
     /// let mut neuron_data = NeuronXYZPArrays::new_from_resolution((4, 1, 3)).unwrap();
     /// neuron_data.add_neuron(&NeuronXYZP::new(0, 0, 0, 0.5));
     /// neuron_data.add_neuron(&NeuronXYZP::new(1, 0, 1, 0.3));
-    /// 
+    ///
     /// let servo_output = RelativeServoOutput::new(neuron_data, dimensions).unwrap();
     /// let values = servo_output.get_float_values_for_all_channels().unwrap();
     /// assert_eq!(values.len(), 2);
@@ -153,13 +153,13 @@ impl RelativeServoOutput {
     /// # Examples
     /// ```
     /// use feagi_core_data_structures_and_processing::brain_output::relative_servo_output::RelativeServoOutput;
-    /// use feagi_core_data_structures_and_processing::cortical_data::CorticalDimensions;
+    /// use feagi_core_data_structures_and_processing::genome_definitions::CorticalDimensions;
     /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
     ///
     /// let dimensions = CorticalDimensions::new(4, 1, 3).unwrap();
     /// let initial_data = NeuronXYZPArrays::new_from_resolution((4, 1, 3)).unwrap();
     /// let mut servo_output = RelativeServoOutput::new(initial_data, dimensions).unwrap();
-    /// 
+    ///
     /// let new_data = NeuronXYZPArrays::new_from_resolution((4, 1, 3)).unwrap();
     /// servo_output.overwrite_all_neuron_data(new_data).unwrap();
     /// ```

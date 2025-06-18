@@ -1,134 +1,404 @@
+use std::fmt;
 use crate::error::DataProcessingError;
 
+pub const CORTICAL_ID_LENGTH: usize = 6;
+
+macro_rules! define_indexed_cortical_enum {
+    (
+        $enum_name:ident {
+            $(
+                $variant:ident => {
+                    name: $display_name:expr,
+                    base_ascii: $base_ascii:expr
+                }
+            ),* $(,)?
+        }
+    ) => {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        #[derive(Hash)]
+pub enum $enum_name {
+            $(
+                $variant(u8)
+            ),*
+        }
+
+        impl std::fmt::Display for $enum_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let ch = match self {
+                    $(
+                        Self::$variant(v) => format!("{} Index: {}", $display_name, v)
+                    ),*
+                };
+                write!(f, "{}", ch)
+            }
+        }
+
+        impl $enum_name {
+            pub fn from_bytes(mut bytes: [u8; CORTICAL_ID_LENGTH]) -> Result<Self, DataProcessingError> {
+                let index = hex_chars_to_u8(bytes[4] as char, bytes[5] as char)?;
+                bytes[4] = 0;
+                bytes[5] = 0;
+                match &bytes {
+                    $(
+                        $base_ascii => Ok(Self::$variant(index))
+                    ),*,
+                    _ => Err(handle_byte_id_mapping_fail(bytes)),
+                }
+            }
+
+            pub fn to_bytes(&self) -> [u8; CORTICAL_ID_LENGTH] {
+                match self {
+                    $(
+                        Self::$variant(v) => {
+                            let mut output: [u8; CORTICAL_ID_LENGTH] = *$base_ascii;
+                            let (high, low) = u8_to_hex_char_u8(*v);
+                            output[4] = high;
+                            output[5] = low;
+                            output
+                        }
+                    ),*
+                }
+            }
+        }
+    };
+}
 
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Hash)]
+pub enum CorticalID {
+    Custom([u8; CORTICAL_ID_LENGTH]),
+    Memory([u8; CORTICAL_ID_LENGTH]),
+    Core(CoreCorticalID),
+    Input(InputCorticalID),
+    Output(OutputCorticalID),
+}
 
-
-
-
-
-
-/// Represents an ID for a cortical area in the brain
-#[derive(Debug, PartialEq, Eq, Clone, Hash)]
-pub struct CorticalID {
-    /// The raw byte representation of the cortical identifier
-    id: [u8; CorticalID::CORTICAL_ID_LENGTH]
+impl fmt::Display for CorticalID {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ch = match self {
+            CorticalID::Custom(v) => {
+                format!("Custom (inter) Cortical Area of ID: {}", safe_bytes_to_string(v) )
+            }
+            CorticalID::Memory(v) => {
+                format!("Memory Cortical Area of ID: {}", safe_bytes_to_string(v) )
+            }
+            CorticalID::Core(v) => {
+                format!("Core '{}' Cortical Area", v.to_string() )
+            }
+            CorticalID::Input(v) => {
+                format!("Input '{}' Cortical Area", v.to_string() )
+            }
+            CorticalID::Output(v) => {
+                format!("Output '{}' Cortical Area", v.to_string() )
+            }
+        };
+        write!(f, "{}", ch)
+    }
 }
 
 impl CorticalID {
-    /// Length of Cortical Area ID As ASCII characters / bytes
-    pub const CORTICAL_ID_LENGTH: usize = 6;
-
-    /// Creates a new CorticalID from a string representation
-    ///
-    /// # Arguments
-    ///
-    /// * `id` - A string slice that holds the cortical identifier
-    ///
-    /// # Returns
-    ///
-    /// * `Result<CorticalID, &'static str>` - A Result containing either the constructed CorticalID
-    ///   or an error message if the input is invalid
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// * The input string length doesn't match CORTICAL_ID_LENGTH
-    /// * The input string contains non-ASCII characters
-    pub fn from_str(id: &str) -> Result<CorticalID, DataProcessingError> {
-        if id.len() != CorticalID::CORTICAL_ID_LENGTH {
+    pub fn from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<Self, DataProcessingError> {
+        if !bytes.iter().all(|&b| b.is_ascii()) {
+            return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));
+        }
+        let first_char = bytes[0];
+        match first_char { 
+            b'_' => CoreCorticalID::from_bytes(*bytes).map(Self::Core),
+            b'c' => Ok(CorticalID::Custom(*bytes)),
+            b'm' => Ok(CorticalID::Memory(*bytes)),
+            b'i' => InputCorticalID::from_bytes(*bytes).map(Self::Input),
+            b'o' => OutputCorticalID::from_bytes(*bytes).map(Self::Output),
+            _ => Err(DataProcessingError::InvalidCorticalID(format!("Invalid cortical ID: {}", safe_bytes_to_string(bytes)).into())),
+        }
+    }
+    
+    pub fn from_ascii_string(string: &str) -> Result<Self, DataProcessingError> {
+        if string.len() != CORTICAL_ID_LENGTH {
             return Err(DataProcessingError::InvalidInputBounds("Cortical Area ID Incorrect Length!".into()));
         }
-        let bytes = id.as_bytes();
-
-        if !bytes.iter().all(|&b| b.is_ascii()) {
-            return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));
-        }
-
-        let mut inner = [0u8; CorticalID::CORTICAL_ID_LENGTH];
+        let bytes: &[u8] = string.as_bytes();
+        let mut inner = [0u8; CORTICAL_ID_LENGTH]; // TODO there has to be a better way than this
         inner.copy_from_slice(bytes);
-        Ok(CorticalID { id: inner })
+        CorticalID::from_bytes(&inner)
     }
-
-    /// Creates a new CorticalID from a subset of bytes starting at a given offset
-    ///
-    /// # Arguments
-    ///
-    /// * `bytes` - A byte slice containing the cortical identifier
-
-    /// # Returns
-    ///
-    /// * `Result<CorticalID, &'static str>` - A Result containing either the constructed CorticalID
-    ///   or an error message if the input is invalid
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if:
-    /// * There aren't enough bytes available from the offset
-    /// * The bytes contain non-ASCII characters
-    pub fn from_bytes_at(bytes: &[u8]) -> Result<CorticalID, DataProcessingError> {
-        if CorticalID::CORTICAL_ID_LENGTH != bytes.len() {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Expected exactly {} bytes for getting the cortical ID! Received a slice of {} bytes!", CorticalID::CORTICAL_ID_LENGTH, bytes.len()).into()));
+    
+    pub fn to_bytes(&self) -> [u8; CORTICAL_ID_LENGTH] {
+        match self {
+            CorticalID::Core(v) => {*v.to_bytes()}
+            CorticalID::Custom(v) => *v,
+            CorticalID::Memory(v) => *v,
+            CorticalID::Input(v) => v.to_bytes(),
+            CorticalID::Output(v) => v.to_bytes(),
         }
-
-
-        if !bytes.iter().all(|&b| b.is_ascii()) {
-            return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));
-        }
-
-        let mut inner = [0u8; CorticalID::CORTICAL_ID_LENGTH];
-        inner.copy_from_slice(bytes);
-        Ok(CorticalID { id: inner })
     }
-
-
-    /// Converts the CorticalID to a string slice
-    ///
-    /// # Returns
-    ///
-    /// * `&str` - A string slice representing the cortical identifier
-    ///
-    /// # Panics
-    ///
-    /// This function should never panic as the CorticalID is guaranteed to contain
-    /// only valid ASCII characters by its constructors.
-    pub fn as_str(&self) -> &str {
-        // Safe because we validate in the constructor that it's ASCII
-        std::str::from_utf8(&self.id).unwrap()
-    }
-
-    /// Writes the cortical ID bytes to a target byte slice.
-    ///
-    /// This method copies the cortical ID's internal byte representation to the
-    /// provided byte slice. The target slice must be exactly the correct length
-    /// to hold the cortical ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `bytes_to_write_at` - The target byte slice to write the cortical ID to
-    ///
-    /// # Returns
-    ///
-    /// A Result containing either:
-    /// - Ok(()) if the write was successful
-    /// - Err(DataProcessingError) if the target slice has incorrect length
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::genome_definitions::cortical_id::CorticalID;
-    ///
-    /// let cortical_id = CorticalID::from_str("iv00CC").unwrap();
-    /// let mut buffer = [0u8; 6];
-    /// cortical_id.write_bytes_at(&mut buffer).unwrap();
-    /// assert_eq!(&buffer, b"iv00CC");
-    /// ```
-    pub fn write_bytes_at(&self, bytes_to_write_at: &mut [u8]) -> Result<(), DataProcessingError> {
-        if bytes_to_write_at.len() != CorticalID::CORTICAL_ID_LENGTH {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Cortical Area ID need a length of exactly {} bytes to fit!", CorticalID::CORTICAL_ID_LENGTH).into()));
-        };
-        bytes_to_write_at.copy_from_slice(&self.id);
+    
+    pub fn write_bytes_at(&self, target: &mut [u8; CORTICAL_ID_LENGTH]) -> Result<(), DataProcessingError> {
+        let bytes = self.to_bytes();
+        target.copy_from_slice(&bytes);
         Ok(())
     }
-
+    
+    pub fn to_identifier_ascii_string(&self) -> String {
+        let bytes = self.to_bytes();
+        safe_bytes_to_string(&bytes)
+    }
 }
+
+
+//region Cortical ID Types
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Hash)]
+pub enum CoreCorticalID {
+    Death,
+    Power
+}
+
+impl fmt::Display for CoreCorticalID {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let ch = match self {
+            CoreCorticalID::Death => "Death",
+            CoreCorticalID::Power => "Power"
+        };
+        write!(f, "{}", ch)
+    }
+}
+
+impl CoreCorticalID {
+
+    fn from_bytes(bytes: [u8; CORTICAL_ID_LENGTH]) -> Result<CoreCorticalID, DataProcessingError> {
+        match &bytes {
+            b"_death" => Ok(CoreCorticalID::Death),
+            b"_power" => Ok(CoreCorticalID::Power),
+            _ => Err(handle_byte_id_mapping_fail(bytes)),
+        }
+    }
+    
+    fn to_bytes(&self) -> &'static [u8; CORTICAL_ID_LENGTH] {
+        match self {
+            CoreCorticalID::Death => b"_death",
+            CoreCorticalID::Power => b"___pwr"
+        }
+    }
+}
+
+// Inputs
+define_indexed_cortical_enum! {
+    InputCorticalID {
+        Infrared => {
+            name: "Infrared Sensor",
+            base_ascii: b"iinf00"
+        },
+        ReverseInfrared => {
+            name: "Reverse Infrared Sensor",
+            base_ascii: b"iiif00"
+        },
+        Proximity => {
+            name: "Proximity Sensor",
+            base_ascii: b"ipro00"
+        },
+        DigitalGPIO => {
+            name: "Digital GPIO input",
+            base_ascii: b"igpd00"
+        },
+        AnalogGPIO=> {
+            name: "Analog GPIO Input",
+            base_ascii: b"igpa00"
+        },
+        Accelerometer => {
+            name: "Accelerometer Input",
+            base_ascii: b"iacc00"
+        },
+        Gyro => {
+            name: "Gyro Input",
+            base_ascii: b"igyr00"
+        },
+        Euler => {
+            name: "Euler Input",
+            base_ascii: b"ieul00"
+        },
+        Shock => {
+            name: "Shock Input",
+            base_ascii: b"isho00"
+        },
+        Battery => {
+            name: "Battery Input",
+            base_ascii: b"ibat00"
+        },
+        Compass => {
+            name: "Compass Input",
+            base_ascii: b"icom00"
+        },
+        VisionCenterGray => {
+            name: "Center Vision Input (Grayscale)",
+            base_ascii: b"ivcc00"
+        },
+        VisionTopLeftGray => {
+            name: "Top Left Vision Input (Grayscale)",
+            base_ascii: b"ivtl00"
+        },
+        VisionTopMiddleGray => {
+            name: "Top Middle Vision Input (Grayscale)",
+            base_ascii: b"ivtm00"
+        },
+        VisionTopRightGray => {
+            name: "Top Right Vision Input (Grayscale)",
+            base_ascii: b"ivtr00"
+        },
+        VisionMiddleLeftGray => {
+            name: "Middle Left Vision Input (Grayscale)",
+            base_ascii: b"ivml00"
+        },
+        VisionMiddleRightGray => {
+            name: "Middle Right Vision Input (Grayscale)",
+            base_ascii: b"ivmr00"
+        },
+        VisionBottomLeftGray => {
+            name: "Bottom Left Vision Input (Grayscale)",
+            base_ascii: b"ivbl00"
+        },
+        VisionBottomMiddleGray => {
+            name: "Bottom Middle Vision Input (Grayscale)",
+            base_ascii: b"ivbm00"
+        },
+        VisionBottomRightGray => {
+            name: "Bottom Right Vision Input (Grayscale)",
+            base_ascii: b"ivbr00"
+        },
+        VisionCenterColor => {
+            name: "Center Vision Input (Color)",
+            base_ascii: b"iVcc00"
+        },
+        VisionTopLeftColor => {
+            name: "Top Left Vision Input (Color)",
+            base_ascii: b"iVtl00"
+        },
+        VisionTopMiddleColor => {
+            name: "Top Middle Vision Input (Color)",
+            base_ascii: b"iVtm00"
+        },
+        VisionTopRightColor => {
+            name: "Top Right Vision Input (Color)",
+            base_ascii: b"iVtr00"
+        },
+        VisionMiddleLeftColor => {
+            name: "Middle Left Vision Input (Color)",
+            base_ascii: b"iVml00"
+        },
+        VisionMiddleRightColor => {
+            name: "Middle Right Vision Input (Color)",
+            base_ascii: b"iVmr00"
+        },
+        VisionBottomLeftColor => {
+            name: "Bottom Left Vision Input (Color)",
+            base_ascii: b"iVbl00"
+        },
+        VisionBottomMiddleColor => {
+            name: "Bottom Middle Vision Input (Color)",
+            base_ascii: b"iVbm00"
+        },
+        VisionBottomRightColor => {
+            name: "Bottom Right Vision Input (Color)",
+            base_ascii: b"iVbr00"
+        },
+        Miscellaneous => {
+            name: "Miscellaneous",
+            base_ascii: b"imis00"
+        },
+        ServoPosition => {
+            name: "Servo Position",
+            base_ascii: b"ispo00"
+        },
+        ServoMotion => {
+            name: "Servo Motion",
+            base_ascii: b"ismo00"
+        },
+        IDTrainer => {
+            name: "ID Trainer",
+            base_ascii: b"iidt00"
+        },
+        Pressure => {
+            name: "Pressure",
+            base_ascii: b"ipre00"
+        },
+        Lidar => {
+            name: "Lidar",
+            base_ascii: b"ilid00"
+        },
+        Audio => {
+            name: "Audio",
+            base_ascii: b"iear00"
+        }
+    }
+}
+
+// Outputs
+define_indexed_cortical_enum! {
+    OutputCorticalID {
+        SpinningMotor => {
+            name: "Spinning Motor",
+            base_ascii: b"omot00"
+        },
+        ServoMotion => {
+            name: "Servo (Delta Motion)",
+            base_ascii: b"osmo00"
+        },
+        ServoPosition => {
+            name: "Servo (Absolute Position)",
+            base_ascii: b"ospo00"
+        },
+        MotionControl => {
+            name: "Motion Control",
+            base_ascii: b"omcl00"
+        },
+        Battery => {
+            name: "Battery",
+            base_ascii: b"pbat00"
+        },
+    }
+}
+
+//endregion
+
+//region Local Helper Functions
+fn hex_chars_to_u8(high: char, low: char) -> Result<u8, DataProcessingError> {
+    fn hex_value(c: char) -> Result<u8, DataProcessingError> {
+        match c {
+            '0'..='9' => Ok(c as u8 - b'0'),
+            'a'..='f' => Ok(c as u8 - b'a' + 10),
+            'A'..='F' => Ok(c as u8 - b'A' + 10),
+            _ => Err(DataProcessingError::InvalidCorticalID(format!("Index of '{}' is not a valid hexadecimal!", c))),
+        }
+    }
+    let hi = hex_value(high)?;
+    let lo = hex_value(low)?;
+
+    Ok((hi << 4) | lo)
+}
+
+fn u8_to_hex_char_u8(byte: u8) -> (u8, u8) {
+    const HEX_CHARS: &[u8; 16] = b"0123456789ABCDEF";
+
+    let high = HEX_CHARS[(byte >> 4) as usize];
+    let low = HEX_CHARS[(byte & 0x0F) as usize];
+
+    (high, low)
+}
+
+// This function assumes that we know the bytes are valid ASCII
+fn safe_bytes_to_string(bytes: &[u8; CORTICAL_ID_LENGTH]) -> String {
+    String::from_utf8(bytes.to_vec()).unwrap()
+}
+
+// Used when we know something is wrong, we just want the right error
+fn handle_byte_id_mapping_fail(bytes: [u8; CORTICAL_ID_LENGTH]) -> DataProcessingError {
+    let as_string = String::from_utf8(bytes.to_vec());
+    if as_string.is_err() {
+        DataProcessingError::InvalidCorticalID("Unable to parse cortical ID as ASCII!".into())
+    }
+    else {
+        DataProcessingError::InvalidCorticalID(format!("Invalid cortical ID '{}'!", as_string.unwrap()))
+    }
+}
+//endregion

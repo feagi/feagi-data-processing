@@ -37,9 +37,6 @@ pub mod error;
 /// organization by cortical areas and includes utilities for memory management and
 /// vector operations.
 pub mod neuron_data;
-
-/// Cortical area identification and management.
-pub mod cortical_data;
 pub mod miscellaneous_types;
 pub mod genome_definitions;
 

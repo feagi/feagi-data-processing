@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::DataProcessingError;
-use crate::cortical_data::CorticalID;
+use crate::genome_definitions::cortical_id::{CorticalID, CORTICAL_ID_LENGTH};
 use crate::byte_structures::{FeagiByteStructureCompatible, FeagiByteStructureType, GLOBAL_HEADER_SIZE};
 use crate::byte_structures::feagi_byte_structure::{verify_matching_structure_type_and_version, FeagiByteStructure};
 use super::neuron_arrays::NeuronXYZPArrays;
@@ -36,7 +36,8 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
 
         for (cortical_id, neuron_data) in &self.mappings {
             // Write cortical subheader
-            cortical_id.write_bytes_at(&mut slice[subheader_write_index .. subheader_write_index + 6])?;
+            let write_target: &mut [u8; CORTICAL_ID_LENGTH] = &mut slice[subheader_write_index .. subheader_write_index + CORTICAL_ID_LENGTH].try_into().unwrap();
+            cortical_id.write_bytes_at(write_target)?;
             let reading_start: u32 = neuron_data_write_index;
             let reading_length: u32 = neuron_data.get_number_of_neurons_used() as u32 * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON as u32;
             LittleEndian::write_u32(&mut slice[subheader_write_index + 6 .. subheader_write_index + 10], reading_start);
@@ -86,8 +87,9 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
         let mut reading_header_index: usize = GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE;
 
         for _cortical_index in 0..number_cortical_areas {
-            let cortical_id = CorticalID::from_bytes_at(
-                &bytes[reading_header_index..reading_header_index + 6]
+            
+            let cortical_id = CorticalID::from_bytes(
+                <&[u8; 6]>::try_from(&bytes[reading_header_index..reading_header_index + 6]).unwrap()
             )?;
 
             let data_start_reading: usize = LittleEndian::read_u32(&bytes[reading_header_index + 6..reading_header_index + 10]) as usize;
