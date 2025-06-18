@@ -35,6 +35,9 @@ macro_rules! define_indexed_cortical_enum_and_cortical_types {
         
         impl $cortical_type_enum_name {
             
+            pub fn to_string_with_index(&self, index: u8) -> String {
+                format!("{} (Index: {})", self, index)
+            }
             
             fn from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<(Self, u8), DataProcessingError> {
                 // We assume that the structure is all ASCII, and the first letter is correct
@@ -140,9 +143,8 @@ impl CorticalID {
             b'_' => CoreCorticalType::from_bytes(*bytes).map(Self::Core),
             b'c' => Ok(CorticalID::Custom(*bytes)),
             b'm' => Ok(CorticalID::Memory(*bytes)),
-            b'i' => InputCorticalID::from_bytes(*bytes)?,
-            b'i' => InputCorticalID::from_bytes(*bytes).map(Self::Input),
-            b'o' => OutputCorticalID::from_bytes(*bytes).map(Self::Output),
+            b'i' => InputCorticalType::from_bytes(bytes).map(Self::Input),
+            b'o' => OutputCorticalType::from_bytes(bytes).map(Self::Output),
             _ => Err(DataProcessingError::InvalidCorticalID(format!("Invalid cortical ID: {}", safe_bytes_to_string(bytes)).into())),
         }
     }
@@ -161,8 +163,8 @@ impl CorticalID {
             CorticalID::Core(v) => {*v.to_bytes()}
             CorticalID::Custom(v) => *v,
             CorticalID::Memory(v) => *v,
-            CorticalID::Input(v) => v.to_bytes(),
-            CorticalID::Output(v) => v.to_bytes(),
+            CorticalID::Input(v) => v.0.to_bytes(v.1),
+            CorticalID::Output(v) => v.0.to_bytes(v.1),
         }
     }
 
