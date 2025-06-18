@@ -98,13 +98,35 @@ impl fmt::Display for CorticalID {
 }
 
 impl CorticalID {
+
+    pub fn new_custom_cortical_area_id(desired_id_string: String) -> Result<Self, DataProcessingError> {
+        CorticalID::verify_all_universal_id_rules(&desired_id_string)?;
+        let bytes = desired_id_string.as_bytes();
+        let bytes: &[u8; CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
+        if bytes[0] != b'c' {
+            return Err(DataProcessingError::InvalidCorticalID(format!("A custom cortical area ID must start with 'c'! Cortical area given: {}", desired_id_string)));
+        }
+        Ok(CorticalID::Custom(*bytes))
+    }
+
+    pub fn new_memory_cortical_area_id(desired_id_string: String) -> Result<Self, DataProcessingError> {
+        CorticalID::verify_all_universal_id_rules(&desired_id_string)?;
+        let bytes = desired_id_string.as_bytes();
+        let bytes: &[u8; CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
+        if bytes[0] != b'm' {
+            return Err(DataProcessingError::InvalidCorticalID(format!("A memory cortical area ID must start with 'm'! Cortical area given: {}", desired_id_string)));
+        }
+        Ok(CorticalID::Memory(*bytes))
+    }
     
+    
+
     pub fn from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<Self, DataProcessingError> {
         if !bytes.iter().all(|&b| b.is_ascii()) {
-            return Err(DataProcessingError::InvalidInputBounds("Cortical ID must contain only ASCII characters!".into()));
+            return Err(DataProcessingError::InvalidCorticalID("Cortical ID must contain only ASCII characters!".into()));
         }
         let first_char = bytes[0];
-        match first_char { 
+        match first_char {
             b'_' => CoreCorticalID::from_bytes(*bytes).map(Self::Core),
             b'c' => Ok(CorticalID::Custom(*bytes)),
             b'm' => Ok(CorticalID::Memory(*bytes)),
@@ -113,7 +135,7 @@ impl CorticalID {
             _ => Err(DataProcessingError::InvalidCorticalID(format!("Invalid cortical ID: {}", safe_bytes_to_string(bytes)).into())),
         }
     }
-    
+
     pub fn from_ascii_string(string: &str) -> Result<Self, DataProcessingError> {
         if string.len() != CORTICAL_ID_LENGTH {
             return Err(DataProcessingError::InvalidInputBounds("Cortical Area ID Incorrect Length!".into()));
@@ -123,7 +145,7 @@ impl CorticalID {
         inner.copy_from_slice(bytes);
         CorticalID::from_bytes(&inner)
     }
-    
+
     pub fn to_bytes(&self) -> [u8; CORTICAL_ID_LENGTH] {
         match self {
             CorticalID::Core(v) => {*v.to_bytes()}
@@ -133,17 +155,46 @@ impl CorticalID {
             CorticalID::Output(v) => v.to_bytes(),
         }
     }
-    
+
     pub fn write_bytes_at(&self, target: &mut [u8; CORTICAL_ID_LENGTH]) -> Result<(), DataProcessingError> {
         let bytes = self.to_bytes();
         target.copy_from_slice(&bytes);
         Ok(())
     }
-    
+
     pub fn to_identifier_ascii_string(&self) -> String {
         let bytes = self.to_bytes();
         safe_bytes_to_string(&bytes)
     }
+
+    fn verify_all_universal_id_rules(string: &String)  -> Result<(), DataProcessingError> {
+        CorticalID::verify_input_length(string)?;
+        CorticalID::verify_input_ascii(string)?;
+        CorticalID::verify_allowed_characters(string)?;
+        Ok(())
+    }
+
+    fn verify_input_length(string: &String) -> Result<(), DataProcessingError> {
+        if string.len() != CORTICAL_ID_LENGTH {
+            return Err(DataProcessingError::InvalidCorticalID(format!("A cortical ID must have a length of {}! Given cortical ID '{}' is not!", CORTICAL_ID_LENGTH, string)).into());
+        }
+        Ok(())
+    }
+
+    fn verify_input_ascii(string: &String) -> Result<(), DataProcessingError> {
+        if !string.is_ascii() {
+            return Err(DataProcessingError::InvalidCorticalID(format!("A cortical ID must be entirely ASCII! Given cortical ID '{}' is not!", string)).into());
+        }
+        Ok(())
+    }
+
+    fn verify_allowed_characters(string: &String) -> Result<(), DataProcessingError> {
+        if !string.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+            return Err(DataProcessingError::InvalidCorticalID(format!("A cortical ID must be made only of alphanumeric characters and underscores! Given cortical ID '{}' is not!", string)).into());
+        }
+        Ok(())
+    }
+
 }
 
 
