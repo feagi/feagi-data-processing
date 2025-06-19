@@ -26,6 +26,7 @@ fn test_combined_neuron_json_multistruct_serialize_deserialize() {
 
     // Create neuron structure (similar to the neuron tests)
     let cortical_id_a = CorticalID::Custom(*b"cAAAAA");
+    
     let neuron_a_1 = NeuronXYZP::new(10, 20, 30, 0.75);
     let neuron_a_2 = NeuronXYZP::new(40, 50, 60, 0.25);
     let mut neurons_a = NeuronXYZPArrays::new(2).unwrap();

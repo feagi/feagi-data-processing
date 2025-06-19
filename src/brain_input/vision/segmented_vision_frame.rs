@@ -10,7 +10,6 @@ use super::image_frame::ImageFrame;
 use crate::error::DataProcessingError;
 use super::descriptors::*;
 use crate::genome_definitions::identifiers::CorticalID;
-use crate::genome_definitions::identifiers::InputCorticalID::*;
 use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
 use crate::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
 
@@ -132,74 +131,6 @@ impl SegmentedVisionFrame {
             previous_cropping_points_for_source_from_segment: None,
         })
     }
-    
-    /// Creates an ordered array of cortical IDs for the nine vision segments.
-    /// 
-    /// This method generates the standard cortical area identifiers used for mapping
-    /// the nine vision segments to their corresponding cortical areas in FEAGI.
-    /// The IDs follow a naming convention where the center uses different IDs for
-    /// grayscale vs color processing.
-    /// 
-    /// # Arguments
-    /// 
-    /// * `_camera_index` - Camera identifier (currently unused but reserved for multi-camera support)
-    /// * `is_grayscale` - Whether the processing is in grayscale mode
-    /// 
-    /// # Returns
-    /// 
-    /// A Result containing either:
-    /// - Ok([CorticalID; 9]) with the ordered cortical IDs
-    /// - Err(DataProcessingError) if any cortical ID creation fails
-    /// 
-    /// # Cortical ID Order
-    /// 
-    /// The returned array contains IDs in this order:
-    /// 1. Center (iv00_C for grayscale, iv00CC for color)
-    /// 2. Lower-left (iv00BL)
-    /// 3. Middle-left (iv00ML)
-    /// 4. Upper-left (iv00TL)
-    /// 5. Upper-middle (iv00TM)
-    /// 6. Upper-right (iv00TR)
-    /// 7. Middle-right (iv00MR)
-    /// 8. Lower-right (iv00BR)
-    /// 9. Lower-middle (iv00BM)
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
-    /// 
-    /// let cortical_ids = SegmentedVisionFrame::create_ordered_cortical_ids(0, false).unwrap();
-    /// assert_eq!(cortical_ids.len(), 9);
-    /// ```
-    pub fn create_ordered_cortical_ids(camera_index: u8, is_grayscale: bool) -> Result<[CorticalID; 9], DataProcessingError> {
-        if is_grayscale {
-            return Ok([
-                CorticalID::Input(VisionCenterGray(camera_index)),
-                CorticalID::Input(VisionBottomLeftGray(camera_index)),
-                CorticalID::Input(VisionMiddleLeftGray(camera_index)),
-                CorticalID::Input(VisionTopLeftGray(camera_index)),
-                CorticalID::Input(VisionTopMiddleGray(camera_index)),
-                CorticalID::Input(VisionTopRightGray(camera_index)),
-                CorticalID::Input(VisionMiddleRightGray(camera_index)),
-                CorticalID::Input(VisionBottomRightGray(camera_index)),
-                CorticalID::Input(VisionBottomMiddleGray(camera_index)),
-            ])
-        }
-        else {
-            return Ok([ // TODO Shouldn't these all be in color?
-                CorticalID::Input(VisionCenterColor(camera_index)), 
-                CorticalID::Input(VisionBottomLeftGray(camera_index)),
-                CorticalID::Input(VisionMiddleLeftGray(camera_index)),
-                CorticalID::Input(VisionTopLeftGray(camera_index)),
-                CorticalID::Input(VisionTopMiddleGray(camera_index)),
-                CorticalID::Input(VisionTopRightGray(camera_index)),
-                CorticalID::Input(VisionMiddleRightGray(camera_index)),
-                CorticalID::Input(VisionBottomRightGray(camera_index)),
-                CorticalID::Input(VisionBottomMiddleGray(camera_index)),
-            ])
-        }
-    } // TODO why is this here?
     
     //endregion
     
@@ -403,7 +334,7 @@ impl SegmentedVisionFrame {
 
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
-        let cortical_ids: [CorticalID; 9] = SegmentedVisionFrame::create_ordered_cortical_ids(camera_index, ordered_refs[0].get_color_channel_count() == 1)?;
+        let cortical_ids: [CorticalID; 9] = CorticalID::create_ordered_cortical_areas_for_segmented_vision(camera_index, ordered_refs[0].get_color_channel_count() == 1);
         
         let mut output: CorticalMappedXYZPNeuronData = CorticalMappedXYZPNeuronData::new();
         
@@ -441,7 +372,7 @@ impl SegmentedVisionFrame {
     /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
     /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
     /// use feagi_core_data_structures_and_processing::genome_definitions::identifiers::*;
-    /// use feagi_core_data_structures_and_processing::genome_definitions::identifiers::InputCorticalID::*;
+    /// use feagi_core_data_structures_and_processing::genome_definitions::identifiers::InputCorticalType::{VisionBottomLeftColor, VisionCenterColor};
     /// use feagi_core_data_structures_and_processing::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
     ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
@@ -454,8 +385,8 @@ impl SegmentedVisionFrame {
     ///
     /// // Set up cortical IDs and data structure
     /// let cortical_ids = [
-    ///     CorticalID::Input(VisionCenterColor(0)),
-    ///     CorticalID::Input(VisionBottomLeftColor(0)),
+    ///     CorticalID::new_input_cortical_area_id(VisionCenterColor, 0),
+    ///     CorticalID::new_input_cortical_area_id(VisionBottomLeftColor, 0),
     ///     // ... other IDs
     /// ];
     /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
