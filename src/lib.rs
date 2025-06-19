@@ -39,6 +39,7 @@ pub mod error;
 pub mod neuron_data;
 pub mod miscellaneous_types;
 pub mod genome_definitions;
+pub mod io_cache;
 
 #[cfg(test)]
 mod tests {
