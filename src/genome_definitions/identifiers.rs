@@ -80,6 +80,8 @@ pub const CORTICAL_ID_LENGTH: usize = 6;
 // Public wrapper that enforces safety checks
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CorticalID(CorticalIDInternal);
+// Note: This is a zero cost abstraction for preventing developers from accidentally bypassing
+// safety checks when creating cortical IDs
 
 impl CorticalID {
     pub fn new_custom_cortical_area_id(desired_id_string: String) -> Result<Self, DataProcessingError> {

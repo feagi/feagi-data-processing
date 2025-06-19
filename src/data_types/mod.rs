@@ -1,4 +1,6 @@
 mod image;
+mod translators;
+
 pub mod neuron_data;
 
 pub use image::image_frame::ImageFrame as ImageFrame;
