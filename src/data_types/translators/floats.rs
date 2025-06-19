@@ -64,6 +64,7 @@ impl FloatNeuronXYZPTranslator {
         let cortical_depth: f32 = self.cortical_dimensions.z as f32;
         
         match self.translator_type {
+            #[allow(unused_variables)] // Rust Rover seems to be blind
             FloatNeuronXYZPTranslatorType::PSPBidirectional => {
                 let positive_x_index: u32 = channel as u32 * FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL;
                 let negative_x_index: u32 = positive_x_index + 1;
@@ -86,12 +87,14 @@ impl FloatNeuronXYZPTranslator {
                 Ok(output.clamp(-1.0, 1.0))
 
             }
+            #[allow(unused_variables)] // Rust Rover seems to be blind
             FloatNeuronXYZPTranslatorType::SplitSignDivided => {
                 let positive_x_index: u32 = channel as u32 * FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_SPLIT_SIGN_DIVIDED;
                 let negative_x_index: u32 = positive_x_index + 1;
                 let mut output: f32 = 0.0;
                 let mut channel_neuron_count: usize = 0;
                 for neuron in neuron_data.iter() {
+                    
                     match neuron.x {
                         positive_x_index => {
                             channel_neuron_count += 1;
