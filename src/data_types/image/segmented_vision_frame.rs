@@ -10,8 +10,7 @@ use super::image_frame::ImageFrame;
 use crate::error::DataProcessingError;
 use super::descriptors::*;
 use crate::genome_definitions::identifiers::CorticalID;
-use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
-use crate::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
+use crate::data_types::neuron_data::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 
 
 /// A frame divided into nine segments with different resolutions for peripheral vision simulation.
@@ -41,8 +40,8 @@ use crate::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
 /// # Examples
 /// 
 /// ```
-/// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
-/// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+/// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
+/// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
 ///
 /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
 /// let frame = SegmentedVisionFrame::new(
@@ -104,8 +103,8 @@ impl SegmentedVisionFrame {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
@@ -148,9 +147,9 @@ impl SegmentedVisionFrame {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
+    ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
     ///     &resolutions,
@@ -176,8 +175,8 @@ impl SegmentedVisionFrame {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
@@ -227,9 +226,9 @@ impl SegmentedVisionFrame {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
     ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let mut segmented_frame = SegmentedVisionFrame::new(
@@ -316,8 +315,8 @@ impl SegmentedVisionFrame {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(
@@ -326,7 +325,7 @@ impl SegmentedVisionFrame {
     ///     &ColorSpace::Gamma,
     ///     (640, 480)
     /// ).unwrap();
-    /// 
+    ///
     /// // After updating segments with source data...
     /// // let neuron_data = segmented_frame.export_as_new_cortical_mapped_neuron_data(0).unwrap();
     /// ```
@@ -369,11 +368,11 @@ impl SegmentedVisionFrame {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::segmented_vision_frame::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     /// use feagi_core_data_structures_and_processing::genome_definitions::identifiers::*;
     /// use feagi_core_data_structures_and_processing::genome_definitions::identifiers::InputCorticalType::{VisionBottomLeftColor, VisionCenterColor};
-    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
+    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::CorticalMappedXYZPNeuronData;
     ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
     /// let frame = SegmentedVisionFrame::new(

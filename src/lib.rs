@@ -20,26 +20,16 @@
 /// to and from various byte formats.
 pub mod byte_structures;
 
-/// Brain input processing modules for sensory data.
-pub mod brain_input;
-
 /// Brain output processing modules for motor control data.
 
-pub mod brain_output;
 
 /// Centralized error handling for data processing operations.
 pub mod error;
 
-/// Core neuron data structures and management utilities.
-/// 
-/// Provides efficient data structures for storing and manipulating neuron information
-/// including positions (X, Y coordinates), channels, and potential values. Supports
-/// organization by cortical areas and includes utilities for memory management and
-/// vector operations.
-pub mod neuron_data;
 pub mod miscellaneous_types;
 pub mod genome_definitions;
 pub mod io_cache;
+pub mod data_types;
 
 #[cfg(test)]
 mod tests {

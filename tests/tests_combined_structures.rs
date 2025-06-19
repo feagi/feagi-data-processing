@@ -1,11 +1,9 @@
+use serde_json::json;
 use feagi_core_data_structures_and_processing::miscellaneous_types::json_structure::JsonStructure;
-use feagi_core_data_structures_and_processing::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
-use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
-use feagi_core_data_structures_and_processing::neuron_data::neurons::NeuronXYZP;
+use feagi_core_data_structures_and_processing::data_types::neuron_data::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays, NeuronXYZP};
 use feagi_core_data_structures_and_processing::genome_definitions::identifiers::CorticalID;
 use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure::FeagiByteStructure;
 use feagi_core_data_structures_and_processing::byte_structures::{FeagiByteStructureCompatible, FeagiByteStructureType};
-use serde_json::json;
 
 #[test]
 fn test_combined_neuron_json_multistruct_serialize_deserialize() {

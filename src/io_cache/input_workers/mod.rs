@@ -3,9 +3,8 @@
 pub mod float_input_workers;
 
 use crate::error::DataProcessingError;
-use crate::brain_input::vision::image_frame;
-use crate::brain_input::vision::image_frame::ImageFrame;
-use crate::neuron_data::neuron_mappings::CorticalMappedXYZPNeuronData;
+use crate::data_types::ImageFrame;
+use crate::data_types::neuron_data::CorticalMappedXYZPNeuronData;
 
 pub trait InputCacheWorker {
     fn get_as_cortical_mapped_xyzp_neuron_data() -> Result<CorticalMappedXYZPNeuronData, DataProcessingError>; // NOTE: Cortical area(s) is cached in the struct itself

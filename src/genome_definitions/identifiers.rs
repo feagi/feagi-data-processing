@@ -129,7 +129,7 @@ impl CorticalID {
             ]
         }
         else {
-            return [ // TODO Shouldn't these all be in color?
+            return [
                 CorticalID(CorticalIDInternal::Input((InputCorticalType::VisionCenterColor, camera_index))),
                 CorticalID(CorticalIDInternal::Input((InputCorticalType::VisionBottomLeftGray, camera_index))),
                 CorticalID(CorticalIDInternal::Input((InputCorticalType::VisionMiddleLeftGray, camera_index))),

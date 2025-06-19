@@ -6,9 +6,9 @@
 //! and conversion to neuron data for FEAGI processing.
 
 use ndarray::{s, Array3, ArrayView3};
-use crate::brain_input::vision::descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
+use crate::data_types::image_descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::DataProcessingError;
-use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
+use crate::data_types::neuron_data::NeuronXYZPArrays;
 
 /// Represents an image frame with pixel data and metadata for FEAGI vision processing.
 /// 
@@ -19,9 +19,9 @@ use crate::neuron_data::neuron_arrays::NeuronXYZPArrays;
 /// # Examples
 /// 
 /// ```
-/// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-/// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-/// 
+/// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+/// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
+///
 /// // Create a new RGB image frame
 /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
 /// assert_eq!(frame.get_cartesian_width_height(), (640, 480));
@@ -58,8 +58,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
@@ -93,8 +93,8 @@ impl ImageFrame {
     ///
     /// ```
     /// use ndarray::Array3;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let array = Array3::<f32>::zeros((100, 100, 3)); // RGB image
     /// let frame: ImageFrame = ImageFrame::from_array(array, ColorSpace::Gamma, MemoryOrderLayout::HeightsWidthsChannels).unwrap();
@@ -130,8 +130,8 @@ impl ImageFrame {
     ///
     /// ```
     /// use ndarray::Array3;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let array = Array3::<f32>::zeros((100, 100, 3));
     /// let mut params = FrameProcessingParameters::new();
@@ -207,8 +207,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let frame1 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// let frame2 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
@@ -236,7 +236,7 @@ impl ImageFrame {
     ///
     /// ```
     /// use ndarray::Array3;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
     ///
     /// let valid_array = Array3::<f32>::zeros((100, 100, 3)); // RGB image
     /// assert!(ImageFrame::is_array_valid_for_image_frame(&valid_array));
@@ -264,8 +264,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// assert_eq!(*frame.get_channel_format(), ChannelFormat::RGB);
@@ -283,8 +283,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// assert_eq!(*frame.get_color_space(), ColorSpace::Gamma);
@@ -306,8 +306,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// assert_eq!(frame.get_color_channel_count(), 3);
@@ -327,8 +327,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// let view = frame.get_pixels_view();
@@ -347,8 +347,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
     /// assert_eq!(frame.get_cartesian_width_height(), (640, 480));
@@ -370,8 +370,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
     /// assert_eq!(frame.get_internal_resolution(), (480, 640));
@@ -393,8 +393,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
     /// assert_eq!(frame.get_internal_shape(), (480, 640, 3));
@@ -417,9 +417,9 @@ impl ImageFrame {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
+    ///
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// assert_eq!(frame.get_max_capacity_neuron_count(), 100 * 100 * 3);
     /// ```
@@ -449,8 +449,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// frame.change_brightness_multiplicative(1.5).unwrap(); // Increase brightness by 50%
@@ -490,8 +490,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// frame.change_contrast(0.5).unwrap();  // Increase contrast
@@ -534,8 +534,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let image_original_resolution = (100, 100);
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &image_original_resolution);
@@ -575,8 +575,8 @@ impl ImageFrame {
     /// # Examples
     ///
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// frame.resize_nearest_neighbor(&(50, 50)).unwrap();
@@ -633,9 +633,9 @@ impl ImageFrame {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
+    ///
     /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// let mut target = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(50, 50));
     /// let params = FrameProcessingParameters::new();
@@ -905,9 +905,9 @@ impl ImageFrame {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
+    ///
     /// let frame1 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// let frame2 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// let mut diff_frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
@@ -960,9 +960,9 @@ impl ImageFrame {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// use feagi_core_data_structures_and_processing::neuron_data::neuron_arrays::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
+    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::NeuronXYZPArrays;
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// let mut neuron_arrays = NeuronXYZPArrays::new(30000).unwrap();

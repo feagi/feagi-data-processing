@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use byteorder::{ByteOrder, LittleEndian};
-use crate::error::DataProcessingError;
-use crate::genome_definitions::identifiers::{CorticalID, CORTICAL_ID_LENGTH};
 use crate::byte_structures::{FeagiByteStructureCompatible, FeagiByteStructureType, GLOBAL_HEADER_SIZE};
 use crate::byte_structures::feagi_byte_structure::{verify_matching_structure_type_and_version, FeagiByteStructure};
-use super::neuron_arrays::NeuronXYZPArrays;
+use crate::error::DataProcessingError;
+use crate::genome_definitions::identifiers::{CorticalID, CORTICAL_ID_LENGTH};
+use crate::data_types::neuron_data::{NeuronXYZPArrays};
 
 #[derive(Clone)]
 pub struct CorticalMappedXYZPNeuronData {
@@ -88,11 +88,9 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
         let mut reading_header_index: usize = GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE;
 
         for _cortical_index in 0..number_cortical_areas {
-            dbg!(&bytes[reading_header_index..reading_header_index + 6]);
             let cortical_id = CorticalID::from_bytes(
                 <&[u8; 6]>::try_from(&bytes[reading_header_index..reading_header_index + 6]).unwrap()
             )?;
-            dbg!(cortical_id);
             let data_start_reading: usize = LittleEndian::read_u32(&bytes[reading_header_index + 6..reading_header_index + 10]) as usize;
             let number_bytes_to_read: usize = LittleEndian::read_u32(&bytes[reading_header_index + 10..reading_header_index + 14]) as usize;
 

@@ -201,8 +201,8 @@ impl FrameProcessingParameters {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
+    ///
     /// let mut params = FrameProcessingParameters::new();
     /// params.set_resizing_to((640, 480));
     /// assert_eq!(params.get_final_width_height().unwrap(), (640, 480));
@@ -389,8 +389,8 @@ impl ChannelFormat {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::ChannelFormat;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::ChannelFormat;
+    ///
     /// assert_eq!(ChannelFormat::from_usize(3).unwrap(), ChannelFormat::RGB);
     /// assert!(ChannelFormat::from_usize(5).is_err());
     /// ```
@@ -456,8 +456,8 @@ impl SegmentedVisionCenterProperties {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionCenterProperties;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionCenterProperties;
+    ///
     /// let center_props = SegmentedVisionCenterProperties::new_row_major_where_origin_top_left(
     ///     (0.5, 0.5), (0.3, 0.3)
     /// ).unwrap();
@@ -503,8 +503,8 @@ impl SegmentedVisionCenterProperties {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionCenterProperties;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionCenterProperties;
+    ///
     /// let center_props = SegmentedVisionCenterProperties::cartesian_where_origin_bottom_left(
     ///     (0.5, 0.5), (0.3, 0.3)
     /// ).unwrap();
@@ -527,8 +527,8 @@ impl SegmentedVisionCenterProperties {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionCenterProperties;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionCenterProperties;
+    ///
     /// let center_props = SegmentedVisionCenterProperties::create_default_centered();
     /// ```
     pub fn create_default_centered() -> SegmentedVisionCenterProperties {
@@ -553,8 +553,8 @@ impl SegmentedVisionCenterProperties {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionCenterProperties;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionCenterProperties;
+    ///
     /// let center_props = SegmentedVisionCenterProperties::create_default_centered();
     /// let cropping_points = center_props.calculate_source_corner_points_for_segemented_video_frame((640, 480)).unwrap();
     /// ```
@@ -653,8 +653,8 @@ impl SegmentedVisionTargetResolutions {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionTargetResolutions;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionTargetResolutions;
+    ///
     /// let resolutions = SegmentedVisionTargetResolutions::new(
     ///     (32, 32), (32, 32), (32, 32), (32, 32), (32, 32),
     ///     (32, 32), (32, 32), (32, 32), (64, 64)
@@ -708,8 +708,8 @@ impl SegmentedVisionTargetResolutions {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::SegmentedVisionTargetResolutions;
-    /// 
+    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionTargetResolutions;
+    ///
     /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral(
     ///     (64, 64), (32, 32)
     /// ).unwrap();

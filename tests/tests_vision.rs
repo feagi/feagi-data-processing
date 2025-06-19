@@ -1,8 +1,8 @@
-use feagi_core_data_structures_and_processing::brain_input::vision::image_frame::ImageFrame;
 use std::fs::File;
 use ndarray::Array3;
 use ndarray_npy::NpzReader;
-use feagi_core_data_structures_and_processing::brain_input::vision::descriptors::*;
+use feagi_core_data_structures_and_processing::data_types::ImageFrame;
+use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
 
 #[test]
 fn test_loading_data_frame() {
