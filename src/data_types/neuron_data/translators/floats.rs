@@ -1,6 +1,7 @@
 use crate::data_types::neuron_data::NeuronXYZPArrays;
 use crate::error::DataProcessingError;
 use crate::genome_definitions::CorticalDimensions;
+use super::NeuronTranslator;
 
 pub enum FloatNeuronXYZPTranslatorType {
     PSPBidirectional,
@@ -41,6 +42,8 @@ pub struct FloatNeuronXYZPTranslator {
     cortical_dimensions: CorticalDimensions,
     channel_count: usize
 }
+
+impl NeuronTranslator for FloatNeuronXYZPTranslator {}
 
 impl FloatNeuronXYZPTranslator {
     pub fn new(translator_type: FloatNeuronXYZPTranslatorType, number_channels: usize, resolution_depth: usize) -> Result<Self, DataProcessingError> {
