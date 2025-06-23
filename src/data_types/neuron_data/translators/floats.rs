@@ -115,7 +115,7 @@ impl FloatNeuronXYZPTranslator {
                 Ok(output.clamp(-1.0, 1.0))
             }
             FloatNeuronXYZPTranslatorType::Linear => {
-                Err(DataProcessingError::NotImplemented)
+                Err(DataProcessingError::NotImplemented) // TODO
             }
         }
     }
