@@ -11,5 +11,5 @@ pub type ChannelDeviceMapping<T> = HashMap<ChannelIndex, dyn IOCacheWorker<T>>;
 
 pub struct InputDeviceGrouping<T> {
     mapping: ChannelDeviceMapping<T>,
-    neuron_translator: Box<dyn NeuronTranslator>,
+    neuron_translator: Box<dyn NeuronTranslator<T>>,
 }

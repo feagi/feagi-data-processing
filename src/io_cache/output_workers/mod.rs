@@ -6,7 +6,10 @@ pub type CallbackSubscriberID = usize;
 
 trait OutputCacheWorker<T>: IOCacheWorker<T> {
 
-    fn get_stored_value(&self) -> T;
+    fn get_last_stored_motor_value(&self) -> T;
+    
+    fn feagi_updated_value
+    
     fn subscribe_to_callback<F>(&mut self, callback: F) -> Result<(), DataProcessingError>
     where
         F: Fn(T) + Send  + Sync + 'static;

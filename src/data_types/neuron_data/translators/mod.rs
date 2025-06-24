@@ -3,7 +3,11 @@ use crate::data_types::neuron_data::NeuronXYZPArrays;
 use crate::error::DataProcessingError;
 use crate::io_cache::ChannelIndex;
 
-pub mod floats;
+mod floats;
+mod image_frame;
+
+pub use image_frame::*;
+pub use floats::*;
 
 pub trait NeuronTranslator<T> {
     fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: ChannelIndex) -> Result<T, DataProcessingError>;
