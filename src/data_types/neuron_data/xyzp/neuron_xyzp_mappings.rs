@@ -164,12 +164,12 @@ impl CorticalMappedXYZPNeuronData {
         self.mappings.len()
     }
     
-    pub fn insert(&mut self, cortical_id: CorticalID, neuron_data: NeuronXYZPArrays) -> Option<NeuronXYZPArrays> {
-        self.mappings.insert(cortical_id, neuron_data)
+    pub fn insert(&mut self, cortical_id: CorticalID, neuron_data: NeuronXYZPArrays) -> bool {
+        self.mappings.insert(cortical_id, neuron_data).is_some()
     }
     
-    pub fn contains(&self, cortical_id: CorticalID) -> bool {
-        self.mappings.contains_key(&cortical_id)
+    pub fn contains(&self, cortical_id: &CorticalID) -> bool {
+        self.mappings.contains_key(cortical_id)
     }
     
     pub fn borrow(&self, cortical_id: &CorticalID) -> Option<&NeuronXYZPArrays> {

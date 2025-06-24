@@ -1,46 +1,46 @@
 use std::time::Instant;
-use crate::data_types::neuron_data::CorticalMappedXYZPNeuronData;
+use crate::data_types::neuron_data::{CorticalMappedXYZPNeuronData, NeuronTranslator};
 use crate::error::DataProcessingError;
-use crate::io_cache::IOCacheWorker;
+use crate::io_cache::{ChannelIndex, IOCacheWorker};
 use crate::data_types::{ImageFrame, SegmentedVisionFrame};
-use crate::io_cache::input_workers::{InputCacheWorker, InputImageFrameWorker};
+use crate::genome_definitions::identifiers::CorticalID;
+use crate::io_cache::input_workers::{InputCacheWorker};
+
+pub trait InputImageFrameWorker: InputCacheWorker<ImageFrame> {
+    // TODO other update methods that can be done in place
+}
 
 //region Image Direct
 pub struct ImageDirectWorker {
     last_data_update_time: Instant,
-    last_image: ImageFrame
+    cortical_id_write_target: CorticalID, // yes, lets keep a copy here, this is too small to worry about borrowing shenanigans
+    channel: ChannelIndex,
+    last_image: ImageFrame,
 }
 
-impl InputCacheWorker for ImageDirectWorker {
-    fn get_as_cortical_mapped_xyzp_neuron_data(&self) -> Result<CorticalMappedXYZPNeuronData, DataProcessingError> {
-        todo!()
-    }
-}
-
-impl IOCacheWorker for ImageDirectWorker {
+impl IOCacheWorker<ImageFrame> for ImageDirectWorker {
     fn get_last_data_update_time(&self) -> Instant {
+        self.last_data_update_time
+    }
+}
+
+impl InputCacheWorker<ImageFrame> for ImageDirectWorker {
+    fn write_to_cortical_mapped_xyzp_neuron_data(&self, translator: &dyn NeuronTranslator<ImageFrame>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), DataProcessingError> {
         todo!()
     }
 
-    fn get_channel_enable_state(&self) -> Vec<bool> {
-        todo!()
+    fn update_sensor_value(&mut self, sensor_value: ImageFrame) -> Result<(), DataProcessingError> {
+        // NOTE: This method is rather slow but is here for completeness, it may be better to use other methods which can do in place operations
+        self.last_image = sensor_value;
+        self.last_data_update_time = Instant::now();
+        Ok(())
     }
 
-    fn get_enabled_channels(&self) -> Vec<usize> {
-        todo!()
-    }
-
-    fn get_disabled_channels(&self) -> Vec<usize> {
-        todo!()
-    }
-
-    fn is_channel_enabled(&self, channel: usize) -> bool {
-        todo!()
+    fn get_last_stored_sensor_value(&self) -> Result<&ImageFrame, DataProcessingError> {
+        Ok(&self.last_image)
     }
 }
 
 impl InputImageFrameWorker for ImageDirectWorker {
-    fn update_sensor_value(&mut self, sensor_value: ImageFrame) -> Result<(), DataProcessingError> {
-        todo!()
-    }
+
 }

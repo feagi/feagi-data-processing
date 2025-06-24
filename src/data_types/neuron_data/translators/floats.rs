@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use crate::data_types::neuron_data::{NeuronXYZP, NeuronXYZPArrays};
+use crate::data_types::RangedNormalizedF32;
 use crate::error::DataProcessingError;
 use crate::genome_definitions::CorticalDimensions;
 use crate::io_cache::ChannelIndex;
@@ -37,67 +38,6 @@ impl FloatNeuronXYZPTranslatorType {
         }
     }
 }
-
-#[derive(Debug, Clone, PartialEq, Copy, PartialOrd)]
-pub struct RangedNormalizedF32 {
-    float: f32
-}
-
-impl RangedNormalizedF32 {
-    pub fn new(float: f32) -> Result<Self, DataProcessingError> {
-        RangedNormalizedF32::validate_float(float)?;
-        Ok(Self { float })
-    }
-    
-    pub fn new_with_clamp(float: f32)  -> Result<Self, DataProcessingError> {
-        if float.is_nan() {
-            return Err(DataProcessingError::InvalidInputBounds("Input float may not be NaN!".into()));
-        }
-        let clamped = float.clamp(-1.0, 1.0);
-        Ok(Self { float: clamped })
-    }
-    
-    pub fn new_zero() -> Self {
-        Self { float: 0.0 }
-    }
-    
-    pub fn update(&mut self, new_float: f32) -> Result<(), DataProcessingError> {
-        RangedNormalizedF32::validate_float(new_float)?;
-        self.float = new_float;
-        Ok(())
-    }
-
-    pub fn update_with_clamp(&mut self, new_float: f32) -> Result<(), DataProcessingError> {
-        if new_float.is_nan() {
-            return Err(DataProcessingError::InvalidInputBounds("Input float may not be NaN!".into()));
-        }
-        self.float = new_float.clamp(-1.0, 1.0);
-        Ok(())
-    }
-    
-    pub fn asf32(&self) -> f32 {
-        self.float
-    }
-    
-    pub fn is_sign_positive(&self) -> bool {
-        self.float.is_sign_positive()
-    }
-    
-    fn validate_float(float: f32) -> Result<(), DataProcessingError> {
-        if float.is_nan() {
-            return Err(DataProcessingError::InvalidInputBounds("Input float may not be NaN!".into()));
-        }
-        if float.is_infinite() {
-            return Err(DataProcessingError::InvalidInputBounds("Input float may not be infinite!".into()));
-        }
-
-        if float.abs() > 1.0 {
-            return Err(DataProcessingError::InvalidInputBounds("Input float may not be less than negative one or greater than 1!".into()));
-        }
-        Ok(())
-    }
-}
-
 
 pub struct FloatNeuronXYZPTranslator {
     translator_type: FloatNeuronXYZPTranslatorType,
@@ -181,7 +121,7 @@ impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
         Ok(output)
     }
 
-    fn generate_neuron_data_single_channel(&self, value: RangedNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: ChannelIndex) -> Result<(), DataProcessingError> {
+    fn write_neuron_data_single_channel(&self, value: RangedNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: ChannelIndex) -> Result<(), DataProcessingError> {
         
         if channel > self.channel_count {
             return Err(DataProcessingError::InvalidInputBounds(format!("Requested channel is not supported when max channel is {}!", channel)));
@@ -223,9 +163,9 @@ impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
         }
     }
 
-    fn generate_neuron_data_multi_channel(&self, channels_and_values: HashMap<ChannelIndex, RangedNormalizedF32>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), DataProcessingError> {
+    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<ChannelIndex, RangedNormalizedF32>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), DataProcessingError> {
         for (channel, value) in channels_and_values.iter() {
-            self.generate_neuron_data_single_channel(*value, target_to_overwrite, *channel)?;
+            self.write_neuron_data_single_channel(*value, target_to_overwrite, *channel)?;
         };
         Ok(())
     }
