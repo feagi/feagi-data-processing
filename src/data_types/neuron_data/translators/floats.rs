@@ -224,7 +224,10 @@ impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
     }
 
     fn generate_neuron_data_multi_channel(&self, channels_and_values: HashMap<ChannelIndex, RangedNormalizedF32>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), DataProcessingError> {
-        todo!()
+        for (channel, value) in channels_and_values.iter() {
+            self.generate_neuron_data_single_channel(*value, target_to_overwrite, *channel)?;
+        };
+        Ok(())
     }
 }
 
