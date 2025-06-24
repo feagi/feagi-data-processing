@@ -1,3 +1,5 @@
+/// Holds all channels of a specific device (Cortical IOPU area)
+
 use std::collections::HashMap;
 use crate::data_types::neuron_data::NeuronTranslator;
 use super::IOCacheWorker;

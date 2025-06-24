@@ -1,6 +1,8 @@
-use crate::data_types::neuron_data::NeuronXYZPArrays;
+use std::collections::HashMap;
+use crate::data_types::neuron_data::{NeuronXYZP, NeuronXYZPArrays};
 use crate::error::DataProcessingError;
 use crate::genome_definitions::CorticalDimensions;
+use crate::io_cache::ChannelIndex;
 use super::NeuronTranslator;
 
 pub enum FloatNeuronXYZPTranslatorType {
@@ -36,6 +38,66 @@ impl FloatNeuronXYZPTranslatorType {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Copy, PartialOrd)]
+pub struct RangedNormalizedF32 {
+    float: f32
+}
+
+impl RangedNormalizedF32 {
+    pub fn new(float: f32) -> Result<Self, DataProcessingError> {
+        RangedNormalizedF32::validate_float(float)?;
+        Ok(Self { float })
+    }
+    
+    pub fn new_with_clamp(float: f32)  -> Result<Self, DataProcessingError> {
+        if float.is_nan() {
+            return Err(DataProcessingError::InvalidInputBounds("Input float may not be NaN!".into()));
+        }
+        let clamped = float.clamp(-1.0, 1.0);
+        Ok(Self { float: clamped })
+    }
+    
+    pub fn new_zero() -> Self {
+        Self { float: 0.0 }
+    }
+    
+    pub fn update(&mut self, new_float: f32) -> Result<(), DataProcessingError> {
+        RangedNormalizedF32::validate_float(new_float)?;
+        self.float = new_float;
+        Ok(())
+    }
+
+    pub fn update_with_clamp(&mut self, new_float: f32) -> Result<(), DataProcessingError> {
+        if new_float.is_nan() {
+            return Err(DataProcessingError::InvalidInputBounds("Input float may not be NaN!".into()));
+        }
+        self.float = new_float.clamp(-1.0, 1.0);
+        Ok(())
+    }
+    
+    pub fn asf32(&self) -> f32 {
+        self.float
+    }
+    
+    pub fn is_sign_positive(&self) -> bool {
+        self.float.is_sign_positive()
+    }
+    
+    fn validate_float(float: f32) -> Result<(), DataProcessingError> {
+        if float.is_nan() {
+            return Err(DataProcessingError::InvalidInputBounds("Input float may not be NaN!".into()));
+        }
+        if float.is_infinite() {
+            return Err(DataProcessingError::InvalidInputBounds("Input float may not be infinite!".into()));
+        }
+
+        if float.abs() > 1.0 {
+            return Err(DataProcessingError::InvalidInputBounds("Input float may not be less than negative one or greater than 1!".into()));
+        }
+        Ok(())
+    }
+}
+
 
 pub struct FloatNeuronXYZPTranslator {
     translator_type: FloatNeuronXYZPTranslatorType,
@@ -43,29 +105,19 @@ pub struct FloatNeuronXYZPTranslator {
     channel_count: usize
 }
 
-impl NeuronTranslator for FloatNeuronXYZPTranslator {}
-
-impl FloatNeuronXYZPTranslator {
-    pub fn new(translator_type: FloatNeuronXYZPTranslatorType, number_channels: usize, resolution_depth: usize) -> Result<Self, DataProcessingError> {
-        let cortical_dimensions = translator_type.create_dimensions_for_translator_type(number_channels, resolution_depth)?;
-        Ok(FloatNeuronXYZPTranslator {
-            translator_type,
-            cortical_dimensions,
-            channel_count: number_channels
-        })
-    }
-    
-    pub fn calculate_nonscaled_float(&self, neuron_data: NeuronXYZPArrays, channel: usize) -> Result<f32, DataProcessingError> {
+impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
+    fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: ChannelIndex) -> Result<RangedNormalizedF32, DataProcessingError> {
         if channel > self.channel_count {
             return Err(DataProcessingError::InvalidInputBounds(format!("Requested channel {} is not supported when max channel is {}!", channel, self.channel_count)));
         }
 
         if neuron_data.is_empty() {
-            return Ok(0.0);
+            return Ok(RangedNormalizedF32::new_zero());
         }
 
         let cortical_depth: f32 = self.cortical_dimensions.z as f32;
         
+        // NOTE: The IDE for some reason thinks many branch arms are dead. Not sure why
         match self.translator_type {
             #[allow(unused_variables)] // Rust Rover seems to be blind
             FloatNeuronXYZPTranslatorType::PSPBidirectional => {
@@ -85,10 +137,9 @@ impl FloatNeuronXYZPTranslator {
                         _ => {
                             continue;
                         }
-                    }    
+                    }
                 }
-                Ok(output.clamp(-1.0, 1.0))
-
+                Ok(RangedNormalizedF32::new_with_clamp(output)?)
             }
             #[allow(unused_variables)] // Rust Rover seems to be blind
             FloatNeuronXYZPTranslatorType::SplitSignDivided => {
@@ -97,7 +148,6 @@ impl FloatNeuronXYZPTranslator {
                 let mut output: f32 = 0.0;
                 let mut channel_neuron_count: usize = 0;
                 for neuron in neuron_data.iter() {
-                    
                     match neuron.x {
                         positive_x_index => {
                             channel_neuron_count += 1;
@@ -115,12 +165,79 @@ impl FloatNeuronXYZPTranslator {
                     }
                 }
                 output /= channel_neuron_count as f32;
-                Ok(output.clamp(-1.0, 1.0))
+                Ok(RangedNormalizedF32::new_with_clamp(output)?)
             }
             FloatNeuronXYZPTranslatorType::Linear => {
                 Err(DataProcessingError::NotImplemented) // TODO
             }
+        }    
+    }
+
+    fn read_neuron_data_multi_channel(&self, neuron_data: &NeuronXYZPArrays, channels: Vec<ChannelIndex>) -> Result<Vec<RangedNormalizedF32>, DataProcessingError> {
+        let mut output: Vec<RangedNormalizedF32> = Vec::with_capacity(channels.len());
+        for channel in channels.iter() {
+            output.push(FloatNeuronXYZPTranslator::read_neuron_data_single_channel(self, neuron_data, *channel)?);
+        };
+        Ok(output)
+    }
+
+    fn generate_neuron_data_single_channel(&self, value: RangedNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: ChannelIndex) -> Result<(), DataProcessingError> {
+        
+        if channel > self.channel_count {
+            return Err(DataProcessingError::InvalidInputBounds(format!("Requested channel is not supported when max channel is {}!", channel)));
+        }
+        
+        match self.translator_type {
+            FloatNeuronXYZPTranslatorType::PSPBidirectional => {
+                target_to_overwrite.expand_to_new_max_count_if_required(1);
+                target_to_overwrite.reset_indexes();
+                let channel_offset: u32 = FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * (channel as u32) + {if value.is_sign_positive() { 1 } else { 0 }};
+                let neuron: NeuronXYZP = NeuronXYZP::new(
+                    channel_offset,
+                    0,
+                    0,
+                    value.asf32()
+                );
+                target_to_overwrite.add_neuron(&neuron);
+                return Ok(());
+            },
+            FloatNeuronXYZPTranslatorType::SplitSignDivided => {
+                
+                // TODO Right now we are using the same algo as PSPBidirectional which works, but wouldn't it look nicer to use something that uses the full bounds?
+                target_to_overwrite.expand_to_new_max_count_if_required(1);
+                target_to_overwrite.reset_indexes();
+                let channel_offset: u32 = FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * (channel as u32) + {if value.is_sign_positive() { 1 } else { 0 }};
+                let neuron: NeuronXYZP = NeuronXYZP::new(
+                    channel_offset,
+                    0,
+                    0,
+                    value.asf32()
+                );
+                target_to_overwrite.add_neuron(&neuron);
+                return Ok(());
+
+            },
+            FloatNeuronXYZPTranslatorType::Linear => {
+                Err(DataProcessingError::NotImplemented)
+            }
         }
     }
+
+    fn generate_neuron_data_multi_channel(&self, channels_and_values: HashMap<ChannelIndex, RangedNormalizedF32>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), DataProcessingError> {
+        todo!()
+    }
+}
+
+impl FloatNeuronXYZPTranslator {
+    pub fn new(translator_type: FloatNeuronXYZPTranslatorType, number_channels: usize, resolution_depth: usize) -> Result<Self, DataProcessingError> {
+        let cortical_dimensions = translator_type.create_dimensions_for_translator_type(number_channels, resolution_depth)?;
+        Ok(FloatNeuronXYZPTranslator {
+            translator_type,
+            cortical_dimensions,
+            channel_count: number_channels
+        })
+    }
+    
+
     
 }

@@ -1,6 +1,9 @@
 use std::time::Instant;
 
 
+pub use device_group_cache::ChannelIndex as ChannelIndex;
+pub use device_group_cache::GroupIndex as GroupIndex;
+
 pub mod input_cache;
 pub mod input_workers;
 mod output_workers;

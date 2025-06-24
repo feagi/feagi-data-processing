@@ -966,7 +966,7 @@ impl ImageFrame {
     ///
     /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
     /// let mut neuron_arrays = NeuronXYZPArrays::new(30000).unwrap();
-    /// // frame.write_thresholded_xyzp_neuron_arrays(0.5, &mut neuron_arrays).unwrap();
+    ///  frame.write_thresholded_xyzp_neuron_arrays(0.5, &mut neuron_arrays).unwrap();
     /// ```
     pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronXYZPArrays) -> Result<(), DataProcessingError> {
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
