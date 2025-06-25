@@ -1,3 +1,5 @@
+mod float_output_workers;
+
 use crate::error::DataProcessingError;
 use crate::data_types::neuron_data::CorticalMappedXYZPNeuronData;
 use super::IOCacheWorker;
@@ -8,7 +10,9 @@ trait OutputCacheWorker<T>: IOCacheWorker<T> {
 
     fn get_last_stored_motor_value(&self) -> T;
     
-    fn feagi_updated_value
+    fn feagi_sent_value(&mut self, new_value: T);
+    
+    fn call_all_callbacks(&self);
     
     fn subscribe_to_callback<F>(&mut self, callback: F) -> Result<(), DataProcessingError>
     where
