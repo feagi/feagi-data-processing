@@ -1,14 +1,24 @@
-use std::time::Instant;
+use std::fmt;
+use crate::genome_definitions::identifiers::CorticalID;
 
-
-pub use device_group_cache::ChannelIndex as ChannelIndex;
-pub use device_group_cache::GroupIndex as GroupIndex;
-
-pub mod input_cache;
 pub mod input_workers;
-mod output_workers;
-mod device_group_cache;
+pub mod output_workers;
 
-pub trait IOCacheWorker<T> {
-    fn get_last_data_update_time(&self) -> Instant;
+pub use helpers::GroupingIndex as GroupingIndex;
+pub use helpers::ChannelIndex as ChannelIndex;
+pub use helpers::ChannelStatus as ChannelStatus;
+pub use callback_manager::CallBackManager as CallbackManager;
+use crate::genome_definitions::identifiers::InputCorticalType::VisionCenterGray;
+
+mod callback_manager;
+mod device_group_cache;
+mod helpers;
+
+pub trait IOCacheWorker<T: fmt::Display> : fmt::Display {
+    fn get_cached_data(&self) -> T;
+    fn get_channel_status(&self) -> ChannelStatus;
+    fn get_grouping_index(&self) -> GroupingIndex;
+    fn get_channel_index(&self) -> ChannelIndex;
+    fn get_cortical_area_id(&self) -> &CorticalID;
 }
+
