@@ -16,6 +16,14 @@ pub struct LinearBoundedF32 {
     upper: f32,
     lower: f32,
 }
+
+impl std::fmt::Display for LinearBoundedF32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+
+        write!(f, "Linear Bounded Value: Lower Bound: {}, Upper Bound: {}, Value: {}", self.lower, self.upper, self.value)
+    }
+}
+
 impl LinearBoundedF32 {
 
     pub fn new(value: f32, upper_bound: f32, lower_bound: f32) -> Result<Self, DataProcessingError> {
@@ -117,6 +125,13 @@ impl LinearBoundedF32 {
 #[derive(Debug, Clone, PartialEq, Copy, PartialOrd)]
 pub struct RangedNormalizedF32 {
     float: f32
+}
+
+impl std::fmt::Display for RangedNormalizedF32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+
+        write!(f, "Linear -1 <-> 1 Bounded Value: {}", self.float)
+    }
 }
 
 impl RangedNormalizedF32 {

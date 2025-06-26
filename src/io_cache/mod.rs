@@ -15,10 +15,10 @@ mod device_group_cache;
 mod helpers;
 
 pub trait IOCacheWorker<T: fmt::Display> : fmt::Display {
-    fn get_cached_data(&self) -> T;
-    fn get_channel_status(&self) -> ChannelStatus;
-    fn get_grouping_index(&self) -> GroupingIndex;
-    fn get_channel_index(&self) -> ChannelIndex;
+    fn get_cached_data(&self) -> &T;
+    fn get_channel_status(&self) -> &ChannelStatus;
+    fn get_grouping_index(&self) -> &GroupingIndex;
+    fn get_channel_index(&self) -> &ChannelIndex;
     fn get_cortical_area_id(&self) -> &CorticalID;
 }
 

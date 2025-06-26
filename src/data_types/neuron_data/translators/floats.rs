@@ -47,7 +47,7 @@ pub struct FloatNeuronXYZPTranslator {
 
 impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
     fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: ChannelIndex) -> Result<RangedNormalizedF32, DataProcessingError> {
-        if channel > self.channel_count {
+        if channel.index() > self.channel_count {
             return Err(DataProcessingError::InvalidInputBounds(format!("Requested channel {} is not supported when max channel is {}!", channel, self.channel_count)));
         }
 
@@ -56,12 +56,12 @@ impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
         }
 
         let cortical_depth: f32 = self.cortical_dimensions.z as f32;
-        
+
         // NOTE: The IDE for some reason thinks many branch arms are dead. Not sure why
         match self.translator_type {
             #[allow(unused_variables)] // Rust Rover seems to be blind
             FloatNeuronXYZPTranslatorType::PSPBidirectional => {
-                let positive_x_index: u32 = channel as u32 * FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL;
+                let positive_x_index: u32 = channel.index() as u32 * FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL;
                 let negative_x_index: u32 = positive_x_index + 1;
                 let mut output: f32 = 0.0;
                 // TODO stop going after 2?
@@ -83,7 +83,7 @@ impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
             }
             #[allow(unused_variables)] // Rust Rover seems to be blind
             FloatNeuronXYZPTranslatorType::SplitSignDivided => {
-                let positive_x_index: u32 = channel as u32 * FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_SPLIT_SIGN_DIVIDED;
+                let positive_x_index: u32 = channel.index() as u32 * FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_SPLIT_SIGN_DIVIDED;
                 let negative_x_index: u32 = positive_x_index + 1;
                 let mut output: f32 = 0.0;
                 let mut channel_neuron_count: usize = 0;
@@ -110,28 +110,28 @@ impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
             FloatNeuronXYZPTranslatorType::Linear => {
                 Err(DataProcessingError::NotImplemented) // TODO
             }
-        }    
+        }
     }
 
     fn read_neuron_data_multi_channel(&self, neuron_data: &NeuronXYZPArrays, channels: Vec<ChannelIndex>) -> Result<Vec<RangedNormalizedF32>, DataProcessingError> {
         let mut output: Vec<RangedNormalizedF32> = Vec::with_capacity(channels.len());
         for channel in channels.iter() {
-            output.push(FloatNeuronXYZPTranslator::read_neuron_data_single_channel(self, neuron_data, *channel)?);
+            output.push(FloatNeuronXYZPTranslator::read_neuron_data_single_channel(self, neuron_data, channel.clone())?);
         };
         Ok(output)
     }
 
     fn write_neuron_data_single_channel(&self, value: RangedNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: ChannelIndex) -> Result<(), DataProcessingError> {
-        
-        if channel > self.channel_count {
+
+        if channel.index() > self.channel_count {
             return Err(DataProcessingError::InvalidInputBounds(format!("Requested channel is not supported when max channel is {}!", channel)));
         }
-        
+
         match self.translator_type {
             FloatNeuronXYZPTranslatorType::PSPBidirectional => {
                 target_to_overwrite.expand_to_new_max_count_if_required(1);
                 target_to_overwrite.reset_indexes();
-                let channel_offset: u32 = FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * (channel as u32) + {if value.is_sign_positive() { 1 } else { 0 }};
+                let channel_offset: u32 = FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * (channel.index() as u32) + {if value.is_sign_positive() { 1 } else { 0 }};
                 let neuron: NeuronXYZP = NeuronXYZP::new(
                     channel_offset,
                     0,
@@ -142,11 +142,11 @@ impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
                 return Ok(());
             },
             FloatNeuronXYZPTranslatorType::SplitSignDivided => {
-                
+
                 // TODO Right now we are using the same algo as PSPBidirectional which works, but wouldn't it look nicer to use something that uses the full bounds?
                 target_to_overwrite.expand_to_new_max_count_if_required(1);
                 target_to_overwrite.reset_indexes();
-                let channel_offset: u32 = FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * (channel as u32) + {if value.is_sign_positive() { 1 } else { 0 }};
+                let channel_offset: u32 = FloatNeuronXYZPTranslatorType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * (channel.index() as u32) + {if value.is_sign_positive() { 1 } else { 0 }};
                 let neuron: NeuronXYZP = NeuronXYZP::new(
                     channel_offset,
                     0,
@@ -165,7 +165,7 @@ impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
 
     fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<ChannelIndex, RangedNormalizedF32>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), DataProcessingError> {
         for (channel, value) in channels_and_values.iter() {
-            self.write_neuron_data_single_channel(*value, target_to_overwrite, *channel)?;
+            self.write_neuron_data_single_channel(*value, target_to_overwrite, channel.clone())?;
         };
         Ok(())
     }

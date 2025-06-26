@@ -2,7 +2,7 @@ use std::time::Instant;
 use crate::data_types::neuron_data::{CorticalMappedXYZPNeuronData, NeuronTranslator, NeuronXYZPArrays};
 use crate::data_types::RangedNormalizedF32;
 use crate::error::DataProcessingError;
-use crate::io_cache::IOCacheWorker;
+use crate::io_cache::{ChannelStatus, GroupingIndex, IOCacheWorker};
 use crate::io_cache::ChannelIndex;
 use crate::genome_definitions::identifiers::CorticalID;
 use super::{InputCacheWorker};
@@ -14,14 +14,31 @@ pub trait InputFloatCacheWorker: InputCacheWorker<RangedNormalizedF32> {
 //region Float Direct
 pub struct FloatDirectWorker {
     last_data_update_time: Instant,
+    channel_status: ChannelStatus,
     cortical_id_write_target: CorticalID, // yes, lets keep a copy here, this is too small to worry about borrowing shenanigans
     channel: ChannelIndex,
     last_float: RangedNormalizedF32,
 }
 
 impl IOCacheWorker<RangedNormalizedF32> for FloatDirectWorker {
-    fn get_last_data_update_time(&self) -> Instant {
-        self.last_data_update_time
+    fn get_cached_data(&self) -> &RangedNormalizedF32 {
+        &self.last_float
+    }
+
+    fn get_channel_status(&self) -> &ChannelStatus {
+        &self.channel_status
+    }
+
+    fn get_grouping_index(&self) -> &GroupingIndex {
+        &self.g
+    }
+
+    fn get_channel_index(&self) -> &ChannelIndex {
+        todo!()
+    }
+
+    fn get_cortical_area_id(&self) -> &CorticalID {
+        todo!()
     }
 }
 
