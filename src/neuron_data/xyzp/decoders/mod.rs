@@ -1,2 +1,2 @@
-mod floats;
+pub mod floats;
 

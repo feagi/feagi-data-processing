@@ -179,7 +179,5 @@ impl FloatNeuronXYZPTranslator {
             channel_count: number_channels
         })
     }
-    
 
-    
 }
