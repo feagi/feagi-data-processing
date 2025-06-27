@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::error::DataProcessingError;
+use std::fmt;
 
 macro_rules! define_indexed_cortical_enum_and_cortical_types {
     (
@@ -178,12 +178,12 @@ impl fmt::Display for CorticalID {
 }
 
 mod hidden_cortical_id_internals {
-    use std::fmt;
     use crate::error::DataProcessingError;
-    use crate::genome_definitions::identifiers::{safe_bytes_to_string, CORTICAL_ID_LENGTH};
     use crate::genome_definitions::identifiers::CoreCorticalType;
     use crate::genome_definitions::identifiers::InputCorticalType;
     use crate::genome_definitions::identifiers::OutputCorticalType;
+    use crate::genome_definitions::identifiers::{safe_bytes_to_string, CORTICAL_ID_LENGTH};
+    use std::fmt;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum CorticalIDInternal {

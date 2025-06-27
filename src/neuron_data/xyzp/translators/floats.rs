@@ -1,10 +1,9 @@
 use std::collections::HashMap;
-use crate::data_types::neuron_data::{NeuronXYZP, NeuronXYZPArrays};
-use crate::data_types::RangedNormalizedF32;
-use crate::error::DataProcessingError;
+use crate::neuron_data::{NeuronXYZP, NeuronXYZPArrays};
+use crate::io_data::{LinearNormalizedF32};
+use crate::error::{IODataError, };
 use crate::genome_definitions::CorticalDimensions;
 use crate::io_cache::ChannelIndex;
-use super::NeuronTranslator;
 
 pub enum FloatNeuronXYZPTranslatorType {
     PSPBidirectional,
@@ -17,12 +16,12 @@ impl FloatNeuronXYZPTranslatorType {
     pub const CHANNEL_WIDTH_SPLIT_SIGN_DIVIDED: u32 = 2;
     pub const CHANNEL_WIDTH_LINEAR: u32 = 1;
     
-    pub fn create_dimensions_for_translator_type(&self, number_channels: usize, resolution_depth: usize) -> Result<CorticalDimensions, DataProcessingError> {
+    pub fn create_dimensions_for_translator_type(&self, number_channels: usize, resolution_depth: usize) -> Result<CorticalDimensions, IODataError> {
         if number_channels == 0 {
-            return Err(DataProcessingError::InvalidInputBounds("Cannot create cortical dimensions with 0 channels!".into()));
+            return Err(IODataError::InvalidParameters("Cannot create cortical dimensions with 0 channels!".into()));
         }
         if resolution_depth == 0 {
-            return Err(DataProcessingError::InvalidInputBounds("Cannot create cortical dimensions with a resolution depth of 0!".into()));
+            return Err(IODataError::InvalidParameters("Cannot create cortical dimensions with a resolution depth of 0!".into()));
         }
         
         match self {
@@ -45,7 +44,7 @@ pub struct FloatNeuronXYZPTranslator {
     channel_count: usize
 }
 
-impl NeuronTranslator<RangedNormalizedF32> for FloatNeuronXYZPTranslator {
+impl NeuronTranslator<LinearNormalizedF32> for FloatNeuronXYZPTranslator {
     fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: ChannelIndex) -> Result<RangedNormalizedF32, DataProcessingError> {
         if channel.index() > self.channel_count {
             return Err(DataProcessingError::InvalidInputBounds(format!("Requested channel {} is not supported when max channel is {}!", channel, self.channel_count)));

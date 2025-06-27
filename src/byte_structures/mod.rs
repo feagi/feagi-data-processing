@@ -36,7 +36,7 @@ pub mod feagi_byte_structure;
 use std::cmp::PartialEq;
 use std::fmt::{Display, Formatter};
 use crate::byte_structures::feagi_byte_structure::FeagiByteStructure;
-use crate::error::DataProcessingError;
+use crate::error::FeagiBytesError;
 
 /// Size in bytes of the global header that prefixes all FEAGI byte structures.
 /// 
@@ -83,17 +83,17 @@ impl Display for FeagiByteStructureType {
 }
 
 impl FeagiByteStructureType {
-    pub fn try_from(value: u8) -> Result<Self, DataProcessingError> {
+    pub fn try_from(value: u8) -> Result<Self, FeagiBytesError> {
         match value {
             1 => Ok(FeagiByteStructureType::JSON),
             9 => Ok(FeagiByteStructureType::MultiStructHolder),
             11 => Ok(FeagiByteStructureType::NeuronCategoricalXYZP),
-            _ => Err(DataProcessingError::InvalidByteStructure(format!("Unknown FeagiByteStructure type {}", value)))
+            _ => Err(FeagiBytesError::UnableToDeserializeBytes(format!("Unknown FeagiByteStructure type {}", value)))
         }
     }
-    pub fn try_get_type_from_bytes(bytes: &[u8]) -> Result<FeagiByteStructureType, DataProcessingError> {
+    pub fn try_get_type_from_bytes(bytes: &[u8]) -> Result<FeagiByteStructureType, FeagiBytesError> {
         if bytes.len() < 1 {
-            return Err(DataProcessingError::InvalidByteStructure("Cannot ascertain type of empty byte array!".into()))
+            return Err(FeagiBytesError::UnableToDeserializeBytes("Cannot ascertain type of empty byte array!".into()))
         }
         FeagiByteStructureType::try_from(bytes[0])
     }
@@ -104,17 +104,17 @@ pub trait FeagiByteStructureCompatible {
 
     fn get_type(&self) -> FeagiByteStructureType;
     fn get_version(&self) -> u8;
-    fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, DataProcessingError>;
+    fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, FeagiBytesError>;
     fn max_number_bytes_needed(&self) -> usize;
-    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, DataProcessingError> where Self: Sized;
+    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, FeagiBytesError> where Self: Sized;
 
-    fn verify_slice_has_enough_space(&self, slice: &[u8]) -> Result<(), DataProcessingError> {
+    fn verify_slice_has_enough_space(&self, slice: &[u8]) -> Result<(), FeagiBytesError> {
         if slice.len() < self.max_number_bytes_needed() {
-            return Err(DataProcessingError::IncompatibleInplace(format!("Given slice is only {} bytes long when {} bytes of space are required!", slice.len(), self.max_number_bytes_needed())));
+            return Err(FeagiBytesError::UnableToValidateBytes(format!("Given slice is only {} bytes long when {} bytes of space are required!", slice.len(), self.max_number_bytes_needed())));
         }
         Ok(())
     }
-    fn as_new_feagi_byte_structure(&self) -> Result<FeagiByteStructure, DataProcessingError> {
+    fn as_new_feagi_byte_structure(&self) -> Result<FeagiByteStructure, FeagiBytesError> {
         let mut bytes: Vec<u8> = vec![0; self.max_number_bytes_needed()];
         _ = self.overwrite_feagi_byte_structure_slice(&mut bytes)?; // theoretically some bytes may be wasted
         FeagiByteStructure::create_from_bytes(bytes)

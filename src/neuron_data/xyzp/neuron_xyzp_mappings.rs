@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 use byteorder::{ByteOrder, LittleEndian};
+use crate::error::{NeuronError, FeagiBytesError};
 use crate::byte_structures::{FeagiByteStructureCompatible, FeagiByteStructureType, GLOBAL_HEADER_SIZE};
 use crate::byte_structures::feagi_byte_structure::{verify_matching_structure_type_and_version, FeagiByteStructure};
-use crate::error::DataProcessingError;
 use crate::genome_definitions::identifiers::{CorticalID, CORTICAL_ID_LENGTH};
-use crate::data_types::neuron_data::{NeuronXYZPArrays};
+use crate::neuron_data::{NeuronXYZPArrays};
 
 #[derive(Clone)]
 pub struct CorticalMappedXYZPNeuronData {
@@ -14,15 +14,15 @@ pub struct CorticalMappedXYZPNeuronData {
 impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
     fn get_type(&self) -> FeagiByteStructureType { Self::BYTE_STRUCT_TYPE }
     fn get_version(&self) -> u8 { Self::BYTE_STRUCT_VERSION }
-    fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, DataProcessingError> {
+    fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, FeagiBytesError> {
         
         if self.mappings.len() == 0 {
-            return Err(DataProcessingError::InvalidByteStructure("Cannot generate a byte structure export with an empty cortical mappings object!".into()))
+            return Err(FeagiBytesError::UnableToSerializeBytes("Cannot generate a byte structure export with an empty cortical mappings object!".into()))
         }
         
         let num_bytes_needed: usize = self.max_number_bytes_needed();
         if slice.len() < num_bytes_needed {
-            return Err(DataProcessingError::IncompatibleInplace(format!("Not enough space given to store neuron XYZP data! Need {} bytes but given {}!", num_bytes_needed, slice.len())));
+            return Err(FeagiBytesError::UnableToSerializeBytes(format!("Not enough space given to store neuron XYZP data! Need {} bytes but given {}!", num_bytes_needed, slice.len())));
         }
 
         slice[0] = self.get_type() as u8;
@@ -66,7 +66,7 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
             bytes_needed_for_neurons
     }
 
-    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, DataProcessingError> {
+    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, FeagiBytesError> {
         verify_matching_structure_type_and_version(&feagi_byte_structure,
                                                    Self::BYTE_STRUCT_TYPE,
                                                    Self::BYTE_STRUCT_VERSION)?;
@@ -78,7 +78,7 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
             (Self::BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE * number_cortical_areas as usize);
 
         if bytes.len() < min_array_length_with_cortical_headers {
-            return Err(DataProcessingError::InvalidByteStructure(format!("Byte structure for NeuronCategoricalXYZPV1 needs a length of {} to fit just the cortical details header, but is a length of {}",
+            return Err(FeagiBytesError::UnableToSerializeBytes(format!("Byte structure for NeuronCategoricalXYZPV1 needs a length of {} to fit just the cortical details header, but is a length of {}",
                                                                          min_array_length_with_cortical_headers, bytes.len())));
         }
 
@@ -95,17 +95,17 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
             let number_bytes_to_read: usize = LittleEndian::read_u32(&bytes[reading_header_index + 10..reading_header_index + 14]) as usize;
 
             if bytes.len() < data_start_reading + number_bytes_to_read {
-                return Err(DataProcessingError::InvalidByteStructure("Byte structure for NeuronCategoricalXYZPV1 is too short to fit the data the header says it contains!".into()));
+                return Err(FeagiBytesError::UnableToSerializeBytes("Byte structure for NeuronCategoricalXYZPV1 is too short to fit the data the header says it contains!".into()));
             }
 
             let neuron_bytes = &bytes[data_start_reading..data_start_reading + number_bytes_to_read];
             let bytes_length = neuron_bytes.len();
             if bytes_length % NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON != 0 {
-                return Err(DataProcessingError::InvalidByteStructure("Byte structure for NeuronCategoricalXYZPV1 seems invalid! Size is nonsensical given neuron data size!".into()));
+                return Err(FeagiBytesError::UnableToSerializeBytes("Byte structure for NeuronCategoricalXYZPV1 seems invalid! Size is nonsensical given neuron data size!".into()));
             }
             
             if bytes_length % NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON != 0 {
-                return Err(DataProcessingError::InvalidByteStructure("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input byte array must be divisible by 16!".into()));
+                return Err(FeagiBytesError::UnableToSerializeBytes("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input byte array must be divisible by 16!".into()));
             }
             let x_end = bytes_length / 4; // q1
             let y_end = bytes_length / 2; // q2

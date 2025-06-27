@@ -31,6 +31,13 @@ pub mod genome_definitions;
 pub mod io_cache;
 pub mod data_types;
 
+
+
+pub mod io_data;
+
+pub mod neuron_data;
+pub mod genomic_structures;
+
 #[cfg(test)]
 mod tests {
     // Tests of each module are in the mod file of each module, and are run from there

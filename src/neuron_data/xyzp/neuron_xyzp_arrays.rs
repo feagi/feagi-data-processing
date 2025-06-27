@@ -1,8 +1,8 @@
+use std::ops::RangeInclusive;
 use ndarray::Array1;
 use byteorder::{ByteOrder, LittleEndian};
-use std::ops::RangeInclusive;
-use crate::error::DataProcessingError;
-use crate::data_types::neuron_data::xyzp::NeuronXYZP;
+use crate::error::{NeuronError, FeagiBytesError};
+use crate::neuron_data::{NeuronXYZP};
 
 /// Represents neuron data as four parallel arrays for X, Y, channel, and potential values.
 /// This structure provides an efficient memory layout for serialization and processing of neuron data.
@@ -28,10 +28,10 @@ impl NeuronXYZPArrays {
     /// * `maximum_number_of_neurons_possibly_needed` - The maximum number of neurons this structure should be able to hold
     ///
     /// # Returns
-    /// * `Result<Self, DataProcessingError>` - A new instance or an error if the input is invalid
-    pub fn new(maximum_number_of_neurons_possibly_needed: usize) -> Result<Self, DataProcessingError> {
+    /// * `Result<Self, NeuronError>` - A new instance or an error if the input is invalid
+    pub fn new(maximum_number_of_neurons_possibly_needed: usize) -> Result<Self, NeuronError> {
         if maximum_number_of_neurons_possibly_needed == 0 {
-            return Err(DataProcessingError::InvalidInputBounds("Given number of neurons possible must be greater than 0!".into()));
+            return Err(NeuronError::UnableToGenerateNeuronData("Given number of neurons possible must be greater than 0!".into()));
         };
         Ok(NeuronXYZPArrays {
             x: Vec::with_capacity(NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * maximum_number_of_neurons_possibly_needed),
@@ -47,8 +47,8 @@ impl NeuronXYZPArrays {
     /// * `resolution` - A tuple representing the 3D dimensions (neuron count) in the x y z directions 
     ///
     /// # Returns
-    /// * `Result<Self, DataProcessingError>` - A new instance with capacity for all neurons in the 3D space
-    pub fn new_from_resolution(resolution: (usize, usize, usize)) -> Result<Self, DataProcessingError> {
+    /// * `Result<Self, NeuronError>` - A new instance with capacity for all neurons in the 3D space
+    pub fn new_from_resolution(resolution: (usize, usize, usize)) -> Result<Self, NeuronError> {
         NeuronXYZPArrays::new(resolution.0 * resolution.1 * resolution.2)
     }
 
@@ -61,11 +61,11 @@ impl NeuronXYZPArrays {
     /// * `p` - Vector of potential/activation values
     ///
     /// # Returns
-    /// * `Result<Self, DataProcessingError>` - A new instance or an error if the vectors have different lengths
+    /// * `Result<Self, NeuronError>` - A new instance or an error if the vectors have different lengths
     ///
     /// # Examples
     /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::neuron_data::NeuronXYZPArrays;
     /// 
     /// let x = vec![1, 2, 3];
     /// let y = vec![4, 5, 6];
@@ -75,10 +75,10 @@ impl NeuronXYZPArrays {
     /// let arrays = NeuronXYZPArrays::new_from_vectors(x, y, z, p).unwrap();
     /// assert_eq!(arrays.get_number_of_neurons_used(), 3);
     /// ```
-    pub fn new_from_vectors(x: Vec<u32>, y: Vec<u32>, z: Vec<u32>, p: Vec<f32>) -> Result<Self, DataProcessingError> {
+    pub fn new_from_vectors(x: Vec<u32>, y: Vec<u32>, z: Vec<u32>, p: Vec<f32>) -> Result<Self, NeuronError> {
         let len = x.len();
         if len != y.len() || len != z.len() || len != p.len() {
-            return Err(DataProcessingError::InvalidInputBounds("Vectors are not the same length!".into()));
+            return Err(NeuronError::UnableToGenerateNeuronData("Input vectors must be the same length to generate XYZP neuron data!!".into()));
         }
         Ok(NeuronXYZPArrays {
             x,
@@ -97,12 +97,12 @@ impl NeuronXYZPArrays {
     /// * `p_nd` - Array1 of potential/activation values
     ///
     /// # Returns
-    /// * `Result<Self, DataProcessingError>` - A new instance or an error if the arrays have different lengths
+    /// * `Result<Self, NeuronError>` - A new instance or an error if the arrays have different lengths
     ///
     /// # Examples
     /// ```
     /// use ndarray::Array1;
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::NeuronXYZPArrays;
+    /// use feagi_core_data_structures_and_processing::neuron_data::NeuronXYZPArrays;
     /// 
     /// let x_nd = Array1::from_vec(vec![1, 2, 3]);
     /// let y_nd = Array1::from_vec(vec![4, 5, 6]);
@@ -112,10 +112,10 @@ impl NeuronXYZPArrays {
     /// let arrays = NeuronXYZPArrays::new_from_ndarrays(x_nd, y_nd, z_nd, p_nd).unwrap();
     /// assert_eq!(arrays.get_number_of_neurons_used(), 3);
     /// ```
-    pub fn new_from_ndarrays(x_nd: Array1<u32>, y_nd: Array1<u32>, z_nd: Array1<u32>, p_nd: Array1<f32>) -> Result<Self, DataProcessingError> {
+    pub fn new_from_ndarrays(x_nd: Array1<u32>, y_nd: Array1<u32>, z_nd: Array1<u32>, p_nd: Array1<f32>) -> Result<Self, NeuronError> {
         let len = x_nd.len();
         if len != y_nd.len() || len != z_nd.len() || len != p_nd.len() {
-            return Err(DataProcessingError::InvalidInputBounds("ND Arrays are not the same length!".into()));
+            return Err(NeuronError::UnableToGenerateNeuronData("ND Arrays must be the same length to generate XYZP neuron data!".into()));
         }
         Ok(NeuronXYZPArrays{ x: x_nd.to_vec(), y: y_nd.to_vec(), z: z_nd.to_vec(), p: p_nd.to_vec()})
     }
@@ -127,10 +127,10 @@ impl NeuronXYZPArrays {
     /// * `vectors_changer` - A function that takes mutable references to the four vectors and updates them
     ///
     /// # Returns
-    /// * `Result<(), DataProcessingError>` - Success or an error if the update fails or results in the 
+    /// * `Result<(), NeuronError>` - Success or an error if the update fails or results in the 
     ///   x y z p vectors being of different lengths by its conclusion
-    pub fn update_vectors_from_external<F>(&mut self, vectors_changer: F) -> Result<(), DataProcessingError>
-    where F: FnOnce(&mut Vec<u32>, &mut Vec<u32>, &mut Vec<u32>, &mut Vec<f32>) -> Result<(), DataProcessingError>
+    pub fn update_vectors_from_external<F>(&mut self, vectors_changer: F) -> Result<(), NeuronError>
+    where F: FnOnce(&mut Vec<u32>, &mut Vec<u32>, &mut Vec<u32>, &mut Vec<f32>) -> Result<(), NeuronError>
     {
         let function_result = vectors_changer(&mut self.x, &mut self.y, &mut self.z, &mut self.p);
         if function_result.is_err() {
@@ -178,7 +178,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
+    /// use feagi_core_data_structures_and_processing::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::new(1).unwrap();
     /// let neuron = NeuronXYZP::new(1, 2, 3, 0.5);
@@ -199,7 +199,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
+    /// use feagi_core_data_structures_and_processing::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::new(2).unwrap();
     /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -225,7 +225,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
+    /// use feagi_core_data_structures_and_processing::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::new(2).unwrap();
     /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -253,7 +253,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
+    /// use feagi_core_data_structures_and_processing::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::new(2).unwrap();
     /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -284,11 +284,11 @@ impl NeuronXYZPArrays {
     /// Validates that all four internal vectors have the same length.
     ///
     /// # Returns
-    /// * `Result<(), DataProcessingError>` - Success or an error if the vectors have different lengths
-    pub fn validate_equal_vector_lengths(&self) -> Result<(), DataProcessingError> { // TODO make internal
+    /// * `Result<(), NeuronError>` - Success or an error if the vectors have different lengths
+    pub fn validate_equal_vector_lengths(&self) -> Result<(), NeuronError> { // TODO make internal
         let len = self.x.len();
         if !((self.y.len() == len) && (self.x.len() == len) && (self.z.len() == len)) {
-            return Err(DataProcessingError::InternalError("Internal XYCP Arrays do not have equal lengths!".into()));
+            return Err(NeuronError::UnableToParseFromNeuronData("Internal XYCP Arrays do not have equal lengths!".into()));
         }
         Ok(())
     }
@@ -308,7 +308,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
+    /// use feagi_core_data_structures_and_processing::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::new(1).unwrap();
     /// assert!(arrays.is_empty());
@@ -327,7 +327,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
+    /// use feagi_core_data_structures_and_processing::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::new(1).unwrap();
     /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -351,11 +351,11 @@ impl NeuronXYZPArrays {
     /// * `bytes_to_write_to` - The byte buffer to write the data to
     ///
     /// # Returns
-    /// * `Result<(), DataProcessingError>` - Success or an error if the buffer size is incorrect
+    /// * `Result<(), NeuronError>` - Success or an error if the buffer size is incorrect
     ///
     /// # Examples
     /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
+    /// use feagi_core_data_structures_and_processing::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::new(1).unwrap();
     /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -363,12 +363,12 @@ impl NeuronXYZPArrays {
     /// let mut buffer = vec![0u8; NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON];
     /// arrays.write_neural_data_to_bytes(&mut buffer).unwrap();
     /// ```
-    pub fn write_neural_data_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), DataProcessingError> {
+    pub fn write_neural_data_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), FeagiBytesError> {
         const U32_F32_LENGTH: usize = 4;
         let number_of_neurons_to_write: usize = self.get_number_of_neurons_used();
         let number_bytes_needed = NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON * number_of_neurons_to_write;
         if bytes_to_write_to.len() != number_bytes_needed {
-            return Err(DataProcessingError::InvalidByteStructure(format!("Need exactly {} bytes to write xyzp neuron data, but given a space of {} bytes!", bytes_to_write_to.len(), number_bytes_needed).into()))
+            return Err(FeagiBytesError::UnableToSerializeBytes(format!("Need exactly {} bytes to write xyzp neuron data, but given a space of {} bytes!", bytes_to_write_to.len(), number_bytes_needed).into()))
         }
         let mut x_offset: usize = 0;
         let mut y_offset = number_of_neurons_to_write * U32_F32_LENGTH; // quarter way through the total bytes
@@ -398,12 +398,12 @@ impl NeuronXYZPArrays {
     /// * `z_range` - Range of valid Z coordinates
     ///
     /// # Returns
-    /// * `Result<NeuronXYZPArrays, DataProcessingError>` - A new instance containing only neurons within the specified ranges
+    /// * `Result<NeuronXYZPArrays, NeuronError>` - A new instance containing only neurons within the specified ranges
     ///
     /// # Examples
     /// ```
     /// use std::ops::RangeInclusive;
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
+    /// use feagi_core_data_structures_and_processing::neuron_data::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::new(3).unwrap();
     /// arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -418,7 +418,7 @@ impl NeuronXYZPArrays {
     ///
     /// assert_eq!(filtered.get_number_of_neurons_used(), 2);
     /// ```
-    pub fn filter_neurons_by_location_bounds(&self, x_range: RangeInclusive<u32>, y_range: RangeInclusive<u32>, z_range: RangeInclusive<u32>) -> Result<NeuronXYZPArrays, DataProcessingError> {
+    pub fn filter_neurons_by_location_bounds(&self, x_range: RangeInclusive<u32>, y_range: RangeInclusive<u32>, z_range: RangeInclusive<u32>) -> Result<NeuronXYZPArrays, NeuronError> {
         let mut xv: Vec<u32> = Vec::new();
         let mut yv: Vec<u32> = Vec::new();
         let mut zv: Vec<u32> = Vec::new();
