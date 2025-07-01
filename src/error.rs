@@ -147,6 +147,7 @@ impl fmt::Display for NeuronError {
 pub enum GenomeError {
     InvalidCorticalID(String),
     InvalidCorticalDimensions(String),
+    InvalidChannelDimensions(String),
 }
 
 impl fmt::Display for GenomeError {
@@ -154,6 +155,7 @@ impl fmt::Display for GenomeError {
         match self {
             GenomeError::InvalidCorticalID(e) => write!(f, "Unable to Process Cortical ID: {}", e),
             GenomeError::InvalidCorticalDimensions(e) => write!(f, "Invalid Cortical Dimensions: {}", e),
+            GenomeError::InvalidChannelDimensions(e) => write!(f, "Invalid Channel Dimensions: {}", e),
         }
     }
 }
