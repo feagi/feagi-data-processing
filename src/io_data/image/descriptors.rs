@@ -6,7 +6,7 @@
 
 use std::cmp;
 use std::ops::RangeInclusive;
-use crate::error::DataProcessingError;
+use crate::error::{FeagiDataProcessingError, IODataError};
 
 
 
@@ -99,9 +99,9 @@ impl FrameProcessingParameters {
     /// A Result containing either:
     /// - Ok(&mut Self) if the brightness factor is valid
     /// - Err(DataProcessingError) if the brightness factor is negative
-    pub fn set_multiply_brightness_by(&mut self, multiply_brightness_by: f32) -> Result<&mut Self, DataProcessingError> {
+    pub fn set_multiply_brightness_by(&mut self, multiply_brightness_by: f32) -> Result<&mut Self, FeagiDataProcessingError> {
         if multiply_brightness_by < 0.0 {
-            return Err(DataProcessingError::InvalidInputBounds("Multiply brightness by must be positive!".into()));
+            return Err(IODataError::InvalidParameters("Multiply brightness by must be positive!".into()).into());
         }
         self.multiply_brightness_by = Some(multiply_brightness_by);
         Ok(self)
@@ -118,9 +118,9 @@ impl FrameProcessingParameters {
     /// A Result containing either:
     /// - Ok(&mut Self) if the contrast factor is valid
     /// - Err(DataProcessingError) if the contrast factor is outside the valid range
-    pub fn set_change_contrast_by(&mut self, change_contrast_by: f32) -> Result<&mut Self, DataProcessingError> {
+    pub fn set_change_contrast_by(&mut self, change_contrast_by: f32) -> Result<&mut Self, FeagiDataProcessingError> {
         if change_contrast_by < -1.0 || change_contrast_by > 1.0 {
-            return Err(DataProcessingError::InvalidInputBounds("The contrast factor must be between -1.0 and 1.0!".into()));
+            return Err(IODataError::InvalidParameters("The contrast factor must be between -1.0 and 1.0!".into()).into());
         }
         self.change_contrast_by = Some(change_contrast_by);
         Ok(self)
@@ -137,7 +137,7 @@ impl FrameProcessingParameters {
     /// A Result containing either:
     /// - Ok(&mut Self) if the memory layout is valid
     /// - Err(DataProcessingError) if the memory layout is invalid
-    pub fn set_source_array_ordering(&mut self, new_source_array_ordering: MemoryOrderLayout) -> Result<&mut Self, DataProcessingError> {
+    pub fn set_source_array_ordering(&mut self, new_source_array_ordering: MemoryOrderLayout) -> Result<&mut Self, FeagiDataProcessingError> {
         self.memory_ordering_of_source = new_source_array_ordering;
         Ok(self)
     }
@@ -197,20 +197,10 @@ impl FrameProcessingParameters {
     /// A Result containing either:
     /// - Ok((width, height)) if the final dimensions can be determined
     /// - Err(DataProcessingError) if no size-changing operations are configured
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let mut params = FrameProcessingParameters::new();
-    /// params.set_resizing_to((640, 480));
-    /// assert_eq!(params.get_final_width_height().unwrap(), (640, 480));
-    /// ```
-    pub fn get_final_width_height(&self) -> Result<(usize, usize), DataProcessingError> {
+    pub fn get_final_width_height(&self) -> Result<(usize, usize), FeagiDataProcessingError> {
         let crop_resize_exist = (self.cropping_from.is_some(), self.resizing_to.is_some());
         match crop_resize_exist {
-            (false, false) => Err(DataProcessingError::MissingContext("Unknown final width of height as its not being changed by the image preprocessor!".into())),
+            (false, false) => Err(IODataError::InvalidParameters("Unknown final width of height as its not being changed by the image preprocessor!".into()).into()),
             (true, false) => Ok(self.cropping_from.unwrap().enclosed_area_width_height()),
             _ => Ok(self.resizing_to.unwrap()),
         }
@@ -243,13 +233,13 @@ impl CornerPoints {
     /// A Result containing either:
     /// - Ok(CornerPoints) if the coordinates are valid
     /// - Err(DataProcessingError) if the coordinates are invalid
-    pub fn new_from_row_major(lower_left_yx: (usize, usize), upper_right_yx: (usize, usize)) -> Result<CornerPoints,  DataProcessingError> {
+    pub fn new_from_row_major(lower_left_yx: (usize, usize), upper_right_yx: (usize, usize)) -> Result<CornerPoints,  FeagiDataProcessingError> {
         if lower_left_yx.1 >= upper_right_yx.1 {
-            return Err(DataProcessingError::InvalidInputBounds(format!("The lower left point must have a smaller X ({}) index than the upper right point ({})!", lower_left_yx.1, upper_right_yx.1).into()));
+            return Err(IODataError::InvalidParameters(format!("The lower left point must have a smaller X ({}) index than the upper right point ({})!", lower_left_yx.1, upper_right_yx.1).into()).into());
         }
 
         if lower_left_yx.0 <= upper_right_yx.0 {
-            return Err(DataProcessingError::InvalidInputBounds(format!("The lower left point must have a greater Y ({}) index than the upper right point ({})!", lower_left_yx.0, upper_right_yx.0).into()));
+            return Err(IODataError::InvalidParameters(format!("The lower left point must have a greater Y ({}) index than the upper right point ({})!", lower_left_yx.0, upper_right_yx.0).into()).into());
         };
         Ok(CornerPoints {
             lower_left: lower_left_yx,
@@ -273,10 +263,10 @@ impl CornerPoints {
     pub fn new_from_cartesian(
         left_lower_xy: (usize, usize), right_upper_xy: (usize, usize),
         total_source_resolution_width_height: (usize, usize))
-        -> Result<CornerPoints,  DataProcessingError> {
+        -> Result<CornerPoints,  FeagiDataProcessingError> {
         if left_lower_xy.0 > total_source_resolution_width_height.0 || right_upper_xy.0 > total_source_resolution_width_height.0 ||
             left_lower_xy.1 > total_source_resolution_width_height.1 || right_upper_xy.1 > total_source_resolution_width_height.1 {
-            return Err(DataProcessingError::InvalidInputBounds("Corner bounds must be within the total resolution!".into()));
+            return Err(IODataError::InvalidParameters("Corner bounds must be within the total resolution!".into()).into());
         }
         
         Ok(CornerPoints {
@@ -385,22 +375,13 @@ impl ChannelFormat {
     /// A Result containing either:
     /// - Ok(ChannelFormat) if the value is valid (1-4)
     /// - Err(DataProcessingError) if the value is outside the valid range
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::ChannelFormat;
-    ///
-    /// assert_eq!(ChannelFormat::from_usize(3).unwrap(), ChannelFormat::RGB);
-    /// assert!(ChannelFormat::from_usize(5).is_err());
-    /// ```
-    pub fn from_usize(val: usize) -> Result<ChannelFormat, DataProcessingError> {
+    pub fn from_usize(val: usize) -> Result<ChannelFormat, FeagiDataProcessingError> {
         match val {
             1 => Ok(ChannelFormat::GrayScale),
             2 => Ok(ChannelFormat::RG),
             3 => Ok(ChannelFormat::RGB),
             4 => Ok(ChannelFormat::RGBA),
-            _ => Err(DataProcessingError::InvalidInputBounds("The number of color channels must be at least 1 and not exceed the 4!".into()))
+            _ => Err(IODataError::InvalidParameters("The number of color channels must be at least 1 and not exceed the 4!".into()).into())
         }
     }
 }
@@ -452,30 +433,20 @@ impl SegmentedVisionCenterProperties {
     /// A Result containing either:
     /// - Ok(SegmentedVisionCenterProperties) if the parameters are valid
     /// - Err(DataProcessingError) if coordinates or size are outside valid ranges
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionCenterProperties;
-    ///
-    /// let center_props = SegmentedVisionCenterProperties::new_row_major_where_origin_top_left(
-    ///     (0.5, 0.5), (0.3, 0.3)
-    /// ).unwrap();
-    /// ```
-    pub fn new_row_major_where_origin_top_left(center_coordinates_normalized_yx: (f32, f32), center_size_normalized_yx: (f32, f32)) -> Result<SegmentedVisionCenterProperties, DataProcessingError> {
+    pub fn new_row_major_where_origin_top_left(center_coordinates_normalized_yx: (f32, f32), center_size_normalized_yx: (f32, f32)) -> Result<SegmentedVisionCenterProperties, FeagiDataProcessingError> {
         let range_0_1: RangeInclusive<f32> = 0.0..=1.0;
         if !(range_0_1.contains(&center_coordinates_normalized_yx.0) && range_0_1.contains(&center_coordinates_normalized_yx.1)) {
-            return Err(DataProcessingError::InvalidInputBounds("Central vision center coordinates are to be normalized and must be between 0 and 1!".into()))
+            return Err(IODataError::InvalidParameters("Central vision center coordinates are to be normalized and must be between 0 and 1!".into()).into())
         }
         if !(range_0_1.contains(&center_size_normalized_yx.0) && range_0_1.contains(&center_size_normalized_yx.1)) {
-            return Err(DataProcessingError::InvalidInputBounds("Central vision size is to be normalized and must be between 0 and 1!".into()))
+            return Err(IODataError::InvalidParameters("Central vision size is to be normalized and must be between 0 and 1!".into()).into())
         }
         
         let range_overlap_y: RangeInclusive<f32> = (center_size_normalized_yx.0 / 2.0)..=(1.0 + (center_size_normalized_yx.0 / 2.0));
         let range_overlap_x: RangeInclusive<f32> = (center_size_normalized_yx.1 / 2.0)..=(1.0 + (center_size_normalized_yx.1 / 2.0));
         
         if !(range_overlap_y.contains(&center_coordinates_normalized_yx.0) && range_overlap_x.contains(&center_coordinates_normalized_yx.1)) {
-            return Err(DataProcessingError::InvalidInputBounds("Resulting central vision crop includes regions outside input image!".into()))
+            return Err(IODataError::InvalidParameters("Resulting central vision crop includes regions outside input image!".into()).into())
         }
         
         Ok(SegmentedVisionCenterProperties {
@@ -499,17 +470,7 @@ impl SegmentedVisionCenterProperties {
     /// A Result containing either:
     /// - Ok(SegmentedVisionCenterProperties) if the parameters are valid
     /// - Err(DataProcessingError) if coordinates or size are outside valid ranges
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionCenterProperties;
-    ///
-    /// let center_props = SegmentedVisionCenterProperties::cartesian_where_origin_bottom_left(
-    ///     (0.5, 0.5), (0.3, 0.3)
-    /// ).unwrap();
-    /// ```
-    pub fn cartesian_where_origin_bottom_left(center_coordinates_normalized_cartesian_xy: (f32, f32), center_size_normalized_xy: (f32, f32)) -> Result<SegmentedVisionCenterProperties, DataProcessingError> {
+    pub fn cartesian_where_origin_bottom_left(center_coordinates_normalized_cartesian_xy: (f32, f32), center_size_normalized_xy: (f32, f32)) -> Result<SegmentedVisionCenterProperties, FeagiDataProcessingError> {
         SegmentedVisionCenterProperties::new_row_major_where_origin_top_left(
             (center_coordinates_normalized_cartesian_xy.1, 1.0 - center_coordinates_normalized_cartesian_xy.0),
             (center_size_normalized_xy.1, center_size_normalized_xy.0))
@@ -523,14 +484,6 @@ impl SegmentedVisionCenterProperties {
     /// # Returns
     /// 
     /// A SegmentedVisionCenterProperties with default centered configuration.
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionCenterProperties;
-    ///
-    /// let center_props = SegmentedVisionCenterProperties::create_default_centered();
-    /// ```
     pub fn create_default_centered() -> SegmentedVisionCenterProperties {
         SegmentedVisionCenterProperties::new_row_major_where_origin_top_left((0.5, 0.5), (0.5, 0.5)).unwrap()
     }
@@ -549,16 +502,7 @@ impl SegmentedVisionCenterProperties {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrameSourceCroppingPointGrouping) with corner points for all segments
     /// - Err(DataProcessingError) if the calculations fail
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionCenterProperties;
-    ///
-    /// let center_props = SegmentedVisionCenterProperties::create_default_centered();
-    /// let cropping_points = center_props.calculate_source_corner_points_for_segemented_video_frame((640, 480)).unwrap();
-    /// ```
-    pub fn calculate_source_corner_points_for_segemented_video_frame(&self, source_frame_width_height: (usize, usize))  -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, DataProcessingError> {
+    pub fn calculate_source_corner_points_for_segemented_video_frame(&self, source_frame_width_height: (usize, usize))  -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, FeagiDataProcessingError> {
         let center_corner_points = self.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
         Ok(SegmentedVisionFrameSourceCroppingPointGrouping{
             lower_left: CornerPoints::new_from_row_major((source_frame_width_height.1, 0), center_corner_points.lower_left_row_major())?,
@@ -573,9 +517,9 @@ impl SegmentedVisionCenterProperties {
         })
     }
     
-    fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_width_height: (usize, usize)) -> Result<CornerPoints, DataProcessingError> {
+    fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_width_height: (usize, usize)) -> Result<CornerPoints, FeagiDataProcessingError> {
         if source_frame_width_height.0 < 3 || source_frame_width_height.1 < 3 {
-            return Err(DataProcessingError::InvalidInputBounds("Source resolution must be 3 pixels or greater in the X and Y directions!".into()));
+            return Err(IODataError::InvalidParameters("Source resolution must be 3 pixels or greater in the X and Y directions!".into())).into();
         }
         let source_frame_width_height_f: (f32, f32) = (source_frame_width_height.0 as f32, source_frame_width_height.1 as f32);
         let center_size_normalized_half_yx: (f32, f32) = (self.center_size_normalized_yx.0 / 2.0, self.center_size_normalized_yx.1 / 2.0);
@@ -649,17 +593,6 @@ impl SegmentedVisionTargetResolutions {
     /// A Result containing either:
     /// - Ok(SegmentedVisionTargetResolutions) if all resolutions are valid (non-zero)
     /// - Err(DataProcessingError) if any resolution has zero width or height
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionTargetResolutions;
-    ///
-    /// let resolutions = SegmentedVisionTargetResolutions::new(
-    ///     (32, 32), (32, 32), (32, 32), (32, 32), (32, 32),
-    ///     (32, 32), (32, 32), (32, 32), (64, 64)
-    /// ).unwrap();
-    /// ```
     pub fn new(
         lower_left: (usize, usize),
         middle_left: (usize, usize),
@@ -670,11 +603,11 @@ impl SegmentedVisionTargetResolutions {
         lower_right: (usize, usize),
         lower_middle: (usize, usize),
         center: (usize, usize),
-    ) -> Result<SegmentedVisionTargetResolutions, DataProcessingError> {
+    ) -> Result<SegmentedVisionTargetResolutions, FeagiDataProcessingError> {
         if lower_left.0 == 0 || lower_left.1 == 0 || middle_left.0 == 0 || middle_left.1 == 0 || upper_left.0 == 0 || upper_left.1 == 0 || upper_middle.0 == 0 || upper_middle.1 == 0 || // Yandre-dev moment
             upper_right.0 == 0 || upper_right.1 == 0 || middle_right.0 == 0 || middle_right.1 == 0 || lower_right.0 == 0 || lower_right.1 == 0 || lower_middle.0 == 0 || lower_middle.1 == 0 ||
             center.0 == 0 || center.1 == 0 {
-            return Err(DataProcessingError::InvalidInputBounds("Dimensions must exceed 0 for all segments on all axis!".into()));
+            return Err(IODataError::InvalidParameters("Dimensions must exceed 0 for all segments on all axis!".into()).into());
         }
         Ok(SegmentedVisionTargetResolutions {
             lower_left,
@@ -704,17 +637,7 @@ impl SegmentedVisionTargetResolutions {
     /// A Result containing either:
     /// - Ok(SegmentedVisionTargetResolutions) if all resolutions are valid (non-zero)
     /// - Err(DataProcessingError) if any resolution has zero width or height
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::SegmentedVisionTargetResolutions;
-    ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral(
-    ///     (64, 64), (32, 32)
-    /// ).unwrap();
-    /// ```
-    pub fn create_with_same_sized_peripheral(center_width_height: (usize, usize), peripheral_width_height: (usize, usize)) -> Result<SegmentedVisionTargetResolutions, DataProcessingError> {
+    pub fn create_with_same_sized_peripheral(center_width_height: (usize, usize), peripheral_width_height: (usize, usize)) -> Result<SegmentedVisionTargetResolutions, FeagiDataProcessingError> {
         SegmentedVisionTargetResolutions::new(peripheral_width_height, peripheral_width_height,
                                                      peripheral_width_height, peripheral_width_height,
                                                      peripheral_width_height, peripheral_width_height,

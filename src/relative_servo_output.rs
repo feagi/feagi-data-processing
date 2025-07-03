@@ -20,7 +20,7 @@ impl RelativeServoOutput {
     /// * `dimensions` - The cortical dimensions that define the structure of the neural data
     ///
     /// # Returns
-    /// * `Result<RelativeServoOutput, DataProcessingError>` - A new instance or an error if the dimensions are invalid
+    /// * `Result<RelativeServoOutput, FeagiDataProcessingError>` - A new instance or an error if the dimensions are invalid
     ///
     /// # Examples
     /// ```
@@ -32,13 +32,13 @@ impl RelativeServoOutput {
     /// let neuron_data = NeuronXYZPArrays::new_from_resolution((4, 1, 3)).unwrap();
     /// let servo_output = RelativeServoOutput::new(neuron_data, dimensions).unwrap();
     /// ```
-    pub fn new(neuron_data: NeuronXYZPArrays, dimensions: CorticalDimensions) -> Result<RelativeServoOutput, DataProcessingError> {
+    pub fn new(neuron_data: NeuronXYZPArrays, dimensions: CorticalDimensions) -> Result<RelativeServoOutput, FeagiDataProcessingError> {
         dimensions.verify()?;
         if dimensions.x % 2 != 0 {
-            return Err(DataProcessingError::InvalidInputBounds("Relative Servo Cortical Areas need to have their X dimensions divisible by 2!".into()))
+            return Err(IODataError::InvalidParameters("Relative Servo Cortical Areas need to have their X dimensions divisible by 2!".into()))
         }
         if dimensions.y != 1 {
-            return Err(DataProcessingError::InvalidInputBounds("Relative Servo Cortical Areas need to have their y dimensions equal to 1!".into()))
+            return Err(IODataError::InvalidParameters("Relative Servo Cortical Areas need to have their y dimensions equal to 1!".into()))
         }
         Ok(RelativeServoOutput {
             neuron_data,
@@ -73,7 +73,7 @@ impl RelativeServoOutput {
     /// * `channel` - The channel index to calculate the value for
     ///
     /// # Returns
-    /// * `Result<f32, DataProcessingError>` - The calculated float value or an error if the channel is invalid
+    /// * `Result<f32, FeagiDataProcessingError>` - The calculated float value or an error if the channel is invalid
     ///
     /// # Examples
     /// ```
@@ -90,7 +90,7 @@ impl RelativeServoOutput {
     /// let servo_output = RelativeServoOutput::new(neuron_data, dimensions).unwrap();
     /// let value = servo_output.get_float_value_from_channel(0).unwrap();
     /// ```
-    pub fn get_float_value_from_channel(&self, channel: usize) -> Result<f32, DataProcessingError> {
+    pub fn get_float_value_from_channel(&self, channel: usize) -> Result<f32, FeagiDataProcessingError> {
         let channel_neurons = self.filter_neurons_for_channel(channel)?;
         
         if channel_neurons.is_empty() {
@@ -115,7 +115,7 @@ impl RelativeServoOutput {
     /// Calculates float values for all available channels.
     ///
     /// # Returns
-    /// * `Result<Vec<f32>, DataProcessingError>` - A vector of float values for all channels
+    /// * `Result<Vec<f32>, FeagiDataProcessingError>` - A vector of float values for all channels
     ///
     /// # Examples
     /// ```
@@ -133,7 +133,7 @@ impl RelativeServoOutput {
     /// let values = servo_output.get_float_values_for_all_channels().unwrap();
     /// assert_eq!(values.len(), 2);
     /// ```
-    pub fn get_float_values_for_all_channels(&self) -> Result<Vec<f32>, DataProcessingError> {
+    pub fn get_float_values_for_all_channels(&self) -> Result<Vec<f32>, FeagiDataProcessingError> {
         let num_channels = self.get_channel_count();
         let mut output: Vec<f32> = Vec::with_capacity(num_channels);
         for i in 0..num_channels { // TODO this can be parallelized
@@ -148,7 +148,7 @@ impl RelativeServoOutput {
     /// * `neuron_data` - The new neuron data to use
     ///
     /// # Returns
-    /// * `Result<(), DataProcessingError>` - Success or an error if the operation fails
+    /// * `Result<(), FeagiDataProcessingError>` - Success or an error if the operation fails
     ///
     /// # Examples
     /// ```
@@ -163,7 +163,7 @@ impl RelativeServoOutput {
     /// let new_data = NeuronXYZPArrays::new_from_resolution((4, 1, 3)).unwrap();
     /// servo_output.overwrite_all_neuron_data(new_data).unwrap();
     /// ```
-    pub fn overwrite_all_neuron_data(&mut self, neuron_data: NeuronXYZPArrays) -> Result<(), DataProcessingError> {
+    pub fn overwrite_all_neuron_data(&mut self, neuron_data: NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
         self.neuron_data = neuron_data;
         Ok(())
     }
@@ -174,10 +174,10 @@ impl RelativeServoOutput {
     /// * `channel` - The channel index to filter neurons for
     ///
     /// # Returns
-    /// * `Result<NeuronXYZPArrays, DataProcessingError>` - Filtered neuron data or an error if the channel is invalid
-    fn filter_neurons_for_channel(&self, channel: usize) -> Result<NeuronXYZPArrays, DataProcessingError> {
+    /// * `Result<NeuronXYZPArrays, FeagiDataProcessingError>` - Filtered neuron data or an error if the channel is invalid
+    fn filter_neurons_for_channel(&self, channel: usize) -> Result<NeuronXYZPArrays, FeagiDataProcessingError> {
         if channel > self.get_channel_count() {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Channel {} is greater than maximum channel count of {}!", channel, self.get_channel_count())))
+            return Err(IODataError::InvalidParameters(format!("Channel {} is greater than maximum channel count of {}!", channel, self.get_channel_count())))
         }
         let channel: u32 = channel as u32;
         let x_range: RangeInclusive<u32> = channel..=channel + 1;

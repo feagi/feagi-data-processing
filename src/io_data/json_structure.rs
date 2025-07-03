@@ -1,7 +1,8 @@
 use serde_json;
-use crate::byte_structures::{FeagiByteStructureCompatible, FeagiByteStructureType, GLOBAL_HEADER_SIZE};
-use crate::byte_structures::feagi_byte_structure::{FeagiByteStructure, verify_matching_structure_type_and_version};
-use crate::error::DataProcessingError;
+use crate::byte_structures::{FeagiByteStructureType, GLOBAL_HEADER_SIZE};
+use crate::byte_structures::feagi_byte_structure::{verify_matching_structure_type_and_version, FeagiByteStructure};
+use crate::byte_structures::feagi_byte_structure_compatible::FeagiByteStructureCompatible;
+use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
 
 #[derive(Clone)]
 pub struct JsonStructure {
@@ -13,7 +14,7 @@ impl FeagiByteStructureCompatible for JsonStructure {
 
     fn get_version(&self) -> u8 {Self:: BYTE_STRUCT_VERSION}
 
-    fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, DataProcessingError> {
+    fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, FeagiDataProcessingError> {
         
         // doing this here instead of using the max_number_bytes_needed func so we can double-dip on data usage
         let json_string = self.json.to_string();
@@ -21,7 +22,7 @@ impl FeagiByteStructureCompatible for JsonStructure {
         
         let num_bytes_needed: usize = GLOBAL_HEADER_SIZE + json_bytes.len();
         if slice.len() < num_bytes_needed {
-            return Err(DataProcessingError::IncompatibleInplace(format!("Not enough space given to store JSON data! Need {} bytes but given {}!", num_bytes_needed, slice.len())));
+            return Err(IODataError::InvalidInplaceOperation(format!("Not enough space given to store JSON data! Need {} bytes but given {}!", num_bytes_needed, slice.len())).into());
         }
         
         // Write the global header
@@ -41,7 +42,7 @@ impl FeagiByteStructureCompatible for JsonStructure {
         GLOBAL_HEADER_SIZE + self.json.to_string().as_bytes().len()
     }
 
-    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, DataProcessingError>
+    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, FeagiDataProcessingError>
     where
         Self: Sized
     {
@@ -54,9 +55,7 @@ impl FeagiByteStructureCompatible for JsonStructure {
         let bytes = feagi_byte_structure.borrow_data_as_slice();
         
         if bytes.len() < GLOBAL_HEADER_SIZE {
-            return Err(DataProcessingError::InvalidByteStructure(
-                "JSON byte structure too short to contain global header".to_string()
-            ));
+            return Err(FeagiBytesError::UnableToDeserializeBytes("JSON byte structure too short to contain global header".into().into()));
         }
         
         // Extract JSON data (everything after the global header)
@@ -65,8 +64,7 @@ impl FeagiByteStructureCompatible for JsonStructure {
         // Parse JSON string
         let json_value = match serde_json::from_slice(json_bytes) {
             Ok(value) => value,
-            Err(e) => return Err(DataProcessingError::InvalidByteStructure(
-                format!("Invalid JSON data: {}", e)
+            Err(e) => return Err(FeagiBytesError::UnableToDeserializeBytes(format!("Invalid JSON data: {}", e)
             )),
         };
         
@@ -79,12 +77,12 @@ impl JsonStructure {
     const BYTE_STRUCTURE_TYPE: FeagiByteStructureType = FeagiByteStructureType::JSON;
     const BYTE_STRUCT_VERSION: u8 = 1;
     
-    pub fn from_json_string(string: String) -> Result<JsonStructure, DataProcessingError> {
+    pub fn from_json_string(string: String) -> Result<JsonStructure, FeagiDataProcessingError> {
         match serde_json::from_str(&string) {
             Ok(json_value) => Ok(JsonStructure { json: json_value }),
-            Err(e) => Err(DataProcessingError::InvalidByteStructure(
+            Err(e) => Err(IODataError::InvalidParameters(
                 format!("Failed to parse JSON string: {}", e)
-            )),
+            ).into()),
         }
     }
     
@@ -92,7 +90,7 @@ impl JsonStructure {
         JsonStructure { json: value }
     }
     
-    pub fn copy_as_json_string(&self) -> Result<String, DataProcessingError> {
+    pub fn copy_as_json_string(&self) -> Result<String, FeagiDataProcessingError> {
         Ok(self.json.to_string())
     }
     

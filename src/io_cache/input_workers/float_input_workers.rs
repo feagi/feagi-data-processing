@@ -43,7 +43,7 @@ impl IOCacheWorker<RangedNormalizedF32> for FloatDirectWorker {
 }
 
 impl InputCacheWorker<RangedNormalizedF32> for FloatDirectWorker {
-    fn write_to_cortical_mapped_xyzp_neuron_data(&self, translator: &dyn NeuronTranslator<RangedNormalizedF32>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), DataProcessingError> {
+    fn write_to_cortical_mapped_xyzp_neuron_data(&self, translator: &dyn NeuronTranslator<RangedNormalizedF32>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         if write_target.contains(&self.cortical_id_write_target) {
             let neurons_overwriting = write_target.borrow_mut(&self.cortical_id_write_target).unwrap(); // Due to earlier check, is safe
             translator.write_neuron_data_single_channel(self.last_float, neurons_overwriting, self.channel)?;
@@ -56,13 +56,13 @@ impl InputCacheWorker<RangedNormalizedF32> for FloatDirectWorker {
         Ok(())
     }
 
-    fn update_sensor_value(&mut self, sensor_value: RangedNormalizedF32) -> Result<(), DataProcessingError> {
+    fn update_sensor_value(&mut self, sensor_value: RangedNormalizedF32) -> Result<(), FeagiDataProcessingError> {
         self.last_float = sensor_value;
         self.last_data_update_time = Instant::now();
         Ok(())
     }
 
-    fn get_last_stored_sensor_value(&self) -> Result<&RangedNormalizedF32, DataProcessingError> {
+    fn get_last_stored_sensor_value(&self) -> Result<&RangedNormalizedF32, FeagiDataProcessingError> {
         Ok(&self.last_float)
     }
 }
@@ -72,7 +72,7 @@ impl InputFloatCacheWorker for FloatDirectWorker {
 }
 
 impl FloatDirectWorker {
-    pub fn new(cortical_id_write_target: CorticalID, channel: ChannelIndex) -> Result<FloatDirectWorker, DataProcessingError> {
+    pub fn new(cortical_id_write_target: CorticalID, channel: ChannelIndex) -> Result<FloatDirectWorker, FeagiDataProcessingError> {
         Ok(FloatDirectWorker{
             last_data_update_time: Instant::now(),
             last_float: RangedNormalizedF32::new(0.0)?,

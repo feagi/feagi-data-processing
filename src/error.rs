@@ -97,6 +97,7 @@ pub enum FeagiBytesError {
     UnableToValidateBytes(String),
     UnableToSerializeBytes(String),
     UnableToDeserializeBytes(String),
+    IncompatibleByteUse(String),
 }
 
 impl fmt::Display for FeagiBytesError {
@@ -105,6 +106,7 @@ impl fmt::Display for FeagiBytesError {
             FeagiBytesError::UnableToValidateBytes(e) => write!(f, "Unable to validate bytes: {}", e),
             FeagiBytesError::UnableToSerializeBytes(e) => write!(f, "Unable to serialize bytes: {}", e),
             FeagiBytesError::UnableToDeserializeBytes(e) => write!(f, "Unable to deserialize bytes: {}", e),
+            FeagiBytesError::IncompatibleByteUse(e) => write!(f, "Incorrect of byte structure: {}", e),
         }
     }
 }

@@ -14,9 +14,9 @@ pub mod image_input_workers;
 // of an input parameter is because some workers generate multiple cortical areas worth of neurons
 // and others only one, and trying to it that into these traits would be a pain in the ass
 trait InputCacheWorker<T: fmt::Display>: IOCacheWorker<T> {
-    fn write_to_cortical_mapped_xyzp_neuron_data(&self, translator: &dyn NeuronTranslator<T>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), DataProcessingError>;
+    fn write_to_cortical_mapped_xyzp_neuron_data(&self, translator: &dyn NeuronTranslator<T>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError>;
     
-    fn update_sensor_value(&mut self, sensor_value: T) -> Result<(), DataProcessingError>;
+    fn update_sensor_value(&mut self, sensor_value: T) -> Result<(), FeagiDataProcessingError>;
     
     fn get_sensor_update_timestamp(&self) ->  Instant;
 }

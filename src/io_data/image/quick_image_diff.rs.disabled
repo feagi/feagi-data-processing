@@ -125,9 +125,9 @@ impl QuickImageDiff {
                                  output_segment_resolutions: SegmentedVisionTargetResolutions,
                                  segmentation_center_properties: SegmentedVisionCenterProperties,
                                  camera_index: u8)
-                                 -> Result<Self, DataProcessingError> {
+                                 -> Result<Self, FeagiDataProcessingError> {
         if preprocessor_parameters.convert_to_grayscale && output_color_channels != &ChannelFormat::GrayScale {
-            return Err(DataProcessingError::InvalidInputBounds("Preprocessor specifies conversion of image into grayscale, while output is defined as being in color!".into()));
+            return Err(IODataError::InvalidParameters("Preprocessor specifies conversion of image into grayscale, while output is defined as being in color!".into()));
         }
         let final_total_width_height = preprocessor_parameters.get_final_width_height();
         if final_total_width_height.is_err() {
@@ -185,7 +185,7 @@ impl QuickImageDiff {
     /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
     /// // let neuron_bytes = processor.process_incoming_image_to_proper_diff_image(frame, 10, 0).unwrap();
     /// ```
-    pub fn process_incoming_image_to_proper_diff_image(&mut self, incoming_image_frame: ImageFrame, pixel_threshold: u8, camera_index: u8) -> Result<Vec<u8>, DataProcessingError> {
+    pub fn process_incoming_image_to_proper_diff_image(&mut self, incoming_image_frame: ImageFrame, pixel_threshold: u8, camera_index: u8) -> Result<Vec<u8>, FeagiDataProcessingError> {
         
         // handle preprocessing
         if self.preprocessing_parameters.is_some() {

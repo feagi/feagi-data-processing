@@ -1,7 +1,7 @@
 use std::ops::RangeInclusive;
 use ndarray::Array1;
 use byteorder::{ByteOrder, LittleEndian};
-use crate::error::{NeuronError, FeagiBytesError};
+use crate::error::{NeuronError, FeagiBytesError, FeagiDataProcessingError};
 use crate::neuron_data::{NeuronXYZP};
 
 /// Represents neuron data as four parallel arrays for X, Y, channel, and potential values.
@@ -129,12 +129,12 @@ impl NeuronXYZPArrays {
     /// # Returns
     /// * `Result<(), NeuronError>` - Success or an error if the update fails or results in the 
     ///   x y z p vectors being of different lengths by its conclusion
-    pub fn update_vectors_from_external<F>(&mut self, vectors_changer: F) -> Result<(), NeuronError>
+    pub fn update_vectors_from_external<F>(&mut self, vectors_changer: F) -> Result<(), FeagiDataProcessingError>
     where F: FnOnce(&mut Vec<u32>, &mut Vec<u32>, &mut Vec<u32>, &mut Vec<f32>) -> Result<(), NeuronError>
     {
         let function_result = vectors_changer(&mut self.x, &mut self.y, &mut self.z, &mut self.p);
         if function_result.is_err() {
-            return function_result;
+            return function_result.into();
         }
         self.validate_equal_vector_lengths()
     }
@@ -285,10 +285,10 @@ impl NeuronXYZPArrays {
     ///
     /// # Returns
     /// * `Result<(), NeuronError>` - Success or an error if the vectors have different lengths
-    pub fn validate_equal_vector_lengths(&self) -> Result<(), NeuronError> { // TODO make internal
+    pub fn validate_equal_vector_lengths(&self) -> Result<(), FeagiDataProcessingError> { // TODO make internal
         let len = self.x.len();
         if !((self.y.len() == len) && (self.x.len() == len) && (self.z.len() == len)) {
-            return Err(NeuronError::UnableToParseFromNeuronData("Internal XYCP Arrays do not have equal lengths!".into()));
+            return Err(NeuronError::UnableToParseFromNeuronData("Internal XYCP Arrays do not have equal lengths!".into()).into());
         }
         Ok(())
     }

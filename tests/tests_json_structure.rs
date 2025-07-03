@@ -1,6 +1,6 @@
 use feagi_core_data_structures_and_processing::miscellaneous_types::json_structure::JsonStructure;
 use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure::FeagiByteStructure;
-use feagi_core_data_structures_and_processing::byte_structures::FeagiByteStructureCompatible;
+use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure_compatible::FeagiByteStructureCompatible;
 use serde_json::json;
 
 #[test]

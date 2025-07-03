@@ -7,10 +7,10 @@
 //! the periphery.
 
 use super::image_frame::ImageFrame;
-use crate::error::DataProcessingError;
+use crate::error::{FeagiDataProcessingError, IODataError};
 use super::descriptors::*;
-use crate::genome_definitions::identifiers::CorticalID;
-use crate::data_types::neuron_data::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
+use crate::genomic_structures::{CorticalGroupingIndex, CorticalID};
+use crate::neuron_data::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 
 
 /// A frame divided into nine segments with different resolutions for peripheral vision simulation.
@@ -36,23 +36,8 @@ use crate::data_types::neuron_data::{CorticalMappedXYZPNeuronData, NeuronXYZPArr
 /// This design allows FEAGI to process visual information with varying levels of detail,
 /// concentrating computational resources in the center of attention while maintaining
 /// awareness of the broader visual field.
-/// 
-/// # Examples
-/// 
-/// ```
-/// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
-/// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-///
-/// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
-/// let frame = SegmentedVisionFrame::new(
-///     &resolutions,
-///     &ChannelFormat::RGB,
-///     &ColorSpace::Gamma,
-///     (640, 480)
-/// ).unwrap();
-/// ```
 #[derive(Clone)]  // TODO Shouldnt this be called Segmented Image Frame?
-pub struct SegmentedVisionFrame {
+pub struct SegmentedImageFrame {
     /// Lower-left segment of the vision frame
     lower_left: ImageFrame,
     /// Middle-left segment of the vision frame
@@ -77,7 +62,7 @@ pub struct SegmentedVisionFrame {
     previous_cropping_points_for_source_from_segment: Option<SegmentedVisionFrameSourceCroppingPointGrouping>
 }
 
-impl SegmentedVisionFrame {
+impl SegmentedImageFrame {
 
     //region common constructors
     
@@ -99,24 +84,9 @@ impl SegmentedVisionFrame {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrame) if all segments were created successfully
     /// - Err(DataProcessingError) if any segment creation fails
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
-    /// let frame = SegmentedVisionFrame::new(
-    ///     &resolutions,
-    ///     &ChannelFormat::RGB,
-    ///     &ColorSpace::Gamma,
-    ///     (640, 480)
-    /// ).unwrap();
-    /// ```
     pub fn new(segment_resolutions: &SegmentedVisionTargetResolutions, segment_color_channels: &ChannelFormat,
-    segment_color_space: &ColorSpace, input_frames_source_width_height: (usize, usize)) -> Result<SegmentedVisionFrame, DataProcessingError> {
-        Ok(SegmentedVisionFrame{
+    segment_color_space: &ColorSpace, input_frames_source_width_height: (usize, usize)) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
+        Ok(SegmentedImageFrame {
             lower_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_left),
             middle_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_left),
             upper_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_left),
@@ -143,22 +113,6 @@ impl SegmentedVisionFrame {
     /// # Returns
     /// 
     /// A reference to the ColorSpace enum value.
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
-    /// let frame = SegmentedVisionFrame::new(
-    ///     &resolutions,
-    ///     &ChannelFormat::RGB,
-    ///     &ColorSpace::Gamma,
-    ///     (640, 480)
-    /// ).unwrap();
-    /// assert_eq!(*frame.get_color_space(), ColorSpace::Gamma);
-    /// ```
     pub fn get_color_space(&self) -> &ColorSpace {
         self.upper_left.get_color_space()
     }
@@ -171,22 +125,6 @@ impl SegmentedVisionFrame {
     /// # Returns
     /// 
     /// A reference to the ChannelFormat enum value.
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
-    /// let frame = SegmentedVisionFrame::new(
-    ///     &resolutions,
-    ///     &ChannelFormat::RGB,
-    ///     &ColorSpace::Gamma,
-    ///     (640, 480)
-    /// ).unwrap();
-    /// assert_eq!(*frame.get_color_channels(), ChannelFormat::RGB);
-    /// ```
     pub fn get_color_channels(&self) -> &ChannelFormat {
         self.upper_left.get_channel_format()
     }
@@ -222,36 +160,17 @@ impl SegmentedVisionFrame {
     /// - The source frame has a different color space than expected
     /// - The source frame has a different resolution than expected
     /// - Any of the cropping or resizing operations fail
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
-    /// let mut segmented_frame = SegmentedVisionFrame::new(
-    ///     &resolutions,
-    ///     &ChannelFormat::RGB,
-    ///     &ColorSpace::Gamma,
-    ///     (640, 480)
-    /// ).unwrap();
-    /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
-    /// let center_props = SegmentedVisionCenterProperties::create_default_centered();
-    /// segmented_frame.update_segments(&source, center_props).unwrap();
-    /// ```
     pub fn update_segments(&mut self, source_frame: &ImageFrame, 
                            center_properties: SegmentedVisionCenterProperties)
-        -> Result<(), DataProcessingError> {
+        -> Result<(), FeagiDataProcessingError> {
         if source_frame.get_channel_format() != self.get_color_channels(){
-            return Err(DataProcessingError::InvalidInputBounds("Input Image frame does not have matching color channel count!".into()));
+            return Err(IODataError::InvalidParameters("Input Image frame does not have matching color channel count!".into()).into());
         }
         if source_frame.get_color_space() != self.get_color_space() {
-            return Err(DataProcessingError::InvalidInputBounds("Input Image frame does not have matching color space!".into()));
+            return Err(IODataError::InvalidParameters("Input Image frame does not have matching color space!".into()).into());
         }
         if source_frame.get_internal_resolution() != self.previous_imported_internal_yx_resolution {
-            return Err(DataProcessingError::InvalidInputBounds("Input Image frame does not have matching resolution!".into()));
+            return Err(IODataError::InvalidParameters("Input Image frame does not have matching resolution!".into()).into());
         }
         
         if self.previous_cropping_points_for_source_from_segment.is_none() {
@@ -311,25 +230,7 @@ impl SegmentedVisionFrame {
     /// A Result containing either:
     /// - Ok(CorticalMappedNeuronData) with neuron data for all nine segments
     /// - Err(DataProcessingError) if any conversion fails
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
-    /// let frame = SegmentedVisionFrame::new(
-    ///     &resolutions,
-    ///     &ChannelFormat::RGB,
-    ///     &ColorSpace::Gamma,
-    ///     (640, 480)
-    /// ).unwrap();
-    ///
-    /// // After updating segments with source data...
-    /// // let neuron_data = segmented_frame.export_as_new_cortical_mapped_neuron_data(0).unwrap();
-    /// ```
-    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: u8) -> Result<CorticalMappedXYZPNeuronData, DataProcessingError> {
+    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: CorticalGroupingIndex) -> Result<CorticalMappedXYZPNeuronData, FeagiDataProcessingError> {
 
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
@@ -364,34 +265,7 @@ impl SegmentedVisionFrame {
     /// A Result containing either:
     /// - Ok(()) if all segments were exported successfully
     /// - Err(DataProcessingError) if any cortical ID is not found or conversion fails
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::SegmentedVisionFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    /// use feagi_core_data_structures_and_processing::genome_definitions::identifiers::*;
-    /// use feagi_core_data_structures_and_processing::genome_definitions::identifiers::InputCorticalType::{VisionBottomLeftColor, VisionCenterColor};
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::CorticalMappedXYZPNeuronData;
-    ///
-    /// let resolutions = SegmentedVisionTargetResolutions::create_with_same_sized_peripheral((64, 64), (16,16)).unwrap();
-    /// let frame = SegmentedVisionFrame::new(
-    ///     &resolutions,
-    ///     &ChannelFormat::RGB,
-    ///     &ColorSpace::Gamma,
-    ///     (640, 480)
-    /// ).unwrap();
-    ///
-    /// // Set up cortical IDs and data structure
-    /// let cortical_ids = [
-    ///     CorticalID::new_input_cortical_area_id(VisionCenterColor, 0),
-    ///     CorticalID::new_input_cortical_area_id(VisionBottomLeftColor, 0),
-    ///     // ... other IDs
-    /// ];
-    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
-    /// // segmented_frame.inplace_export_cortical_mapped_neuron_data(&cortical_ids, &mut neuron_data).unwrap();
-    /// ```
-    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData) -> Result<(), DataProcessingError> {
+    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
         for index in 0..9 {
@@ -399,7 +273,7 @@ impl SegmentedVisionFrame {
             let mapped_neuron_data = all_mapped_neuron_data.borrow_mut(cortical_id);
             match mapped_neuron_data { 
                 None => {
-                    return Err(DataProcessingError::InternalError("Unable to find cortical area to unwrap!".into())); // TODO specific error?
+                    return Err(FeagiDataProcessingError::InternalError("Unable to find cortical area to unwrap!".into())); // TODO specific error?
                 }
                 Some(mapped_data) => {
                     ordered_refs[index].write_thresholded_xyzp_neuron_arrays(10.0, mapped_data)?;
@@ -429,17 +303,6 @@ impl SegmentedVisionFrame {
     }
     
     //endregion
-    
-    /*
-    
-    fn u8_to_hex_chars(& self, n: u8) -> (char, char) { // TODO this should be moved elsewhere // TODO moving this to cortical ID makes sense
-        const HEX_CHARS: &[u8; 16] = b"0123456789ABCDEF";
-        let high = HEX_CHARS[(n >> 4) as usize] as char;
-        let low = HEX_CHARS[(n & 0x0F) as usize] as char;
-        (high, low)
-    }
-    
-     */
 
 
     

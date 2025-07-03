@@ -1,5 +1,5 @@
-use crate::error::IODataError;
-use crate::genome_definitions::CorticalDimensions;
+use crate::error::{FeagiDataProcessingError, IODataError};
+use crate::genomic_structures::CorticalDimensions;
 
 pub enum FloatNeuronLayoutType {
     PSPBidirectional,
@@ -12,12 +12,12 @@ impl FloatNeuronLayoutType {
     pub const CHANNEL_WIDTH_SPLIT_SIGN_DIVIDED: u32 = 2;
     pub const CHANNEL_WIDTH_LINEAR: u32 = 1;
 
-    pub fn create_dimensions_for_translator_type(&self, number_channels: u32, resolution_depth: usize) -> Result<CorticalDimensions, IODataError> {
+    pub fn create_dimensions_for_translator_type(&self, number_channels: u32, resolution_depth: usize) -> Result<CorticalDimensions, FeagiDataProcessingError> {
         if number_channels == 0 {
-            return Err(IODataError::InvalidParameters("Cannot create cortical dimensions with 0 channels!".into()));
+            return Err(IODataError::InvalidParameters("Cannot create cortical dimensions with 0 channels!".into()).into());
         }
         if resolution_depth == 0 {
-            return Err(IODataError::InvalidParameters("Cannot create cortical dimensions with a resolution depth of 0!".into()));
+            return Err(IODataError::InvalidParameters("Cannot create cortical dimensions with a resolution depth of 0!".into()).into());
         }
 
         match self {

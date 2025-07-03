@@ -3,6 +3,7 @@ mod neuron_xyzp_arrays;
 mod neuron_xyzp_mappings;
 pub mod decoders;
 pub mod encoders;
+pub mod coders;
 
 pub use neuron_xyzp::NeuronXYZP as NeuronXYZP;
 

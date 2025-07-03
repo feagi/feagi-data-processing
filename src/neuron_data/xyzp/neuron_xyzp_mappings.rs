@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 use byteorder::{ByteOrder, LittleEndian};
-use crate::error::{NeuronError, FeagiBytesError};
-use crate::byte_structures::{FeagiByteStructureCompatible, FeagiByteStructureType, GLOBAL_HEADER_SIZE};
-use crate::byte_structures::feagi_byte_structure::{verify_matching_structure_type_and_version, FeagiByteStructure};
-use crate::genome_definitions::identifiers::{CorticalID, CORTICAL_ID_LENGTH};
-use crate::neuron_data::{NeuronXYZPArrays};
+use crate::error::{FeagiBytesError, FeagiDataProcessingError};
+use crate::io_processing::byte_structures::{FeagiByteStructureType, FeagiByteStructure, FeagiByteStructureCompatible};
+use crate::genomic_structures::{CorticalID};
+use crate::neuron_data::NeuronXYZPArrays;
 
 #[derive(Clone)]
 pub struct CorticalMappedXYZPNeuronData {
@@ -14,15 +13,15 @@ pub struct CorticalMappedXYZPNeuronData {
 impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
     fn get_type(&self) -> FeagiByteStructureType { Self::BYTE_STRUCT_TYPE }
     fn get_version(&self) -> u8 { Self::BYTE_STRUCT_VERSION }
-    fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, FeagiBytesError> {
+    fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, FeagiDataProcessingError> {
         
         if self.mappings.len() == 0 {
-            return Err(FeagiBytesError::UnableToSerializeBytes("Cannot generate a byte structure export with an empty cortical mappings object!".into()))
+            return Err(FeagiBytesError::UnableToSerializeBytes("Cannot generate a byte structure export with an empty cortical mappings object!".into()).into())
         }
         
         let num_bytes_needed: usize = self.max_number_bytes_needed();
         if slice.len() < num_bytes_needed {
-            return Err(FeagiBytesError::UnableToSerializeBytes(format!("Not enough space given to store neuron XYZP data! Need {} bytes but given {}!", num_bytes_needed, slice.len())));
+            return Err(FeagiBytesError::UnableToSerializeBytes(format!("Not enough space given to store neuron XYZP data! Need {} bytes but given {}!", num_bytes_needed, slice.len())).into());
         }
 
         slice[0] = self.get_type() as u8;
@@ -31,12 +30,12 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
         let number_cortical_areas: usize = self.mappings.len();
         LittleEndian::write_u16(&mut slice[2..4], number_cortical_areas as u16);
 
-        let mut subheader_write_index: usize = GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE;
+        let mut subheader_write_index: usize = FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + Self::CORTICAL_COUNT_HEADER_SIZE;
         let mut neuron_data_write_index: u32 = subheader_write_index as u32 + (number_cortical_areas as u32 * Self::BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as u32);
 
         for (cortical_id, neuron_data) in &self.mappings {
             // Write cortical subheader
-            let write_target = &mut slice[subheader_write_index .. subheader_write_index + CORTICAL_ID_LENGTH];
+            let write_target = &mut slice[subheader_write_index .. subheader_write_index + CorticalID::CORTICAL_ID_LENGTH];
             let write_target = write_target.try_into().unwrap();
             cortical_id.write_bytes_at(write_target)?;
             let reading_start: u32 = neuron_data_write_index;
@@ -61,31 +60,31 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
             number_neurons += neuron_set.get_number_of_neurons_used();
         }
         let bytes_needed_for_neurons = number_neurons * NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON;
-        GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE + 
+        FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + Self::CORTICAL_COUNT_HEADER_SIZE + 
             (self.get_number_contained_areas() * Self::BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE as usize) +
             bytes_needed_for_neurons
     }
 
-    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, FeagiBytesError> {
-        verify_matching_structure_type_and_version(&feagi_byte_structure,
+    fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, FeagiDataProcessingError> {
+        FeagiByteStructure::verify_matching_structure_type_and_version(&feagi_byte_structure,
                                                    Self::BYTE_STRUCT_TYPE,
                                                    Self::BYTE_STRUCT_VERSION)?;
         
         let bytes = feagi_byte_structure.borrow_data_as_slice();
         let number_cortical_areas: u16 = LittleEndian::read_u16(&bytes[2..4]);
 
-        let min_array_length_with_cortical_headers: usize = GLOBAL_HEADER_SIZE +  Self::CORTICAL_COUNT_HEADER_SIZE +
+        let min_array_length_with_cortical_headers: usize = FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES +  Self::CORTICAL_COUNT_HEADER_SIZE +
             (Self::BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE * number_cortical_areas as usize);
 
         if bytes.len() < min_array_length_with_cortical_headers {
             return Err(FeagiBytesError::UnableToSerializeBytes(format!("Byte structure for NeuronCategoricalXYZPV1 needs a length of {} to fit just the cortical details header, but is a length of {}",
-                                                                         min_array_length_with_cortical_headers, bytes.len())));
+                                                                         min_array_length_with_cortical_headers, bytes.len())).into());
         }
 
         let number_cortical_areas: usize = number_cortical_areas as usize;
         let mut output: CorticalMappedXYZPNeuronData = CorticalMappedXYZPNeuronData::new_with_capacity(number_cortical_areas);
         
-        let mut reading_header_index: usize = GLOBAL_HEADER_SIZE + Self::CORTICAL_COUNT_HEADER_SIZE;
+        let mut reading_header_index: usize = FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + Self::CORTICAL_COUNT_HEADER_SIZE;
 
         for _cortical_index in 0..number_cortical_areas {
             let cortical_id = CorticalID::from_bytes(

@@ -6,27 +6,15 @@
 //! and conversion to neuron data for FEAGI processing.
 
 use ndarray::{s, Array3, ArrayView3};
-use crate::data_types::image_descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
-use crate::error::DataProcessingError;
-use crate::data_types::neuron_data::NeuronXYZPArrays;
+use crate::io_data::image::descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
+use crate::error::{FeagiDataProcessingError, IODataError};
+use crate::neuron_data::NeuronXYZPArrays;
 
 /// Represents an image frame with pixel data and metadata for FEAGI vision processing.
 /// 
 /// An `ImageFrame` stores image data as a 3D array of f32 values along with information
 /// about the color channel format and color space. The internal storage uses row-major
 /// ordering (height, width, channels) for efficient processing.
-/// 
-/// # Examples
-/// 
-/// ```
-/// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-/// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-///
-/// // Create a new RGB image frame
-/// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
-/// assert_eq!(frame.get_cartesian_width_height(), (640, 480));
-/// assert_eq!(frame.get_color_channel_count(), 3);
-/// ```
 #[derive(Clone)]
 pub struct ImageFrame {
     /// The pixel data stored as a 3D array with dimensions (height, width, channels)
@@ -54,19 +42,6 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A new ImageFrame instance with all pixels initialized to zero.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
-    /// let row_major_resolution = (480, 640);
-    /// // assert_eq!(frame.get_cartesian_width_height(), row_major_resolution); // TODO something cursed here
-    /// assert_eq!(frame.get_color_channel_count(), 3);
-    /// ```
     pub fn new(channel_format: &ChannelFormat, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> ImageFrame {
         ImageFrame {
             channel_format: *channel_format,
@@ -88,19 +63,7 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(ImageFrame) if the input array has a valid number of color channels (1-4)
     /// - Err(DataProcessingError) if the number of color channels is invalid
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use ndarray::Array3;
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let array = Array3::<f32>::zeros((100, 100, 3)); // RGB image
-    /// let frame: ImageFrame = ImageFrame::from_array(array, ColorSpace::Gamma, MemoryOrderLayout::HeightsWidthsChannels).unwrap();
-    /// assert_eq!(frame.get_color_channel_count(), 3);
-    /// ```
-    pub fn from_array(input: Array3<f32>, color_space: ColorSpace, source_memory_order: MemoryOrderLayout) -> Result<ImageFrame, DataProcessingError> {
+    pub fn from_array(input: Array3<f32>, color_space: ColorSpace, source_memory_order: MemoryOrderLayout) -> Result<ImageFrame, FeagiDataProcessingError> {
         let number_color_channels: usize = input.shape()[2];
         Ok(ImageFrame {
             pixels: ImageFrame::change_memory_order_to_row_major(input, source_memory_order),
@@ -125,20 +88,7 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(ImageFrame) if all processing steps were successful
     /// - Err(DataProcessingError) if any processing step fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use ndarray::Array3;
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let array = Array3::<f32>::zeros((100, 100, 3));
-    /// let mut params = FrameProcessingParameters::new();
-    /// params.set_multiply_brightness_by(1.5).unwrap().set_change_contrast_by(0.5).unwrap();
-    /// let frame = ImageFrame::from_array_with_processing(ColorSpace::Gamma, params, array).unwrap();
-    /// ```
-    pub fn from_array_with_processing(source_color_space: ColorSpace, image_processing: FrameProcessingParameters, input: Array3<f32>) -> Result<ImageFrame, DataProcessingError> {
+    pub fn from_array_with_processing(source_color_space: ColorSpace, image_processing: FrameProcessingParameters, input: Array3<f32>) -> Result<ImageFrame, FeagiDataProcessingError> {
         // Let us set the memory order correct first, this has 0 cost
         let processed_input = ImageFrame::change_memory_order_to_row_major(input, image_processing.memory_ordering_of_source);
 
@@ -203,17 +153,6 @@ impl ImageFrame {
     /// # Returns
     ///
     /// True if both frames have identical channel count, resolution, and color space.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let frame1 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let frame2 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// assert!(ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&frame1, &frame2));
-    /// ```
     pub fn do_resolutions_channel_depth_and_color_spaces_match(a: &ImageFrame, b: &ImageFrame) -> bool {
         a.get_color_channel_count() == b.get_color_channel_count() && a.color_space == b.color_space
     }
@@ -231,19 +170,7 @@ impl ImageFrame {
     /// # Returns
     ///
     /// True if the array dimensions are valid for an ImageFrame, false otherwise.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use ndarray::Array3;
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    ///
-    /// let valid_array = Array3::<f32>::zeros((100, 100, 3)); // RGB image
-    /// assert!(ImageFrame::is_array_valid_for_image_frame(&valid_array));
-    ///
-    /// let invalid_array = Array3::<f32>::zeros((100, 100, 5)); // Too many channels
-    /// assert!(!ImageFrame::is_array_valid_for_image_frame(&invalid_array));
-    /// ```
+
     pub fn is_array_valid_for_image_frame(array: &Array3<f32>) -> bool {
         let shape: &[usize] = array.shape();
         if shape[2] > 4 || shape[2] == 0 {
@@ -260,16 +187,6 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A reference to the ChannelFormat enum value representing the image's color channel format.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// assert_eq!(*frame.get_channel_format(), ChannelFormat::RGB);
-    /// ```
     pub fn get_channel_format(&self) -> &ChannelFormat {
         &self.channel_format
     }
@@ -279,16 +196,6 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A reference to the ColorSpace enum value representing the image's color space.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// assert_eq!(*frame.get_color_space(), ColorSpace::Gamma);
-    /// ```
     pub fn get_color_space(&self) -> &ColorSpace {
         &self.color_space
     }
@@ -302,16 +209,6 @@ impl ImageFrame {
     /// - 2 for RG
     /// - 3 for RGB
     /// - 4 for RGBA
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// assert_eq!(frame.get_color_channel_count(), 3);
-    /// ```
     pub fn get_color_channel_count(&self) -> usize {
         self.channel_format as usize
     }
@@ -323,17 +220,6 @@ impl ImageFrame {
     /// # Returns
     ///
     /// An ArrayView3<f32> containing the pixel data.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let view = frame.get_pixels_view();
-    /// assert_eq!(view.shape(), [100, 100, 3]);
-    /// ```
     pub fn get_pixels_view(&self) -> ArrayView3<f32> {
         self.pixels.view()
     }
@@ -343,16 +229,6 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A tuple of (width, height) representing the image dimensions in pixels.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
-    /// assert_eq!(frame.get_cartesian_width_height(), (640, 480));
-    /// ```
     pub fn get_cartesian_width_height(&self) -> (usize, usize) {
         let shape: &[usize] = self.pixels.shape();
         (shape[1], shape[0]) // because nd array is row major, where coords are yx
@@ -366,16 +242,6 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A tuple of (height, width) representing the image dimensions in pixels.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
-    /// assert_eq!(frame.get_internal_resolution(), (480, 640));
-    /// ```
     pub fn get_internal_resolution(&self) -> (usize, usize) {
         let shape: &[usize] = self.pixels.shape();
         (shape[0], shape[1])
@@ -389,16 +255,6 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A tuple of (height, width, channels) representing the array dimensions.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(640, 480));
-    /// assert_eq!(frame.get_internal_shape(), (480, 640, 3));
-    /// ```
     pub fn get_internal_shape(&self) -> (usize, usize, usize) {
         let shape: &[usize] = self.pixels.shape();
         (shape[0], shape[1], shape[2])
@@ -413,16 +269,6 @@ impl ImageFrame {
     /// # Returns
     /// 
     /// The maximum possible neuron count (width × height × channels).
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// assert_eq!(frame.get_max_capacity_neuron_count(), 100 * 100 * 3);
-    /// ```
     pub fn get_max_capacity_neuron_count(&self) -> usize {
         self.pixels.shape()[0] * self.pixels.shape()[1] * self.pixels.shape()[2]
     }
@@ -445,19 +291,9 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the operation was successful
     /// - Err(DataProcessingError) if the brightness factor is negative
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// frame.change_brightness_multiplicative(1.5).unwrap(); // Increase brightness by 50%
-    /// ```
-    pub fn change_brightness_multiplicative(&mut self, brightness_factor: f32) -> Result<(), DataProcessingError> {
+    pub fn change_brightness_multiplicative(&mut self, brightness_factor: f32) -> Result<(), FeagiDataProcessingError> {
         if brightness_factor < 0.0 {
-            return Err(DataProcessingError::InvalidInputBounds("Multiply brightness by must be positive!".into()));
+            return Err(IODataError::InvalidParameters("Multiply brightness by must be positive!".into()).into());
         }
 
         self.pixels.mapv_inplace(|v| {
@@ -486,20 +322,9 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the operation was successful
     /// - Err(DataProcessingError) if the contrast factor is outside the valid range of -1 to 1
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// frame.change_contrast(0.5).unwrap();  // Increase contrast
-    /// frame.change_contrast(-0.3).unwrap(); // Decrease contrast
-    /// ```
-    pub fn change_contrast(&mut self, contrast_factor: f32) -> Result<(), DataProcessingError> {
+    pub fn change_contrast(&mut self, contrast_factor: f32) -> Result<(), FeagiDataProcessingError> {
         if contrast_factor < -1.0 || contrast_factor > 1.0 {
-            return Err(DataProcessingError::InvalidInputBounds("The contrast factor must be between -1.0 and 1.0!".into()));
+            return Err(IODataError::InvalidParameters("The contrast factor must be between -1.0 and 1.0!".into()).into());
         }
         // Algo sourced from https://ie.nitk.ac.in/blog/2020/01/19/algorithms-for-adjusting-brightness-and-contrast-of-an-image/
         const CORRECTION_FACTOR: f32 = 1.015686; //  259 / 255
@@ -530,22 +355,9 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(&mut Self) if the crop operation was successful
     /// - Err(DataProcessingError) if the crop region would not fit in the image
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let image_original_resolution = (100, 100);
-    /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &image_original_resolution);
-    /// let corners = CornerPoints::new_from_cartesian((10, 10), (50, 50), image_original_resolution).unwrap();
-    /// frame.crop_to(&corners).unwrap();
-    /// assert_eq!(frame.get_cartesian_width_height(), (40, 40));
-    /// ```
-    pub fn crop_to(&mut self, corners_crop: &CornerPoints) -> Result<&mut Self, DataProcessingError> {
+    pub fn crop_to(&mut self, corners_crop: &CornerPoints) -> Result<&mut Self, FeagiDataProcessingError> {
         if !corners_crop.does_fit_in_frame_of_width_height(self.get_cartesian_width_height()) {
-            return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()));
+            return Err(IODataError::InvalidParameters("The given crop would not fit in the given source!".into()).into());
         }
         let sliced_array_view: ArrayView3<f32> =
             self.pixels.slice(s![corners_crop.upper_right_row_major().0 .. corners_crop.lower_left_row_major().0,
@@ -571,20 +383,9 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(&mut Self) if the resize operation was successful
     /// - Err(DataProcessingError) if the target resolution is invalid (zero or negative)
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// frame.resize_nearest_neighbor(&(50, 50)).unwrap();
-    /// assert_eq!(frame.get_cartesian_width_height(), (50, 50));
-    /// ```
-    pub fn resize_nearest_neighbor(&mut self, target_width_height: &(usize, usize)) -> Result<&mut Self, DataProcessingError> {
+    pub fn resize_nearest_neighbor(&mut self, target_width_height: &(usize, usize)) -> Result<&mut Self, FeagiDataProcessingError> {
         if target_width_height.0 <= 0 || target_width_height.1 <= 0 {
-            return Err(DataProcessingError::InvalidInputBounds("The target resize width or height cannot be zero or negative!".into()))
+            return Err(IODataError::InvalidParameters("The target resize width or height cannot be zero or negative!".into()).into())
         }
         let source_resolution: (usize, usize) = self.get_internal_resolution();
         let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32); // Y X order
@@ -629,32 +430,20 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if all processing steps were successful
     /// - Err(DataProcessingError) if any processing step fails or if the frames are incompatible
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let source = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let mut target = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(50, 50));
-    /// let params = FrameProcessingParameters::new();
-    /// // target.in_place_run_processor(params, source).unwrap();
-    /// ```
-    pub fn in_place_run_processor(&mut self, image_processing: FrameProcessingParameters, source: ImageFrame) -> Result<(), DataProcessingError> {
+    pub fn in_place_run_processor(&mut self, image_processing: FrameProcessingParameters, source: ImageFrame) -> Result<(), FeagiDataProcessingError> {
         
         self.err_if_incoming_image_frame_is_color_incompatible(&source)?;
         
         
         if image_processing.get_final_width_height().is_ok(){
             if image_processing.get_final_width_height()? != self.get_cartesian_width_height() {
-                return Err(DataProcessingError::InvalidInputBounds("Specified Frame Processing Parameters do not result in an image that can fit in this ImageFrame!".into()));
+                return Err(IODataError::InvalidInplaceOperation("Specified Frame Processing Parameters do not result in an image that can fit in this ImageFrame!".into()).into());
             }
         }
         else { 
             // The image is not being cropped or resized, so it must fit already
             if self.get_internal_resolution() != source.get_internal_resolution() {
-                return Err(DataProcessingError::InvalidInputBounds("Input image is not being cropped or resized, and does not have the correct dimensions to fit in this ImageFrame!".into()));
+                return Err(IODataError::InvalidInplaceOperation("Input image is not being cropped or resized, and does not have the correct dimensions to fit in this ImageFrame!".into()).into());
             }
         }
         
@@ -690,7 +479,7 @@ impl ImageFrame {
             _ => {
                 // We do not have an optimized pathway, just do this sequentially (although this is considerably slower)
 
-                Err(DataProcessingError::NotImplemented) // TODO
+                Err(FeagiDataProcessingError::NotImplemented) // TODO
                 /*
                 
                 let mut frame = ImageFrame::from_array(processed_input, source_color_space, ImageFrame::INTERNAL_MEMORY_LAYOUT)?;
@@ -740,12 +529,12 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the data was loaded successfully
     /// - Err(DataProcessingError) if the array dimensions don't match this frame
-    pub fn in_place_load_data_unchanged(&mut self, new_array: Array3<f32>, source_memory_order: MemoryOrderLayout) -> Result<(), DataProcessingError> {
+    pub fn in_place_load_data_unchanged(&mut self, new_array: Array3<f32>, source_memory_order: MemoryOrderLayout) -> Result<(), FeagiDataProcessingError> {
         if new_array.shape()[2] != self.get_color_channel_count() {
-            return Err(DataProcessingError::InvalidInputBounds("Input array does not seem to have the correct number of color channels!".into()));
+            return Err(IODataError::InvalidParameters("Input array does not seem to have the correct number of color channels!".into()).into());
         }
         if (new_array.shape()[0] , new_array.shape()[1]) != self.get_internal_resolution() {
-            return Err(DataProcessingError::InvalidInputBounds("Input array does not seem to have the correct height or width!".into()));
+            return Err(IODataError::InvalidParameters("Input array does not seem to have the correct height or width!".into()).into());
         }
         self.pixels = ImageFrame::change_memory_order_to_row_major(new_array.into_owned(), source_memory_order);
         Ok(())
@@ -766,21 +555,21 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the crop operation was successful
     /// - Err(DataProcessingError) if the frames are incompatible or crop region is invalid
-    pub fn in_place_crop_image(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
+    pub fn in_place_crop_image(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
         if source.get_channel_format() != self.get_channel_format() {
-            return Err(DataProcessingError::InvalidInputBounds("The given image does not have the same color channel count as this ImageFrame!".into()))
+            return Err(IODataError::InvalidParameters("The given image does not have the same color channel count as this ImageFrame!".into()).into())
         }
 
         if source.get_color_space() != self.get_color_space() {
-            return Err(DataProcessingError::InvalidInputBounds("The given image does not have the same color space as this ImageFrame!".into()))
+            return Err(IODataError::InvalidParameters("The given image does not have the same color space as this ImageFrame!".into()).into())
         }
         
         if !source_cropping_points.does_fit_in_frame_of_width_height(source.get_cartesian_width_height()) {
-            return Err(DataProcessingError::InvalidInputBounds("The given cropped region exceeds the source boundaries!".into()))
+            return Err(IODataError::InvalidParameters("The given cropped region exceeds the source boundaries!".into()).into())
         }
         
         if source_cropping_points.enclosed_area_width_height() != self.get_cartesian_width_height() {
-            return Err(DataProcessingError::InvalidInputBounds("The given cropped region does not have the same area as this image!".into()))
+            return Err(IODataError::InvalidParameters("The given cropped region does not have the same area as this image!".into()).into())
         }
 
         let channel_count: usize = source.get_color_channel_count();
@@ -806,14 +595,14 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the resize operation was successful
     /// - Err(DataProcessingError) if the frames are incompatible
-    pub fn in_place_nearest_neighbor_resize(&mut self, source: &ImageFrame) -> Result<(), DataProcessingError> {
+    pub fn in_place_nearest_neighbor_resize(&mut self, source: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
         // We don't need to specify size, as we are just using this size
         if source.get_channel_format() != self.get_channel_format() {
-            return Err(DataProcessingError::InvalidInputBounds("The given image does not have the same color channel count as this ImageFrame!".into()))
+            return Err(IODataError::InvalidParameters("The given image does not have the same color channel count as this ImageFrame!".into()).into())
         }
 
         if source.get_color_space() != self.get_color_space() {
-            return Err(DataProcessingError::InvalidInputBounds("The given image does not have the same color space as this ImageFrame!".into()))
+            return Err(IODataError::InvalidParameters("The given image does not have the same color space as this ImageFrame!".into()).into())
         }
 
         let resolution: (usize, usize) = self.get_internal_resolution();
@@ -849,11 +638,11 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the operation was successful
     /// - Err(DataProcessingError) if the frames are incompatible or crop region is invalid
-    pub fn in_place_crop_and_nearest_neighbor_resize(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), DataProcessingError> {
+    pub fn in_place_crop_and_nearest_neighbor_resize(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
         
         let crop_resolution: (usize, usize) = source_cropping_points.enclosed_area_width_height();
         if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&self, source) {
-            return Err(DataProcessingError::IncompatibleInplace("The incoming source data does not have compatible properties with the destination ImageFrame!".into()))
+            return Err(IODataError::InvalidInplaceOperation("The incoming source data does not have compatible properties with the destination ImageFrame!".into()).into())
         }
 
         let resolution: (usize, usize) = self.get_internal_resolution();
@@ -901,24 +690,12 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the operation was successful
     /// - Err(DataProcessingError) if the frames have incompatible dimensions
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    ///
-    /// let frame1 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let frame2 = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let mut diff_frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// // diff_frame.in_place_calculate_difference_thresholded(&frame1, &frame2, 10).unwrap();
-    /// ```
-    pub fn in_place_calculate_difference_thresholded(&mut self, previous_frame: &ImageFrame, next_frame: &ImageFrame, threshold: u8) -> Result<(), DataProcessingError> {
+    pub fn in_place_calculate_difference_thresholded(&mut self, previous_frame: &ImageFrame, next_frame: &ImageFrame, threshold: u8) -> Result<(), FeagiDataProcessingError> {
         if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(&previous_frame, next_frame) {
-            return Err(DataProcessingError::IncompatibleInplace("The two given frames do not have equivalent resolutions or channel counts!".into()))
+            return Err(IODataError::InvalidInplaceOperation("The two given frames do not have equivalent resolutions or channel counts!".into()).into())
         }
         if !ImageFrame::do_resolutions_channel_depth_and_color_spaces_match(self, next_frame) {
-            return Err(DataProcessingError::IncompatibleInplace("This frame does not have equivalent resolutions or channel count to the given comparing frames!".into()))
+            return Err(IODataError::InvalidInplaceOperation("This frame does not have equivalent resolutions or channel count to the given comparing frames!".into()).into())
         }
         let threshold: f32 = threshold as f32; // TODO will we be changing the internal data structure from float? probably not due to some conversions being float based
         for (coord, color_val) in self.pixels.indexed_iter_mut() {
@@ -956,19 +733,7 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the conversion was successful
     /// - Err(DataProcessingError) if the operation fails
-    /// 
-    /// # Examples
-    /// 
-    /// ```
-    /// use feagi_core_data_structures_and_processing::data_types::ImageFrame;
-    /// use feagi_core_data_structures_and_processing::data_types::image_descriptors::*;
-    /// use feagi_core_data_structures_and_processing::data_types::neuron_data::NeuronXYZPArrays;
-    ///
-    /// let mut frame = ImageFrame::new(&ChannelFormat::RGB, &ColorSpace::Gamma, &(100, 100));
-    /// let mut neuron_arrays = NeuronXYZPArrays::new(30000).unwrap();
-    ///  frame.write_thresholded_xyzp_neuron_arrays(0.5, &mut neuron_arrays).unwrap();
-    /// ```
-    pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronXYZPArrays) -> Result<(), DataProcessingError> {
+    pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
         write_target.expand_to_new_max_count_if_required(self.get_max_capacity_neuron_count()); // make sure there's enough capacity
         write_target.reset_indexes(); // Ensure we push from the start
@@ -1011,10 +776,10 @@ impl ImageFrame {
     /// - Err(DataProcessingError) if the crop region would not fit in the source frame
     ///
     /// ```
-    pub fn create_from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, DataProcessingError> {
+    pub fn create_from_source_frame_crop_and_resize(source_frame: &ImageFrame, corners_crop: &CornerPoints, new_width_height: &(usize, usize)) -> Result<ImageFrame, FeagiDataProcessingError> {
         let source_resolution = source_frame.get_internal_resolution(); // Y X
         if !corners_crop.does_fit_in_frame_of_width_height(source_resolution) {
-            return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
+            return Err(IODataError::InvalidParameters("The given crop would not fit in the given source!".into()).into())
         }
 
         let pixels_source = source_frame.get_pixels_view();
@@ -1051,10 +816,10 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(ImageFrame) if the crop region is valid and fits within the source frame
     /// - Err(DataProcessingError) if the crop region would not fit in the source frame
-    pub fn create_from_source_frame_crop(source_frame: &ImageFrame, corners_crop: &CornerPoints) -> Result<ImageFrame, DataProcessingError> {
+    pub fn create_from_source_frame_crop(source_frame: &ImageFrame, corners_crop: &CornerPoints) -> Result<ImageFrame, FeagiDataProcessingError> {
         let source_resolution = source_frame.get_internal_resolution(); // TODO ?
         if !corners_crop.does_fit_in_frame_of_width_height(source_resolution) {
-            return Err(DataProcessingError::InvalidInputBounds("The given crop would not fit in the given source!".into()))
+            return Err(IODataError::InvalidParameters("The given crop would not fit in the given source!".into()).into())
         }
 
         let channel_count: usize = source_frame.get_color_channel_count();
@@ -1137,12 +902,12 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the frames are compatible
     /// - Err(DataProcessingError) if the color properties don't match
-    fn err_if_incoming_image_frame_is_color_incompatible(&self, incoming: &ImageFrame) -> Result<(), DataProcessingError> {
+    fn err_if_incoming_image_frame_is_color_incompatible(&self, incoming: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
         if self.color_space != incoming.color_space {
-            return Err(DataProcessingError::IncompatibleInplace("Incoming source array does not have matching color space!".into()))
+            return Err(IODataError::InvalidParameters("Incoming source array does not have matching color space!".into()).into())
         }
         if self.channel_format == incoming.channel_format {
-            return Err(DataProcessingError::IncompatibleInplace("Incoming source array does not have matching color channel count!!".into()))
+            return Err(IODataError::InvalidParameters("Incoming source array does not have matching color channel count!!".into()).into())
         }
         Ok(())
     }

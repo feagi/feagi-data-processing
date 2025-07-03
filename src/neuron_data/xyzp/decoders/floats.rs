@@ -3,7 +3,7 @@ use crate::neuron_data::translator_base_traits::NeuronXYZPDecoder;
 use crate::neuron_data::NeuronXYZPArrays;
 use crate::io_data::LinearNormalizedF32;
 use crate::genomic_structures::CorticalIOChannelIndex;
-use crate::genome_definitions::CorticalDimensions;
+use crate::genomic_structures::CorticalDimensions;
 use crate::neuron_data::neuron_layouts::FloatNeuronLayoutType;
 
 pub struct FloatNeuronXYZPDecoder {

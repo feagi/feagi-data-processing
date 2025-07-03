@@ -2,7 +2,7 @@ use ndarray::prelude::*;
 use feagi_core_data_structures_and_processing::data_types::neuron_data::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays, NeuronXYZP};
 use feagi_core_data_structures_and_processing::genome_definitions::identifiers::CorticalID;
 use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure::FeagiByteStructure;
-use feagi_core_data_structures_and_processing::byte_structures::FeagiByteStructureCompatible;
+use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure_compatible::FeagiByteStructureCompatible;
 
 #[test]
 fn test_minimal_memory_corruption_debug() {

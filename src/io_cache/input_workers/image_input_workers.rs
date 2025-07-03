@@ -25,18 +25,18 @@ impl IOCacheWorker<ImageFrame> for ImageDirectWorker {
 }
 
 impl InputCacheWorker<ImageFrame> for ImageDirectWorker {
-    fn write_to_cortical_mapped_xyzp_neuron_data(&self, translator: &dyn NeuronTranslator<ImageFrame>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), DataProcessingError> {
+    fn write_to_cortical_mapped_xyzp_neuron_data(&self, translator: &dyn NeuronTranslator<ImageFrame>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         todo!()
     }
 
-    fn update_sensor_value(&mut self, sensor_value: ImageFrame) -> Result<(), DataProcessingError> {
+    fn update_sensor_value(&mut self, sensor_value: ImageFrame) -> Result<(), FeagiDataProcessingError> {
         // NOTE: This method is rather slow but is here for completeness, it may be better to use other methods which can do in place operations
         self.last_image = sensor_value;
         self.last_data_update_time = Instant::now();
         Ok(())
     }
 
-    fn get_last_stored_sensor_value(&self) -> Result<&ImageFrame, DataProcessingError> {
+    fn get_last_stored_sensor_value(&self) -> Result<&ImageFrame, FeagiDataProcessingError> {
         Ok(&self.last_image)
     }
 }

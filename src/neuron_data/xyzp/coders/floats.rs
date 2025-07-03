@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use crate::neuron_data::{NeuronXYZP, NeuronXYZPArrays};
 use crate::io_data::{LinearNormalizedF32};
-use crate::error::{IODataError, };
-use crate::genome_definitions::CorticalDimensions;
+use crate::error::{FeagiDataProcessingError, IODataError};
+use crate::genomic_structures::CorticalDimensions;
 use crate::io_cache::ChannelIndex;
 
 pub enum FloatNeuronXYZPTranslatorType {
-    PSPBidirectional,
-    SplitSignDivided,
+    PSPBidirectional, /// 2 neurons wide per channel, each row being 1 neuron deep. PSP is the value with 1 row positive, other negative
+    SplitSignDivided, /// 2 neurons wide per channel, with 1 row being positive adn the other negative
     Linear,
 }
 
@@ -16,12 +16,12 @@ impl FloatNeuronXYZPTranslatorType {
     pub const CHANNEL_WIDTH_SPLIT_SIGN_DIVIDED: u32 = 2;
     pub const CHANNEL_WIDTH_LINEAR: u32 = 1;
     
-    pub fn create_dimensions_for_translator_type(&self, number_channels: usize, resolution_depth: usize) -> Result<CorticalDimensions, IODataError> {
+    pub fn create_dimensions_for_translator_type(&self, number_channels: usize, resolution_depth: usize) -> Result<CorticalDimensions, FeagiDataProcessingError> {
         if number_channels == 0 {
-            return Err(IODataError::InvalidParameters("Cannot create cortical dimensions with 0 channels!".into()));
+            return Err(IODataError::InvalidParameters("Cannot create cortical dimensions with 0 channels!".into()).into());
         }
         if resolution_depth == 0 {
-            return Err(IODataError::InvalidParameters("Cannot create cortical dimensions with a resolution depth of 0!".into()));
+            return Err(IODataError::InvalidParameters("Cannot create cortical dimensions with a resolution depth of 0!".into()).into());
         }
         
         match self {
@@ -45,13 +45,13 @@ pub struct FloatNeuronXYZPTranslator {
 }
 
 impl NeuronTranslator<LinearNormalizedF32> for FloatNeuronXYZPTranslator {
-    fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: ChannelIndex) -> Result<RangedNormalizedF32, DataProcessingError> {
+    fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: ChannelIndex) -> Result<LinearNormalizedF32, FeagiDataProcessingError> {
         if channel.index() > self.channel_count {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Requested channel {} is not supported when max channel is {}!", channel, self.channel_count)));
+            return Err(IODataError::InvalidParameters(format!("Requested channel {} is not supported when max channel is {}!", channel, self.channel_count)).into());
         }
 
         if neuron_data.is_empty() {
-            return Ok(RangedNormalizedF32::new_zero());
+            return Ok(LinearNormalizedF32::new_zero());
         }
 
         let cortical_depth: f32 = self.cortical_dimensions.z as f32;
@@ -112,7 +112,7 @@ impl NeuronTranslator<LinearNormalizedF32> for FloatNeuronXYZPTranslator {
         }
     }
 
-    fn read_neuron_data_multi_channel(&self, neuron_data: &NeuronXYZPArrays, channels: Vec<ChannelIndex>) -> Result<Vec<RangedNormalizedF32>, DataProcessingError> {
+    fn read_neuron_data_multi_channel(&self, neuron_data: &NeuronXYZPArrays, channels: Vec<ChannelIndex>) -> Result<Vec<RangedNormalizedF32>, FeagiDataProcessingError> {
         let mut output: Vec<RangedNormalizedF32> = Vec::with_capacity(channels.len());
         for channel in channels.iter() {
             output.push(FloatNeuronXYZPTranslator::read_neuron_data_single_channel(self, neuron_data, channel.clone())?);
@@ -120,10 +120,10 @@ impl NeuronTranslator<LinearNormalizedF32> for FloatNeuronXYZPTranslator {
         Ok(output)
     }
 
-    fn write_neuron_data_single_channel(&self, value: RangedNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: ChannelIndex) -> Result<(), DataProcessingError> {
+    fn write_neuron_data_single_channel(&self, value: RangedNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: ChannelIndex) -> Result<(), FeagiDataProcessingError> {
 
         if channel.index() > self.channel_count {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Requested channel is not supported when max channel is {}!", channel)));
+            return Err(IODataError::InvalidParameters(format!("Requested channel is not supported when max channel is {}!", channel)));
         }
 
         match self.translator_type {
@@ -162,7 +162,7 @@ impl NeuronTranslator<LinearNormalizedF32> for FloatNeuronXYZPTranslator {
         }
     }
 
-    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<ChannelIndex, RangedNormalizedF32>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), DataProcessingError> {
+    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<ChannelIndex, RangedNormalizedF32>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
         for (channel, value) in channels_and_values.iter() {
             self.write_neuron_data_single_channel(*value, target_to_overwrite, channel.clone())?;
         };
@@ -171,7 +171,7 @@ impl NeuronTranslator<LinearNormalizedF32> for FloatNeuronXYZPTranslator {
 }
 
 impl FloatNeuronXYZPTranslator {
-    pub fn new(translator_type: FloatNeuronXYZPTranslatorType, number_channels: usize, resolution_depth: usize) -> Result<Self, DataProcessingError> {
+    pub fn new(translator_type: FloatNeuronXYZPTranslatorType, number_channels: usize, resolution_depth: usize) -> Result<Self, FeagiDataProcessingError> {
         let cortical_dimensions = translator_type.create_dimensions_for_translator_type(number_channels, resolution_depth)?;
         Ok(FloatNeuronXYZPTranslator {
             translator_type,

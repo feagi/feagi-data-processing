@@ -45,7 +45,7 @@ impl OutputFloatCacheWorker for FloatDirectWorker {
 }
 
 impl FloatDirectWorker {
-    pub fn new(cortical_id_write_target: CorticalID, channel: ChannelIndex, starting_value: f32, upper_bound: f32, lower_bound: f32) -> Result<FloatDirectWorker, DataProcessingError> {
+    pub fn new(cortical_id_write_target: CorticalID, channel: ChannelIndex, starting_value: f32, upper_bound: f32, lower_bound: f32) -> Result<FloatDirectWorker, FeagiDataProcessingError> {
         let start_val: LinearBoundedF32 = LinearBoundedF32::new(starting_value, upper_bound, lower_bound)?;
         let current_time = Instant::now();
         let callback_manager: CallBackManager<LinearBoundedF32> = CallBackManager::new();

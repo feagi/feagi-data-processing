@@ -1,8 +1,9 @@
 use byteorder::{ByteOrder, LittleEndian};
-use crate::error::DataProcessingError;
-use crate::miscellaneous_types::json_structure::JsonStructure;
-use crate::data_types::neuron_data::CorticalMappedXYZPNeuronData; 
-use super::{FeagiByteStructureCompatible, FeagiByteStructureType};
+use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
+use crate::io_data::JsonStructure;
+use crate::neuron_data::CorticalMappedXYZPNeuronData; 
+use super::FeagiByteStructureType;
+use super::FeagiByteStructureCompatible;
 
 #[derive(Clone)]
 pub struct FeagiByteStructure {
@@ -10,37 +11,37 @@ pub struct FeagiByteStructure {
 }
 
 impl FeagiByteStructure {
-    const GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES: usize = 2;
-    const MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID: usize = 4;
-    const MULTISTRUCT_STRUCT_COUNT_BYTE_SIZE: usize = 1;
-    const MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES: usize = 8;
-    
-    const SUPPORTED_VERSION_JSON: u8 = 1;
-    const SUPPORTED_VERSION_MULTI_STRUCT: u8 = 1;
-    const SUPPORTED_VERSION_NEURON_XYZP: u8 = 1;
+    pub const GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES: usize = 2;
+    pub const MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID: usize = 4;
+    pub const MULTISTRUCT_STRUCT_COUNT_BYTE_SIZE: usize = 1;
+    pub const MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES: usize = 8;
+
+    pub const SUPPORTED_VERSION_JSON: u8 = 1;
+    pub const SUPPORTED_VERSION_MULTI_STRUCT: u8 = 1;
+    pub const SUPPORTED_VERSION_NEURON_XYZP: u8 = 1;
     
     //region Constructors
-    pub fn create_from_bytes(bytes: Vec<u8>) -> Result<FeagiByteStructure, DataProcessingError> {
+    pub fn create_from_bytes(bytes: Vec<u8>) -> Result<FeagiByteStructure, FeagiDataProcessingError> {
         if bytes.len() < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
-            return Err(DataProcessingError::InvalidByteStructure(format!("Byte structure needs to be at least {} long to be considered valid. Given structure is only {} long!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID, bytes.len())));
+            return Err(FeagiBytesError::UnableToValidateBytes(format!("Byte structure needs to be at least {} long to be considered valid. Given structure is only {} long!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID, bytes.len())).into());
         }
         _ = FeagiByteStructureType::try_from(bytes[0])?; // check if structure type is valid
-        if bytes[1] == 0 {return Err(DataProcessingError::InvalidByteStructure("Byte structure cannot have version number of 0!".into()));}
+        if bytes[1] == 0 {return Err(FeagiBytesError::UnableToValidateBytes("Byte structure cannot have version number of 0!".into()).into());}
         // NOTE: Other checks go here
         
         Ok(Self { bytes })
     }
     
-    pub fn create_from_2_existing(a: &FeagiByteStructure, b: &FeagiByteStructure) -> Result<FeagiByteStructure, DataProcessingError> {
+    pub fn create_from_2_existing(a: &FeagiByteStructure, b: &FeagiByteStructure) -> Result<FeagiByteStructure, FeagiDataProcessingError> {
         // TODO Using vectors here is easier now, but we can squeeze a bit more performance by making a specific 2 slice system
         let structs = vec!(a, b);
         FeagiByteStructure::create_from_multiple_existing(structs)
     }
     
-    pub fn create_from_multiple_existing(existing: Vec<&FeagiByteStructure>) -> Result<FeagiByteStructure, DataProcessingError> {
+    pub fn create_from_multiple_existing(existing: Vec<&FeagiByteStructure>) -> Result<FeagiByteStructure, FeagiDataProcessingError> {
         
         if existing.is_empty() {
-            return Err(DataProcessingError::InvalidInputBounds("You must specify at least one byte structure to put into a multistruct!".into()));
+            return Err(IODataError::InvalidParameters("You must specify at least one byte structure to put into a multistruct!".into()).into());
         }
         
         if existing.len() == 1 {
@@ -61,47 +62,61 @@ impl FeagiByteStructure {
 
         if slices.len() > 255 {
             // wtf are you doing
-            return Err(DataProcessingError::InvalidInputBounds("The maximum number of structures that can exist in a multistruct is 255!".into()));
+            return Err(IODataError::InvalidParameters("The maximum number of structures that can exist in a multistruct is 255!".into()).into());
         }
         
         Ok(FeagiByteStructure::build_multistruct_from_slices(slices))
     }
     
-    pub fn create_from_compatible(object: Box<dyn FeagiByteStructureCompatible>) -> Result<FeagiByteStructure, DataProcessingError> {
+    pub fn create_from_compatible(object: Box<dyn FeagiByteStructureCompatible>) -> Result<FeagiByteStructure, FeagiDataProcessingError> {
         // Essentially just an alias
         object.as_new_feagi_byte_structure()
     }
     
     /*
-    pub fn create_from_multiple_compatible(objects: Vec<Box<dyn FeagiByteStructureCompatible>>) -> Result<FeagiByteStructure, DataProcessingError> {
+    pub fn create_from_multiple_compatible(objects: Vec<Box<dyn FeagiByteStructureCompatible>>) -> Result<FeagiByteStructure, FeagiDataProcessingError> {
         todo!()
     }
      */
+    //endregion
+    
+    //region static safety checks
+    pub(crate) fn verify_matching_structure_type_and_version(feagi_byte_structure: &FeagiByteStructure, expected_type: FeagiByteStructureType, expected_version: u8) -> Result<(), FeagiDataProcessingError> {
+        if feagi_byte_structure.try_get_structure_type()? != expected_type {
+            return Err(FeagiBytesError::UnableToValidateBytes(format!(
+                "Given structure of type {} cannot be instantiated for entity corresponding to type {}!", feagi_byte_structure.try_get_structure_type().unwrap() as u8, expected_type as u8)).into());
+        }
+        if feagi_byte_structure.try_get_version()? != expected_version {
+            return Err(FeagiBytesError::UnableToValidateBytes(format!(
+                "Given structure of version {} cannot be instantiated for entity corresponding to version {}!", feagi_byte_structure.try_get_version()?, expected_version)).into());
+        }
+        Ok(())
+    }
     //endregion
     
     //region Get Properties
     
     // NOTE: These functions have safety checks as they can be called externally
     
-    pub fn try_get_structure_type(&self) -> Result<FeagiByteStructureType, DataProcessingError> {
+    pub fn try_get_structure_type(&self) -> Result<FeagiByteStructureType, FeagiDataProcessingError> {
         if self.bytes.len() == 0 {
-            return Err(DataProcessingError::InvalidByteStructure(format!("Empty byte structure!")));
+            return Err(FeagiDataProcessingError::InternalError("Empty byte structure!".to_string())); // This shouldn't be possible as this struct should be checked before being created
         }
         FeagiByteStructureType::try_from(self.bytes[0])
     }
     
-    pub fn try_get_version(&self) -> Result<u8, DataProcessingError> {
+    pub fn try_get_version(&self) -> Result<u8, FeagiDataProcessingError> {
         if self.bytes.len() < 2 {
-            return Err(DataProcessingError::InternalError("Unable to get version information! Byte struct is too short!".into()))
+            return Err(FeagiDataProcessingError::InternalError("Unable to get version information! Byte struct is too short!".into()))
         }
         Ok(self.bytes[1])
     }
     
-    pub fn is_multistruct(&self) -> Result<bool, DataProcessingError> {
+    pub fn is_multistruct(&self) -> Result<bool, FeagiDataProcessingError> {
         Ok(FeagiByteStructureType::MultiStructHolder == self.try_get_structure_type()?)
     }
     
-    pub fn contained_structure_count(&self) -> Result<usize, DataProcessingError> {
+    pub fn contained_structure_count(&self) -> Result<usize, FeagiDataProcessingError> {
         if self.is_multistruct()? {
             self.verify_valid_multistruct_internal_count()?;
             return Ok(self.get_multistruct_contained_count());
@@ -109,7 +124,7 @@ impl FeagiByteStructure {
         Ok(1) // if not a multistruct, there's only one struct
     }
     
-    pub fn get_ordered_object_types(&self) -> Result<Vec<FeagiByteStructureType>, DataProcessingError> {
+    pub fn get_ordered_object_types(&self) -> Result<Vec<FeagiByteStructureType>, FeagiDataProcessingError> {
         if self.is_multistruct()? {
             self.verify_valid_multistruct_internal_count()?;
             self.verify_valid_multistruct_internal_positionings_header()?;
@@ -126,22 +141,22 @@ impl FeagiByteStructure {
         Ok(vec![self.try_get_structure_type()?])
     }
 
-    pub fn copy_out_single_byte_structure_from_multistruct(&self, index: usize) -> Result<FeagiByteStructure, DataProcessingError> {
+    pub fn copy_out_single_byte_structure_from_multistruct(&self, index: usize) -> Result<FeagiByteStructure, FeagiDataProcessingError> {
         if !self.is_multistruct()? {
             return Ok(self.clone());
         }
         if index > self.contained_structure_count()? {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Given struct index {} is out of bounds given this multistruct only contains {} elements!", index, self.contained_structure_count()?)));
+            return Err(IODataError::InvalidParameters(format!("Given struct index {} is out of bounds given this multistruct only contains {} elements!", index, self.contained_structure_count()?)).into());
         }
         Ok(FeagiByteStructure::create_from_bytes(
             self.get_multistruct_specific_slice(index).to_vec()
         )?)
     }
     
-    pub fn copy_out_single_object_from_single_struct(&self) -> Result<Box<dyn FeagiByteStructureCompatible>, DataProcessingError> {
+    pub fn copy_out_single_object_from_single_struct(&self) -> Result<Box<dyn FeagiByteStructureCompatible>, FeagiDataProcessingError> {
         let this_struct_type = self.try_get_structure_type()?;
         if this_struct_type == FeagiByteStructureType::MultiStructHolder {
-            return Err(DataProcessingError::InvalidByteStructure("Cannot return a multistruct holding multiple structs as a single object!".into()))
+            return Err(FeagiBytesError::IncompatibleByteUse("Cannot return a multistruct holding multiple structs as a single object!".into()).into())
         }
         
         // Factory pattern to create the appropriate concrete type based on structure type
@@ -154,18 +169,18 @@ impl FeagiByteStructure {
             },
             FeagiByteStructureType::MultiStructHolder => {
                 // This case is already handled above, but included for completeness
-                Err(DataProcessingError::InvalidByteStructure("Cannot return a multistruct holding multiple structs as a single object!".into()))
+                Err(FeagiBytesError::IncompatibleByteUse("Cannot return a multistruct holding multiple structs as a single object!".into()).into())
             }
             _ => {
-                Err(DataProcessingError::InternalError(format!("Missing export definition for FBS object type {}!", this_struct_type)))
+                Err(FeagiDataProcessingError::InternalError(format!("Missing export definition for FBS object type {}!", this_struct_type)))
             }
         }
     }
     
-    pub fn copy_out_single_object_from_multistruct(&self, index: usize) -> Result<Box<dyn FeagiByteStructureCompatible>, DataProcessingError> {
+    pub fn copy_out_single_object_from_multistruct(&self, index: usize) -> Result<Box<dyn FeagiByteStructureCompatible>, FeagiDataProcessingError> {
         // TODO this method is slow, we should have a dedicated create from byte slice for FeagiByteStructureCompatible
         if !self.is_multistruct()? {
-            return Err(DataProcessingError::InvalidByteStructure("Cannot treat this object as a multistruct when it is not!".into()))
+            return Err(FeagiBytesError::UnableToDeserializeBytes("Cannot deserialize this object as a multistruct when it is not!".into()).into())
         }
         let internal = self.copy_out_single_byte_structure_from_multistruct(index)?;
         internal.copy_out_single_object_from_single_struct()
@@ -181,30 +196,30 @@ impl FeagiByteStructure {
     // NOTE: These functions are used to ensure internal data is reasonable. Not all have all
     // safety checks/
     
-    fn verify_valid_multistruct_internal_count(&self) -> Result<(), DataProcessingError> {
+    fn verify_valid_multistruct_internal_count(&self) -> Result<(), FeagiDataProcessingError> {
         let len = self.bytes.len();
-        if len < 3 {
-            return Err(DataProcessingError::InternalError("Multistruct too short to hold contained struct count!!".into()))
+        if len < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
+            return Err(FeagiDataProcessingError::InternalError("byte structure too short!".into()))
         }
         if self.bytes[0] != FeagiByteStructureType::MultiStructHolder as u8 { // faster header check
-            return Err(DataProcessingError::InternalError("Byte structure is not identified as a multistruct!".into()))
+            return Err(FeagiBytesError::UnableToValidateBytes("Byte structure is not identified as a multistruct!".into()).into())
         }
         if self.bytes[2] == 0 {
-            return Err(DataProcessingError::InternalError("Multistruct reports 0 contained structures!".into()))
+            return Err(FeagiDataProcessingError::InternalError("Multistruct reports 0 contained structures!".into()))
         }
         Ok(())
     }
     
-    fn verify_valid_multistruct_internal_positionings_header(&self) -> Result<(), DataProcessingError> {
+    fn verify_valid_multistruct_internal_positionings_header(&self) -> Result<(), FeagiDataProcessingError> {
         // We are assuming the internal structure count was already verified as existing and valid ( not 0)
         let len = self.bytes.len();
         let contained_struct_count = self.bytes[2] as usize;
         if contained_struct_count == 0 {
-            return Err(DataProcessingError::InternalError("Multistruct reports 0 contained structures!".into())); // Explicitly check for this again because if we dont, we are going to underflow below
+            return Err(FeagiDataProcessingError::InternalError("Multistruct reports 0 contained structures!".into())); // Explicitly check for this again because if we dont, we are going to underflow below
         }
         let header_size_bytes = contained_struct_count * Self::MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES;
         if len <  Self::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + Self::MULTISTRUCT_STRUCT_COUNT_BYTE_SIZE + header_size_bytes {
-            return Err(DataProcessingError::InvalidByteStructure("Multi Struct too short to hold contained positionings header!".into()))
+            return Err(FeagiDataProcessingError::InternalError("Multi Struct too short to hold contained positionings header!".into()))
         } 
         
         let len = len as u32;
@@ -213,17 +228,17 @@ impl FeagiByteStructure {
             let struct_start_index = LittleEndian::read_u32(&self.bytes[struct_header_start_index..struct_header_start_index + 4]);
             let struct_length = LittleEndian::read_u32(&self.bytes[struct_header_start_index + 4..struct_header_start_index + 8]);
             if struct_start_index + struct_length > len {
-                return Err(DataProcessingError::InvalidByteStructure("Multi Struct too short to hold all reported contained structures!".into()))
+                return Err(FeagiDataProcessingError::InternalError("Multi Struct too short to hold all reported contained structures!".into()))
             }
             struct_header_start_index += Self::MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES;
         }
         Ok(())
     }
     
-    fn verify_valid_multistruct_internal_slices_header_and_size(&self, internal_slices: &Vec<&[u8]>) -> Result<(), DataProcessingError> {
+    fn verify_valid_multistruct_internal_slices_header_and_size(&self, internal_slices: &Vec<&[u8]>) -> Result<(), FeagiDataProcessingError> {
         for slice in internal_slices {
             if slice.len() < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
-                return Err(DataProcessingError::InvalidByteStructure("Multi Struct contains a internal structure too small to be valid!".into()))
+                return Err(FeagiDataProcessingError::InternalError("Multi Struct contains a internal structure too small to be valid!".into()))
             }
             FeagiByteStructureType::try_from(slice[0])?;
         }
@@ -258,9 +273,9 @@ impl FeagiByteStructure {
         (self.bytes.len() as f32 / self.bytes.capacity() as f32) * 100.0
     }
 
-    pub fn ensure_capacity_of_at_least(&mut self, size: usize) -> Result<(), DataProcessingError> {
+    pub fn ensure_capacity_of_at_least(&mut self, size: usize) -> Result<(), FeagiDataProcessingError> {
         if size < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
-            return Err(DataProcessingError::InvalidInputBounds(format!("Cannot set capacity to less than minimum required capacity of {}!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID)));
+            return Err(IODataError::InvalidParameters(format!("Cannot set capacity to less than minimum required capacity of {}!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID)).into());
         }
 
         if self.bytes.capacity() < size {
@@ -360,21 +375,9 @@ impl FeagiByteStructure {
     
 }
 
-pub fn try_get_version_from_bytes(bytes: &[u8]) -> Result<u8, DataProcessingError> {
-    if bytes.len() < 2 {
-        return Err(DataProcessingError::InvalidByteStructure("Cannot ascertain type of 0/1 long byte array!".into()))
+pub fn try_get_version_from_bytes(bytes: &[u8]) -> Result<u8, FeagiDataProcessingError> {
+    if bytes.len() <  FeagiByteStructure::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
+        return Err(FeagiBytesError::UnableToDeserializeBytes("Structure too short to be a Feagi Byte Structure".into()).into());
     }
     Ok(bytes[1])
-}
-
-pub fn verify_matching_structure_type_and_version(feagi_byte_structure: &FeagiByteStructure, expected_type: FeagiByteStructureType, expected_version: u8) -> Result<(), DataProcessingError> {
-    if feagi_byte_structure.try_get_structure_type()? != expected_type {
-        return Err(DataProcessingError::InvalidByteStructure(format!(
-            "Given structure of type {} cannot be instantiated for entity corresponding to type {}!", feagi_byte_structure.try_get_structure_type().unwrap() as u8, expected_type as u8)));
-    }
-    if feagi_byte_structure.try_get_version()? != expected_version {
-        return Err(DataProcessingError::InvalidByteStructure(format!(
-            "Given structure of version {} cannot be instantiated for entity corresponding to version {}!", feagi_byte_structure.try_get_version()?, expected_version)));
-    }
-    Ok(())
 }

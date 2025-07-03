@@ -14,30 +14,17 @@
 //! - [`neuron_data`]: Core data structures for managing neuron information and properties
 //! - [`cortical_data`]: Cortical area identification and management utilities
 
-/// Byte structure serialization and deserialization framework.
-/// 
-/// This module provides a comprehensive system for converting FEAGI data structures
-/// to and from various byte formats.
-pub mod byte_structures;
-
-/// Brain output processing modules for motor control data.
-
 
 /// Centralized error handling for data processing operations.
 pub mod error;
-
-pub mod miscellaneous_types;
-pub mod genome_definitions;
 pub mod io_cache;
-pub mod data_types;
-
+pub mod io_processing;
 
 
 pub mod io_data;
 
 pub mod neuron_data;
 pub mod genomic_structures;
-
 #[cfg(test)]
 mod tests {
     // Tests of each module are in the mod file of each module, and are run from there
