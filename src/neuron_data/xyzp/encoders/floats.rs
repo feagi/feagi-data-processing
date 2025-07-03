@@ -1,16 +1,15 @@
 use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError, NeuronError};
-use crate::neuron_data::translator_base_traits::{NeuronXYZPEncoder};
+use crate::neuron_data::xyzp::{NeuronXYZPEncoder};
 use crate::neuron_data::{NeuronXYZP, NeuronXYZPArrays};
 use crate::io_data::LinearNormalizedF32;
-use crate::genomic_structures::CorticalIOChannelIndex;
-use crate::genomic_structures::CorticalDimensions;
+use crate::genomic_structures::CorticalAreaDimensions;
 use crate::io_cache::ChannelIndex;
 use crate::neuron_data::neuron_layouts::FloatNeuronLayoutType;
 
 pub struct FloatNeuronXYZPEncoder {
     translator_type: FloatNeuronLayoutType,
-    cortical_dimensions: CorticalDimensions,
+    cortical_dimensions: CorticalAreaDimensions,
     channel_count: u32
 }
 

@@ -1,7 +1,5 @@
 use serde_json;
-use crate::byte_structures::{FeagiByteStructureType, GLOBAL_HEADER_SIZE};
-use crate::byte_structures::feagi_byte_structure::{verify_matching_structure_type_and_version, FeagiByteStructure};
-use crate::byte_structures::feagi_byte_structure_compatible::FeagiByteStructureCompatible;
+use crate::io_processing::byte_structures::{FeagiByteStructureType, FeagiByteStructure, FeagiByteStructureCompatible};
 use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
 
 #[derive(Clone)]
@@ -20,7 +18,7 @@ impl FeagiByteStructureCompatible for JsonStructure {
         let json_string = self.json.to_string();
         let json_bytes = json_string.as_bytes();
         
-        let num_bytes_needed: usize = GLOBAL_HEADER_SIZE + json_bytes.len();
+        let num_bytes_needed: usize = FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + json_bytes.len();
         if slice.len() < num_bytes_needed {
             return Err(IODataError::InvalidInplaceOperation(format!("Not enough space given to store JSON data! Need {} bytes but given {}!", num_bytes_needed, slice.len())).into());
         }
@@ -30,7 +28,7 @@ impl FeagiByteStructureCompatible for JsonStructure {
         slice[1] = self.get_version();
         
         // Write the JSON data as UTF-8 bytes
-        slice[GLOBAL_HEADER_SIZE..GLOBAL_HEADER_SIZE + json_bytes.len()].copy_from_slice(json_bytes);
+        slice[FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES..FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + json_bytes.len()].copy_from_slice(json_bytes);
         
         let wasted_space = slice.len() - num_bytes_needed;
         Ok(wasted_space)
@@ -39,14 +37,14 @@ impl FeagiByteStructureCompatible for JsonStructure {
     fn max_number_bytes_needed(&self) -> usize {
         // Global header (2 bytes) + JSON data as UTF-8 bytes
         // TODO this is pretty slow, any faster way to do this?
-        GLOBAL_HEADER_SIZE + self.json.to_string().as_bytes().len()
+        FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES + self.json.to_string().as_bytes().len()
     }
 
     fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, FeagiDataProcessingError>
     where
         Self: Sized
     {
-        verify_matching_structure_type_and_version(
+        FeagiByteStructure::verify_matching_structure_type_and_version(
             feagi_byte_structure,
             Self::BYTE_STRUCTURE_TYPE,
             Self::BYTE_STRUCT_VERSION
@@ -54,12 +52,12 @@ impl FeagiByteStructureCompatible for JsonStructure {
         
         let bytes = feagi_byte_structure.borrow_data_as_slice();
         
-        if bytes.len() < GLOBAL_HEADER_SIZE {
+        if bytes.len() < FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES {
             return Err(FeagiBytesError::UnableToDeserializeBytes("JSON byte structure too short to contain global header".into().into()));
         }
         
         // Extract JSON data (everything after the global header)
-        let json_bytes = &bytes[GLOBAL_HEADER_SIZE..];
+        let json_bytes = &bytes[FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES..];
         
         // Parse JSON string
         let json_value = match serde_json::from_slice(json_bytes) {

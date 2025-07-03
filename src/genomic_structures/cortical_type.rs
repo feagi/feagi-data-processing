@@ -1,7 +1,6 @@
 use std::fmt;
 use crate::error::{FeagiBytesError, FeagiDataProcessingError, GenomeError};
-use crate::genomic_structures::cortical_id::{CORTICAL_ID_LENGTH, CorticalID};
-use crate::genomic_structures::CorticalType::Sensory;
+use crate::genomic_structures::cortical_id::{CorticalID};
 use crate::genomic_structures::SingleChannelDimensions;
 use crate::genomic_structures::index_types::CorticalGroupingIndex;
 macro_rules! define_io_cortical_types {
@@ -39,7 +38,7 @@ macro_rules! define_io_cortical_types {
         impl $cortical_io_type_enum_name {
 
             // Does no cortical ID checking
-            pub(crate) fn get_type_from_bytes(id: &[u8; CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
+            pub(crate) fn get_type_from_bytes(id: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
                 let mut id_0 = id.clone();
                 id_0[4] = 0;
                 id_0[5] = 0;
@@ -54,7 +53,7 @@ macro_rules! define_io_cortical_types {
                         
             pub fn to_cortical_id(&self, index: CorticalGroupingIndex) -> CorticalID {
                 let (high, low) = u8_to_hex_char_u8(index.0);
-                let mut output: [u8; CORTICAL_ID_LENGTH] =  match self {
+                let mut output: [u8; CorticalID::CORTICAL_ID_LENGTH] =  match self {
                     $(
                         Self::$cortical_type_key_name => *$base_ascii,
                     ),*
@@ -98,7 +97,7 @@ impl fmt::Display for CorticalType {
 }
 
 impl CorticalType {
-    pub(crate) fn get_type_from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
+    pub(crate) fn get_type_from_bytes(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
         let start: u8 = bytes[0];
         match start { 
             b'c' => Ok(CorticalType::Custom),
@@ -151,7 +150,7 @@ impl CoreCorticalType {
         }
     }
 
-    pub(crate) fn get_type_from_bytes(bytes: &[u8; CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
+    pub(crate) fn get_type_from_bytes(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
         match bytes {
             b"_death" => Ok(CoreCorticalType::Death.into()),
             b"_power" => Ok(CoreCorticalType::Power.into()),
@@ -328,7 +327,7 @@ fn u8_to_hex_char_u8(index: u8) -> (u8, u8) {
 }
 
 // Used when we know something is wrong, we just want the right error
-fn handle_byte_id_mapping_fail(bytes: &[u8; CORTICAL_ID_LENGTH]) -> FeagiDataProcessingError {
+fn handle_byte_id_mapping_fail(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> FeagiDataProcessingError {
     let as_string = String::from_utf8(bytes.to_vec());
     if as_string.is_err() {
         FeagiBytesError::UnableToDeserializeBytes("Unable to parse cortical ID as ASCII!".into()).into()
