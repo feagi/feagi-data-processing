@@ -46,7 +46,7 @@ macro_rules! define_io_cortical_types {
                 id_0[4] = 0;
                 id_0[5] = 0;
 
-                match id_0 {
+                match &id_0 {
                     $(
                         $base_ascii => Ok((Self::$cortical_type_key_name).into()),
                     ),*
