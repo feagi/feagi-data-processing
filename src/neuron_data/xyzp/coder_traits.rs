@@ -8,12 +8,12 @@ use super::encoders::floats::{FloatNeuronXYZPEncoder};
 
 // Coders can be enums since they do not store values, they merely are organizational units directing
 // to specific methods for reading and writing neural data
-#[enum_dispatch(NeuronXYZPEncoderControl)]
+#[enum_dispatch(NeuronXYZPEncoderControl<T>)]
 pub enum NeuronXYZPEncoder<T> {
     FloatNeuronXYZPEncoder
 }
 
-#[enum_dispatch(NeuronXYZPDecoderControl)]
+#[enum_dispatch(NeuronXYZPDecoderControl<T>)]
 pub enum NeuronXYZPDecoder<T> {
     FloatNeuronXYZPDecoder
 }
@@ -31,6 +31,7 @@ pub(crate) trait NeuronXYZPEncoderControl<T> {
     }
 }
 
+#[enum_dispatch]
 pub(crate) trait NeuronXYZPDecoderControl<T> {
     fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<T, FeagiDataProcessingError>;
 

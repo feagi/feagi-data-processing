@@ -94,17 +94,17 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
             let number_bytes_to_read: usize = LittleEndian::read_u32(&bytes[reading_header_index + 10..reading_header_index + 14]) as usize;
 
             if bytes.len() < data_start_reading + number_bytes_to_read {
-                return Err(FeagiBytesError::UnableToSerializeBytes("Byte structure for NeuronCategoricalXYZPV1 is too short to fit the data the header says it contains!".into()));
+                return Err(FeagiBytesError::UnableToSerializeBytes("Byte structure for NeuronCategoricalXYZPV1 is too short to fit the data the header says it contains!".into()).into());
             }
 
             let neuron_bytes = &bytes[data_start_reading..data_start_reading + number_bytes_to_read];
             let bytes_length = neuron_bytes.len();
             if bytes_length % NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON != 0 {
-                return Err(FeagiBytesError::UnableToSerializeBytes("Byte structure for NeuronCategoricalXYZPV1 seems invalid! Size is nonsensical given neuron data size!".into()));
+                return Err(FeagiBytesError::UnableToSerializeBytes("Byte structure for NeuronCategoricalXYZPV1 seems invalid! Size is nonsensical given neuron data size!".into()).into());
             }
             
             if bytes_length % NeuronXYZPArrays::NUMBER_BYTES_PER_NEURON != 0 {
-                return Err(FeagiBytesError::UnableToSerializeBytes("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input byte array must be divisible by 16!".into()));
+                return Err(FeagiBytesError::UnableToSerializeBytes("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input byte array must be divisible by 16!".into()).into());
             }
             let x_end = bytes_length / 4; // q1
             let y_end = bytes_length / 2; // q2

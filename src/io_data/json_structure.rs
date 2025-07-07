@@ -53,7 +53,7 @@ impl FeagiByteStructureCompatible for JsonStructure {
         let bytes = feagi_byte_structure.borrow_data_as_slice();
         
         if bytes.len() < FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES {
-            return Err(FeagiBytesError::UnableToDeserializeBytes("JSON byte structure too short to contain global header".into().into()));
+            return Err(FeagiBytesError::UnableToDeserializeBytes("JSON byte structure too short to contain global header".into()).into());
         }
         
         // Extract JSON data (everything after the global header)
@@ -62,8 +62,7 @@ impl FeagiByteStructureCompatible for JsonStructure {
         // Parse JSON string
         let json_value = match serde_json::from_slice(json_bytes) {
             Ok(value) => value,
-            Err(e) => return Err(FeagiBytesError::UnableToDeserializeBytes(format!("Invalid JSON data: {}", e)
-            )),
+            Err(e) => return Err(FeagiBytesError::UnableToDeserializeBytes(format!("Invalid JSON data: {}", e)).into()),
         };
         
         Ok(JsonStructure { json: json_value })

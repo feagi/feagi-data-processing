@@ -39,18 +39,23 @@ macro_rules! define_io_cortical_types {
 
             // Does no cortical ID checking
             pub(crate) fn get_type_from_bytes(id: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
-                let mut id_0 = id.clone();
+                return Err(FeagiDataProcessingError::InternalError("Failed to map cortical ID to type!".into()));
+                
+                let mut id_0: [u8; CorticalID::CORTICAL_ID_LENGTH] = id.clone();
+                //id_0.clone_from_slice(id);
                 id_0[4] = 0;
                 id_0[5] = 0;
 
-                match *id_0 {
+                match id_0 {
                     $(
                         $base_ascii => Ok((Self::$cortical_type_key_name).into()),
                     ),*
                     _ => return Err(FeagiDataProcessingError::InternalError("Failed to map cortical ID to type!".into()))
                 }
+                
+
             }
-                        
+
             pub fn to_cortical_id(&self, index: CorticalGroupingIndex) -> CorticalID {
                 let (high, low) = u8_to_hex_char_u8(index.0);
                 let mut output: [u8; CorticalID::CORTICAL_ID_LENGTH] =  match self {
@@ -62,7 +67,7 @@ macro_rules! define_io_cortical_types {
                 output[5] = low;
                 CorticalID {bytes: output} // skip safety checks, we know this is fine
             }
-            
+
             pub fn get_single_channel_dimensions(&self) -> SingleChannelDimensions {
                 match self {
                     $(

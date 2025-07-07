@@ -4,15 +4,15 @@ use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, CorticalType
 use crate::io_processing::{CallBackManager, StreamCacheProcessor};
 use crate::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZPDecoder, NeuronXYZPEncoder};
 
-pub struct SensoryChannelStreamCache<T> {
-    stream_cache_processor: dyn StreamCacheProcessor<T>,
+pub struct SensoryChannelStreamCache<T: std::fmt::Display> {
+    stream_cache_processor: Box<dyn StreamCacheProcessor<T>>,
     neuron_xyzp_encoder: NeuronXYZPEncoder<T>,
     cortical_id: CorticalID,
     channel: CorticalIOChannelIndex,
     last_updated: Instant
 }
 
-impl<T> SensoryChannelStreamCache<T> {
+impl<T: std::fmt::Display> SensoryChannelStreamCache<T> {
     
     pub fn new(stream_cache_processor: Box<dyn StreamCacheProcessor<T>>,
                neuron_xyzp_encoder: NeuronXYZPEncoder<T>,
@@ -58,7 +58,7 @@ impl<T> SensoryChannelStreamCache<T> {
 
 // TODO add callback for only on change
 
-pub struct MotorChannelStreamCache<T> {
+pub struct MotorChannelStreamCache<T: std::fmt::Display> {
     stream_cache_processor: Box<dyn StreamCacheProcessor<T>>,
     neuron_xyzp_decoder: NeuronXYZPDecoder<T>,
     cortical_id: CorticalID,
@@ -67,7 +67,7 @@ pub struct MotorChannelStreamCache<T> {
     callbacks_all_bursts: CallBackManager<T>
 }
 
-impl<T> MotorChannelStreamCache<T> {
+impl<T: std::fmt::Display> MotorChannelStreamCache<T> {
     
     pub fn new(stream_cache_processor: Box<dyn StreamCacheProcessor<T>>, 
                neuron_xyzp_decoder: NeuronXYZPDecoder<T>, 
@@ -89,13 +89,13 @@ impl<T> MotorChannelStreamCache<T> {
         
     }
     
-    pub fn decode_from_neurons(&mut self, neuron_data: &NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
+    pub fn decode_from_neurons(&mut self, neuron_data: &NeuronXYZPArrays) -> Result<&T, FeagiDataProcessingError> {
         let decoded_value: T = self.neuron_xyzp_decoder.read_neuron_data_single_channel(
             neuron_data,
             self.channel
         )?;
-        _ = self.stream_cache_processor.process_new_input(&decoded_value)?;
         self.last_updated = Instant::now();
+        self.stream_cache_processor.process_new_input(&decoded_value)
     }
     
     pub fn is_more_recent_than_given(&self, time: Instant) -> bool {

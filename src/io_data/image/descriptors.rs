@@ -519,7 +519,7 @@ impl SegmentedVisionCenterProperties {
     
     fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_width_height: (usize, usize)) -> Result<CornerPoints, FeagiDataProcessingError> {
         if source_frame_width_height.0 < 3 || source_frame_width_height.1 < 3 {
-            return Err(IODataError::InvalidParameters("Source resolution must be 3 pixels or greater in the X and Y directions!".into())).into();
+            return Err(IODataError::InvalidParameters("Source resolution must be 3 pixels or greater in the X and Y directions!".into()).into());
         }
         let source_frame_width_height_f: (f32, f32) = (source_frame_width_height.0 as f32, source_frame_width_height.1 as f32);
         let center_size_normalized_half_yx: (f32, f32) = (self.center_size_normalized_yx.0 / 2.0, self.center_size_normalized_yx.1 / 2.0);

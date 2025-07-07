@@ -91,7 +91,7 @@ impl CorticalID {
     pub fn from_bytes(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<Self, FeagiDataProcessingError> {
         let as_string = String::from_utf8(bytes.to_vec());
         if as_string.is_err() {
-            return GenomeError::InvalidCorticalID("Unable to parse cortical ID as ASCII!".into()).into();
+            return Err(GenomeError::InvalidCorticalID("Unable to parse cortical ID as ASCII!".into()).into());
         }
         
         let as_string = as_string.unwrap();

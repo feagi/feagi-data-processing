@@ -17,14 +17,14 @@ pub struct FloatNeuronXYZPEncoder {
 impl NeuronXYZPEncoderControl<LinearNormalizedF32> for FloatNeuronXYZPEncoder {
     fn write_neuron_data_single_channel(&self, value: LinearNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
         if *channel > self.channel_count {
-            return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", channel, self.channel_count))));
+            return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *channel, self.channel_count))).into());
         }
 
         match self.translator_type {
             FloatNeuronLayoutType::PSPBidirectional => {
                 target_to_overwrite.expand_to_new_max_count_if_required(1);
                 target_to_overwrite.reset_indexes();
-                let channel_offset: u32 = FloatNeuronLayoutType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * channel.into() + {if value.is_sign_positive() { 1 } else { 0 }};
+                let channel_offset: u32 = FloatNeuronLayoutType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * *channel + {if value.is_sign_positive() { 1 } else { 0 }};
                 let neuron: NeuronXYZP = NeuronXYZP::new(
                     channel_offset,
                     0,
@@ -39,7 +39,7 @@ impl NeuronXYZPEncoderControl<LinearNormalizedF32> for FloatNeuronXYZPEncoder {
                 // TODO Right now we are using the same algo as PSPBidirectional which works, but wouldn't it look nicer to use something that uses the full bounds?
                 target_to_overwrite.expand_to_new_max_count_if_required(1);
                 target_to_overwrite.reset_indexes();
-                let channel_offset: u32 = FloatNeuronLayoutType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * channel.into() + {if value.is_sign_positive() { 1 } else { 0 }};
+                let channel_offset: u32 = FloatNeuronLayoutType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * *channel + {if value.is_sign_positive() { 1 } else { 0 }};
                 let neuron: NeuronXYZP = NeuronXYZP::new(
                     channel_offset,
                     0,

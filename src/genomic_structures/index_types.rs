@@ -24,6 +24,9 @@ macro_rules! create_type_1d {
     };
 }
 
+// TODO add Display
+
+
 // 0-255 in hexadecimal. cortical ID index for a specific cortical type in a genome
 create_type_1d!(CorticalGroupingIndex, u8);
 

@@ -130,12 +130,9 @@ impl NeuronXYZPArrays {
     /// * `Result<(), NeuronError>` - Success or an error if the update fails or results in the 
     ///   x y z p vectors being of different lengths by its conclusion
     pub fn update_vectors_from_external<F>(&mut self, vectors_changer: F) -> Result<(), FeagiDataProcessingError>
-    where F: FnOnce(&mut Vec<u32>, &mut Vec<u32>, &mut Vec<u32>, &mut Vec<f32>) -> Result<(), NeuronError>
+    where F: FnOnce(&mut Vec<u32>, &mut Vec<u32>, &mut Vec<u32>, &mut Vec<f32>) -> Result<(), FeagiDataProcessingError>
     {
-        let function_result = vectors_changer(&mut self.x, &mut self.y, &mut self.z, &mut self.p);
-        if function_result.is_err() {
-            return function_result.into();
-        }
+        vectors_changer(&mut self.x, &mut self.y, &mut self.z, &mut self.p)?;
         self.validate_equal_vector_lengths()
     }
 
