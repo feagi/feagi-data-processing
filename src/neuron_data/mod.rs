@@ -1,6 +1,4 @@
-mod xyzp;
 mod neuron_layouts;
+pub mod xyzp;
 
-pub use xyzp::NeuronXYZP as NeuronXYZP;
-pub use xyzp::NeuronXYZPArrays as NeuronXYZPArrays;
-pub use xyzp::CorticalMappedXYZPNeuronData as CorticalMappedXYZPNeuronData;
+pub use neuron_layouts::{FloatNeuronLayoutType};

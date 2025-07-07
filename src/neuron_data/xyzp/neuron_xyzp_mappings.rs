@@ -3,7 +3,7 @@ use byteorder::{ByteOrder, LittleEndian};
 use crate::error::{FeagiBytesError, FeagiDataProcessingError};
 use crate::io_processing::byte_structures::{FeagiByteStructureType, FeagiByteStructure, FeagiByteStructureCompatible};
 use crate::genomic_structures::{CorticalID};
-use crate::neuron_data::NeuronXYZPArrays;
+use crate::neuron_data::xyzp::NeuronXYZPArrays;
 
 #[derive(Clone)]
 pub struct CorticalMappedXYZPNeuronData {

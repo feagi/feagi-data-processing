@@ -1,6 +1,6 @@
 use crate::error::{FeagiDataProcessingError, NeuronError};
 use crate::neuron_data::xyzp::NeuronXYZPDecoder;
-use crate::neuron_data::NeuronXYZPArrays;
+use crate::neuron_data::xyzp::NeuronXYZPArrays;
 use crate::io_data::LinearNormalizedF32;
 use crate::genomic_structures::CorticalIOChannelIndex;
 use crate::genomic_structures::CorticalAreaDimensions;

@@ -2,9 +2,8 @@ mod neuron_xyzp;
 mod neuron_xyzp_arrays;
 mod neuron_xyzp_mappings;
 mod coder_traits;
-
-pub mod decoders;
-pub mod encoders;
+mod decoders; 
+mod encoders;
 
 pub use coder_traits::{NeuronXYZPEncoder, NeuronXYZPDecoder};
 

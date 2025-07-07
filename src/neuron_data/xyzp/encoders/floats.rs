@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError, NeuronError};
-use crate::neuron_data::xyzp::{NeuronXYZPEncoder};
-use crate::neuron_data::{NeuronXYZP, NeuronXYZPArrays};
+use crate::neuron_data::xyzp::{NeuronXYZPEncoder, NeuronXYZP, NeuronXYZPArrays};
 use crate::io_data::LinearNormalizedF32;
 use crate::genomic_structures::CorticalAreaDimensions;
-use crate::io_cache::ChannelIndex;
+use crate::genomic_structures::CorticalIOChannelIndex;
 use crate::neuron_data::neuron_layouts::FloatNeuronLayoutType;
 
 pub struct FloatNeuronXYZPEncoder {
@@ -14,7 +13,7 @@ pub struct FloatNeuronXYZPEncoder {
 }
 
 impl NeuronXYZPEncoder<LinearNormalizedF32> for FloatNeuronXYZPEncoder {
-    fn write_neuron_data_single_channel(&self, value: LinearNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: ChannelIndex) -> Result<(), FeagiDataProcessingError> {
+    fn write_neuron_data_single_channel(&self, value: LinearNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
         if *channel > self.channel_count {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", channel, self.channel_count))));
         }
@@ -23,7 +22,7 @@ impl NeuronXYZPEncoder<LinearNormalizedF32> for FloatNeuronXYZPEncoder {
             FloatNeuronLayoutType::PSPBidirectional => {
                 target_to_overwrite.expand_to_new_max_count_if_required(1);
                 target_to_overwrite.reset_indexes();
-                let channel_offset: u32 = FloatNeuronLayoutType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * (channel.index() as u32) + {if value.is_sign_positive() { 1 } else { 0 }};
+                let channel_offset: u32 = FloatNeuronLayoutType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * channel.into() + {if value.is_sign_positive() { 1 } else { 0 }};
                 let neuron: NeuronXYZP = NeuronXYZP::new(
                     channel_offset,
                     0,
@@ -38,7 +37,7 @@ impl NeuronXYZPEncoder<LinearNormalizedF32> for FloatNeuronXYZPEncoder {
                 // TODO Right now we are using the same algo as PSPBidirectional which works, but wouldn't it look nicer to use something that uses the full bounds?
                 target_to_overwrite.expand_to_new_max_count_if_required(1);
                 target_to_overwrite.reset_indexes();
-                let channel_offset: u32 = FloatNeuronLayoutType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * (channel.index() as u32) + {if value.is_sign_positive() { 1 } else { 0 }};
+                let channel_offset: u32 = FloatNeuronLayoutType::CHANNEL_WIDTH_PSP_BIDIRECTIONAL * channel.into() + {if value.is_sign_positive() { 1 } else { 0 }};
                 let neuron: NeuronXYZP = NeuronXYZP::new(
                     channel_offset,
                     0,
