@@ -8,7 +8,7 @@
 use ndarray::{s, Array3, ArrayView3};
 use crate::io_data::image::descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::neuron_data::NeuronXYZPArrays;
+use crate::neuron_data::xyzp::NeuronXYZPArrays;
 
 /// Represents an image frame with pixel data and metadata for FEAGI vision processing.
 /// 

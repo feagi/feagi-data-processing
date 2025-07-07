@@ -1,11 +1,26 @@
 use std::collections::HashMap;
+use enum_dispatch::enum_dispatch;
 use crate::error::{FeagiDataProcessingError};
 use crate::genomic_structures::CorticalIOChannelIndex;
 use super::{NeuronXYZPArrays};
+use super::decoders::floats::{FloatNeuronXYZPDecoder};
+use super::encoders::floats::{FloatNeuronXYZPEncoder};
 
-// TODO would this be better as an enum instead?
+// Coders can be enums since they do not store values, they merely are organizational units directing
+// to specific methods for reading and writing neural data
+#[enum_dispatch(NeuronXYZPEncoderControl)]
+pub enum NeuronXYZPEncoder<T> {
+    FloatNeuronXYZPEncoder
+}
 
-pub trait NeuronXYZPEncoder<T> {
+#[enum_dispatch(NeuronXYZPDecoderControl)]
+pub enum NeuronXYZPDecoder<T> {
+    FloatNeuronXYZPDecoder
+}
+
+
+#[enum_dispatch]
+pub(crate) trait NeuronXYZPEncoderControl<T> {
     fn write_neuron_data_single_channel(&self, value: T, target_to_overwrite: &mut NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError>;
 
     fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalIOChannelIndex, T>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
@@ -16,7 +31,7 @@ pub trait NeuronXYZPEncoder<T> {
     }
 }
 
-pub trait NeuronXYZPDecoder<T> {
+pub(crate) trait NeuronXYZPDecoderControl<T> {
     fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<T, FeagiDataProcessingError>;
 
     fn read_neuron_data_multi_channel(&self, neuron_data: &NeuronXYZPArrays, channels: Vec<CorticalIOChannelIndex>) -> Result<Vec<T>, FeagiDataProcessingError> {

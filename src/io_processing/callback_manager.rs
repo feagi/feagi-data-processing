@@ -40,7 +40,7 @@ impl <T> CallBackManager<T> {
     }
 
     /// Call all registered callbacks with a parameter
-    pub fn emit(&self, value: &T) {
+    pub(crate) fn emit(&self, value: &T) {
         for cb in self.callbacks.values() {
             cb(value);
         }

@@ -128,6 +128,10 @@ impl CorticalID {
         safe_bytes_to_string(&self.bytes)
     }
     
+    pub fn get_cortical_type(&self) -> CorticalType {
+        CorticalType::get_type_from_bytes(&self.bytes).unwrap() // will never error
+    }
+    
     fn verify_input_length(string: &String) -> Result<(), GenomeError> {
         if string.len() != CorticalID::CORTICAL_ID_LENGTH {
             return Err(GenomeError::InvalidCorticalID(format!("A cortical ID must have a length of {}! Given cortical ID '{}' is not!", CorticalID::CORTICAL_ID_LENGTH, string)).into());

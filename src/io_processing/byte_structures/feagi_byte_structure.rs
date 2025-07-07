@@ -1,7 +1,7 @@
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
 use crate::io_data::JsonStructure;
-use crate::neuron_data::CorticalMappedXYZPNeuronData; 
+use crate::neuron_data::xyzp::CorticalMappedXYZPNeuronData; 
 use super::FeagiByteStructureType;
 use super::FeagiByteStructureCompatible;
 

@@ -30,5 +30,5 @@ create_type_1d!(CorticalGroupingIndex, u8);
 // Local Connector side mapping for a device to a CorticalGroupingIndex
 create_type_1d!(AgentDeviceIndex, u32);
 
-// Nested Mapping to a specific channel
+// Nested Mapping to a specific channel within a IO cortical area
 create_type_1d!(CorticalIOChannelIndex, u32);

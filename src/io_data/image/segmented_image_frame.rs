@@ -10,7 +10,7 @@ use super::image_frame::ImageFrame;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use super::descriptors::*;
 use crate::genomic_structures::{CorticalGroupingIndex, CorticalID};
-use crate::neuron_data::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 
 
 /// A frame divided into nine segments with different resolutions for peripheral vision simulation.

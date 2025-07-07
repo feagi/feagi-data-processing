@@ -1,10 +1,12 @@
 use crate::error::{FeagiDataProcessingError, NeuronError};
-use crate::neuron_data::xyzp::NeuronXYZPDecoder;
+use crate::neuron_data::xyzp::NeuronXYZPDecoderControl;
 use crate::neuron_data::xyzp::NeuronXYZPArrays;
 use crate::io_data::LinearNormalizedF32;
 use crate::genomic_structures::CorticalIOChannelIndex;
 use crate::genomic_structures::CorticalAreaDimensions;
 use crate::neuron_data::neuron_layouts::FloatNeuronLayoutType;
+
+// TODO use enum_dispatch to make this look less cancer
 
 pub struct FloatNeuronXYZPDecoder {
     translator_type: FloatNeuronLayoutType,
@@ -12,7 +14,7 @@ pub struct FloatNeuronXYZPDecoder {
     channel_count: u32
 }
 
-impl NeuronXYZPDecoder<LinearNormalizedF32> for FloatNeuronXYZPDecoder {
+impl NeuronXYZPDecoderControl<LinearNormalizedF32> for FloatNeuronXYZPDecoder {
     fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<LinearNormalizedF32, FeagiDataProcessingError> {
         if *channel > self.channel_count {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", channel, self.channel_count))));
@@ -77,6 +79,8 @@ impl NeuronXYZPDecoder<LinearNormalizedF32> for FloatNeuronXYZPDecoder {
             FloatNeuronLayoutType::Linear => {
                 Err(FeagiDataProcessingError::NotImplemented) // TODO
             }
+            
+            
         }
     }
 }

@@ -5,7 +5,9 @@ mod coder_traits;
 mod decoders; 
 mod encoders;
 
-pub use coder_traits::{NeuronXYZPEncoder, NeuronXYZPDecoder};
+pub use coder_traits::{NeuronXYZPDecoder, NeuronXYZPEncoder};
+
+pub(crate) use coder_traits::{NeuronXYZPEncoderControl, NeuronXYZPDecoderControl};
 
 pub use neuron_xyzp::NeuronXYZP as NeuronXYZP;
 
