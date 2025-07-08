@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError, NeuronError};
-use crate::neuron_data::xyzp::{NeuronXYZPEncoderControl, NeuronXYZP, NeuronXYZPArrays};
+use crate::neuron_data::xyzp::{NeuronXYZPEncoder, NeuronXYZP, NeuronXYZPArrays};
 use crate::io_data::LinearNormalizedF32;
 use crate::genomic_structures::CorticalAreaDimensions;
 use crate::genomic_structures::CorticalIOChannelIndex;
@@ -14,7 +14,7 @@ pub struct FloatNeuronXYZPEncoder {
     channel_count: u32
 }
 
-impl NeuronXYZPEncoderControl<LinearNormalizedF32> for FloatNeuronXYZPEncoder {
+impl NeuronXYZPEncoder<LinearNormalizedF32> for FloatNeuronXYZPEncoder {
     fn write_neuron_data_single_channel(&self, value: LinearNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
         if *channel > self.channel_count {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *channel, self.channel_count))).into());

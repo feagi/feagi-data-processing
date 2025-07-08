@@ -7,8 +7,6 @@ mod encoders;
 
 pub use coder_traits::{NeuronXYZPDecoder, NeuronXYZPEncoder};
 
-pub(crate) use coder_traits::{NeuronXYZPEncoderControl, NeuronXYZPDecoderControl};
-
 pub use neuron_xyzp::NeuronXYZP as NeuronXYZP;
 
 pub use neuron_xyzp_arrays::NeuronXYZPArrays as NeuronXYZPArrays;

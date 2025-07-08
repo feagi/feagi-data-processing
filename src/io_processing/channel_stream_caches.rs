@@ -4,18 +4,18 @@ use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, CorticalType
 use crate::io_processing::{CallBackManager, StreamCacheProcessor};
 use crate::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZPDecoder, NeuronXYZPEncoder};
 
-pub struct SensoryChannelStreamCache<T: std::fmt::Display> {
+pub struct SensoryChannelStreamCache<T: std::fmt::Display + Clone> {
     stream_cache_processor: Box<dyn StreamCacheProcessor<T>>,
-    neuron_xyzp_encoder: NeuronXYZPEncoder<T>,
+    neuron_xyzp_encoder:  Box< dyn NeuronXYZPEncoder<T>>,
     cortical_id: CorticalID,
     channel: CorticalIOChannelIndex,
     last_updated: Instant
 }
 
-impl<T: std::fmt::Display> SensoryChannelStreamCache<T> {
+impl<T: std::fmt::Display + Clone> SensoryChannelStreamCache<T> {
     
     pub fn new(stream_cache_processor: Box<dyn StreamCacheProcessor<T>>,
-               neuron_xyzp_encoder: NeuronXYZPEncoder<T>,
+               neuron_xyzp_encoder: Box<dyn NeuronXYZPEncoder<T>>,
                cortical_id: CorticalID,
                channel: CorticalIOChannelIndex,
     ) -> Result<Self, FeagiDataProcessingError> {
@@ -50,7 +50,7 @@ impl<T: std::fmt::Display> SensoryChannelStreamCache<T> {
     
     pub fn encode_to_neurons(&self, neuron_xyzp_arrays: &mut NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
         self.neuron_xyzp_encoder.write_neuron_data_single_channel(
-            self.stream_cache_processor.get_most_recent_output(),
+            self.stream_cache_processor.get_most_recent_output().clone(),
             neuron_xyzp_arrays,
             self.channel)
     }
@@ -60,17 +60,17 @@ impl<T: std::fmt::Display> SensoryChannelStreamCache<T> {
 
 pub struct MotorChannelStreamCache<T: std::fmt::Display> {
     stream_cache_processor: Box<dyn StreamCacheProcessor<T>>,
-    neuron_xyzp_decoder: NeuronXYZPDecoder<T>,
+    neuron_xyzp_decoder: Box<dyn NeuronXYZPDecoder<T>>,
     cortical_id: CorticalID,
     channel: CorticalIOChannelIndex,
     last_updated: Instant,
     callbacks_all_bursts: CallBackManager<T>
 }
 
-impl<T: std::fmt::Display> MotorChannelStreamCache<T> {
+impl<T: std::fmt::Display + Clone> MotorChannelStreamCache<T> {
     
     pub fn new(stream_cache_processor: Box<dyn StreamCacheProcessor<T>>, 
-               neuron_xyzp_decoder: NeuronXYZPDecoder<T>, 
+               neuron_xyzp_decoder: Box<dyn NeuronXYZPDecoder<T>>,
                cortical_id: CorticalID,
                channel: CorticalIOChannelIndex) -> Result<Self, FeagiDataProcessingError> {
         
