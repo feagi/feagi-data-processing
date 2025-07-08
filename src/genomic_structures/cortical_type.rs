@@ -48,8 +48,8 @@ macro_rules! define_io_cortical_types {
 
                 match &id_0 {
                     $(
-                        $base_ascii => Ok((Self::$cortical_type_key_name).into()),
-                    ),*
+                        $base_ascii => Ok((Self::$cortical_type_key_name).into())
+                    ),*,
                     _ => return Err(FeagiDataProcessingError::InternalError("Failed to map cortical ID to type!".into()))
                 }
                 
@@ -60,8 +60,8 @@ macro_rules! define_io_cortical_types {
                 let (high, low) = u8_to_hex_char_u8(index.0);
                 let mut output: [u8; CorticalID::CORTICAL_ID_LENGTH] =  match self {
                     $(
-                        Self::$cortical_type_key_name => *$base_ascii,
-                    ),*
+                        Self::$cortical_type_key_name => *$base_ascii
+                    ),*,
                 };
                 output[4] = high;
                 output[5] = low;
