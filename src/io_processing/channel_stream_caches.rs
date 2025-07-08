@@ -4,10 +4,14 @@ use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, CorticalType
 use crate::io_processing::{CallBackManager, StreamCacheProcessor};
 use crate::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZPDecoder, NeuronXYZPEncoder};
 
+
+
+
+
+
 pub struct SensoryChannelStreamCache<T: std::fmt::Display + Clone> {
     stream_cache_processor: Box<dyn StreamCacheProcessor<T>>,
     neuron_xyzp_encoder:  Box< dyn NeuronXYZPEncoder<T>>,
-    cortical_id: CorticalID,
     channel: CorticalIOChannelIndex,
     last_updated: Instant
 }
@@ -16,18 +20,12 @@ impl<T: std::fmt::Display + Clone> SensoryChannelStreamCache<T> {
     
     pub fn new(stream_cache_processor: Box<dyn StreamCacheProcessor<T>>,
                neuron_xyzp_encoder: Box<dyn NeuronXYZPEncoder<T>>,
-               cortical_id: CorticalID,
                channel: CorticalIOChannelIndex,
     ) -> Result<Self, FeagiDataProcessingError> {
-        
-        if ! matches!(cortical_id.get_cortical_type(), CorticalType::Sensory(_)) {
-            return Err(IODataError::InvalidParameters("Cortical ID must be of a sensory cortical area to create a SensoryChannelStreamCache!".into()).into())
-        }
 
         Ok(SensoryChannelStreamCache {
             stream_cache_processor,
             neuron_xyzp_encoder,
-            cortical_id,
             channel,
             last_updated: Instant::now()
         })
@@ -53,6 +51,10 @@ impl<T: std::fmt::Display + Clone> SensoryChannelStreamCache<T> {
             self.stream_cache_processor.get_most_recent_output().clone(),
             neuron_xyzp_arrays,
             self.channel)
+    }
+    
+    pub fn get_cortical_IO_channel_index(&self) -> CorticalIOChannelIndex {
+        self.channel
     }
 }
 
