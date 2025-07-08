@@ -1,10 +1,10 @@
 use serde_json::json;
-use feagi_core_data_structures_and_processing::miscellaneous_types::json_structure::JsonStructure;
-use feagi_core_data_structures_and_processing::data_types::neuron_data::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPArrays};
-use feagi_core_data_structures_and_processing::genome_definitions::identifiers::CorticalID;
-use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure::FeagiByteStructure;
-use feagi_core_data_structures_and_processing::byte_structures::FeagiByteStructureType;
-use feagi_core_data_structures_and_processing::byte_structures::feagi_byte_structure_compatible::FeagiByteStructureCompatible;
+use feagi_core_data_structures_and_processing::io_data::JsonStructure;
+use feagi_core_data_structures_and_processing::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPArrays};
+use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
+use feagi_core_data_structures_and_processing::io_processing::byte_structures::FeagiByteStructure;
+use feagi_core_data_structures_and_processing::io_processing::byte_structures::FeagiByteStructureType;
+use feagi_core_data_structures_and_processing::io_processing::byte_structures::FeagiByteStructureCompatible;
 
 #[test]
 fn test_combined_neuron_json_multistruct_serialize_deserialize() {
@@ -94,11 +94,11 @@ fn test_combined_neuron_json_multistruct_serialize_deserialize() {
 
     // Verify neuron data integrity
     assert_eq!(recovered_neuron_mappings.get_number_contained_areas(), 2);
-    assert!(recovered_neuron_mappings.contains(CorticalID::new_custom_cortical_area_id("cAAAAA".into()).unwrap()));
-    assert!(recovered_neuron_mappings.contains(CorticalID::new_custom_cortical_area_id("cBBBBB".into()).unwrap()));
+    assert!(recovered_neuron_mappings.contains(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()));
+    assert!(recovered_neuron_mappings.contains(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()));
 
-    let recovered_neurons_a = recovered_neuron_mappings.borrow(&CorticalID::new_custom_cortical_area_id("cAAAAA".into()).unwrap()).unwrap();
-    let recovered_neurons_b = recovered_neuron_mappings.borrow(&CorticalID::new_custom_cortical_area_id("cBBBBB".into()).unwrap()).unwrap();
+    let recovered_neurons_a = recovered_neuron_mappings.borrow(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()).unwrap();
+    let recovered_neurons_b = recovered_neuron_mappings.borrow(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()).unwrap();
 
     let recovered_neuron_vec_a = recovered_neurons_a.copy_as_neuron_xyzp_vec();
     let recovered_neuron_vec_b = recovered_neurons_b.copy_as_neuron_xyzp_vec();
@@ -126,7 +126,7 @@ fn test_multistruct_with_multiple_json_and_neuron_structures() {
     let mut neuron_mappings_1 = CorticalMappedXYZPNeuronData::new();
     neuron_mappings_1.insert(cortical_id_1, neurons_1);
 
-    let cortical_id_2 = CorticalID::from_ascii_string("cTES02").unwrap();
+    let cortical_id_2 = CorticalID::new_custom_cortical_area_id("cTES02".to_string()).unwrap();
     let neuron_2 = NeuronXYZP::new(2, 2, 2, 0.2);
     let mut neurons_2 = NeuronXYZPArrays::new(1).unwrap();
     neurons_2.add_neuron(&neuron_2);
