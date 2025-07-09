@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::io_data::IOTypeData;
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct CallbackSubscriberID {
@@ -11,13 +12,13 @@ impl CallbackSubscriberID {
     }
 }
 
-pub struct CallBackManager<T> {
-    callbacks: HashMap<usize, Box<dyn Fn(&T) + Send + Sync>>,
+pub struct CallBackManager {
+    callbacks: HashMap<usize, Box<dyn Fn(&IOTypeData) + Send + Sync>>,
     next_id: usize // This will fail if more than 18,446,744,073,709,551,615 callbacks are registered (on 64bit). Too Bad!
 }
 
-impl <T> CallBackManager<T> {
-    pub fn new() -> CallBackManager<T> {
+impl  CallBackManager {
+    pub fn new() -> CallBackManager {
         Self {
             callbacks: HashMap::new(),
             next_id: 0
@@ -26,7 +27,7 @@ impl <T> CallBackManager<T> {
 
     pub fn register<F>(&mut self, callback: F) -> CallbackSubscriberID
     where
-        F: Fn(&T) + Send + Sync + 'static,
+        F: Fn(&IOTypeData) + Send + Sync + 'static,
     {
         let id = self.next_id;
         self.callbacks.insert(id, Box::new(callback));
@@ -40,7 +41,7 @@ impl <T> CallBackManager<T> {
     }
 
     /// Call all registered callbacks with a parameter
-    pub(crate) fn emit(&self, value: &T) {
+    pub(crate) fn emit(&self, value: &IOTypeData) {
         for cb in self.callbacks.values() {
             cb(value);
         }

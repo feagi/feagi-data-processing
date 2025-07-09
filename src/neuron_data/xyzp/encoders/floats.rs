@@ -1,18 +1,22 @@
 use crate::error::{FeagiDataProcessingError, NeuronError};
 use crate::neuron_data::xyzp::{NeuronXYZPEncoder, NeuronXYZP, NeuronXYZPArrays};
-use crate::io_data::LinearNormalizedF32;
+use crate::io_data::{IOTypeVariant, LinearNormalizedF32};
 use crate::genomic_structures::CorticalAreaDimensions;
 use crate::genomic_structures::CorticalIOChannelIndex;
 use crate::neuron_data::neuron_layouts::FloatNeuronLayoutType;
 
 
-pub struct FloatNeuronXYZPEncoder {
+pub struct LinearNormalizedFloatNeuronXYZPEncoder {
     translator_type: FloatNeuronLayoutType,
     cortical_dimensions: CorticalAreaDimensions,
     channel_count: u32
 }
 
-impl NeuronXYZPEncoder for FloatNeuronXYZPEncoder {
+impl NeuronXYZPEncoder for LinearNormalizedFloatNeuronXYZPEncoder {
+    fn get_data_type(&self) -> IOTypeVariant {
+        IOTypeVariant::LinearNormalizedFloat
+    }
+
     fn write_neuron_data_single_channel(&self, value: LinearNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
         if *channel > self.channel_count {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *channel, self.channel_count))).into());
@@ -55,10 +59,10 @@ impl NeuronXYZPEncoder for FloatNeuronXYZPEncoder {
     }
 }
 
-impl FloatNeuronXYZPEncoder {
+impl LinearNormalizedFloatNeuronXYZPEncoder {
     pub fn new(translator_type: FloatNeuronLayoutType, number_channels: u32, resolution_depth: usize) -> Result<Self, FeagiDataProcessingError> {
         let cortical_dimensions = translator_type.create_dimensions_for_translator_type(number_channels, resolution_depth)?;
-        Ok(FloatNeuronXYZPEncoder {
+        Ok(LinearNormalizedFloatNeuronXYZPEncoder {
             translator_type,
             cortical_dimensions,
             channel_count: number_channels

@@ -14,6 +14,15 @@ impl IOTypeVariant {
     }
 }
 
+impl std::fmt::Display for IOTypeVariant {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self { 
+            IOTypeVariant::LinearNormalizedFloat => write!(f, "Linear normalized"),
+            IOTypeVariant::ImageFrame => write!(f, "Image frame"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum IOTypeData
 {
