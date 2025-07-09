@@ -36,18 +36,27 @@ impl SensoryIOCache {
         cortical_type: CorticalType, 
         local_device: AgentDeviceIndex,
         cortical_index: CorticalIOChannelIndex, 
-        io_cache: SensoryChannelStreamCache
+        input_cache: SensoryChannelStreamCache
     ) -> Result<(), FeagiDataProcessingError> {
         
         match cortical_type {
-            CorticalType::Custom => { return Err(IODataError::InvalidParameters("Cannot register a Custom Cortical Area as a Sensor!".into()).into()) }
-            CorticalType::Core(_) => {return Err(IODataError::InvalidParameters("Cannot register a Core Cortical Area as a Sensor!".into()).into())}
-            CorticalType::Memory => {return Err(IODataError::InvalidParameters("Cannot register a Memory Cortical Area as a Sensor!".into()).into())}
-            CorticalType::Motor(_) => {return Err(IODataError::InvalidParameters("Cannot register a Motor Cortical Area as a Sensor!".into()).into())}
-            CorticalType::Sensory(_) => {} // continue
+            CorticalType::Custom => { return Err(IODataError::InvalidParameters("Cannot register a Custom Cortical Area as a Sensor!".into()).into()); }
+            CorticalType::Core(_) => {return Err(IODataError::InvalidParameters("Cannot register a Core Cortical Area as a Sensor!".into()).into()); }
+            CorticalType::Memory => {return Err(IODataError::InvalidParameters("Cannot register a Memory Cortical Area as a Sensor!".into()).into()); }
+            CorticalType::Motor(_) => {return Err(IODataError::InvalidParameters("Cannot register a Motor Cortical Area as a Sensor!".into()).into()); }
+            CorticalType::Sensory(expected_sensory_type) => {
+                if expected_sensory_type.get_expected_io_variant() != input_cache.get_data_type() {
+                    return Err(IODataError::InvalidParameters(format!("Sensory Cortical Areas of type '{}' output values of type '{}', while given input_cache uses '{}'!", 
+                                                                      expected_sensory_type.to_string(), expected_sensory_type.get_expected_io_variant().to_string(),
+                                                                      input_cache.get_data_type()).to_string()).into());
+                }
+            }
         }
         
-        return Err(FeagiDataProcessingError::NotImplemented)
+        if self.device_lookup.contains_key(&local_device) {
+            return Err(IODataError::InvalidParameters(""))
+        }
+        
         
         
         

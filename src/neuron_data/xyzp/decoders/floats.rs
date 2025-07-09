@@ -1,7 +1,7 @@
 use crate::error::{FeagiDataProcessingError, NeuronError};
 use crate::neuron_data::xyzp::NeuronXYZPDecoder;
 use crate::neuron_data::xyzp::NeuronXYZPArrays;
-use crate::io_data::{IOTypeVariant, LinearNormalizedF32};
+use crate::io_data::{IOTypeData, IOTypeVariant, LinearNormalizedF32};
 use crate::genomic_structures::CorticalIOChannelIndex;
 use crate::genomic_structures::CorticalAreaDimensions;
 use crate::neuron_data::neuron_layouts::FloatNeuronLayoutType;
@@ -19,13 +19,13 @@ impl NeuronXYZPDecoder for LinearNormalizedFloatNeuronXYZPDecoder {
         IOTypeVariant::LinearNormalizedFloat
     }
 
-    fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<LinearNormalizedF32, FeagiDataProcessingError> {
+    fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<IOTypeData, FeagiDataProcessingError> {
         if *channel > self.channel_count {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *channel, self.channel_count))).into());
         }
 
         if neuron_data.is_empty() {
-            return Ok(LinearNormalizedF32::new_zero());
+            return Ok(LinearNormalizedF32::new_zero().into());
         }
 
         let cortical_depth: f32 = self.cortical_dimensions.z as f32;
@@ -52,7 +52,7 @@ impl NeuronXYZPDecoder for LinearNormalizedFloatNeuronXYZPDecoder {
                         }
                     }
                 }
-                Ok(LinearNormalizedF32::new_with_clamp(output)?)
+                Ok(LinearNormalizedF32::new_with_clamp(output)?.into())
             }
             #[allow(unused_variables)] // Rust Rover seems to be blind
             FloatNeuronLayoutType::SplitSignDivided => {
@@ -78,7 +78,7 @@ impl NeuronXYZPDecoder for LinearNormalizedFloatNeuronXYZPDecoder {
                     }
                 }
                 output /= channel_neuron_count as f32;
-                Ok(LinearNormalizedF32::new_with_clamp(output)?)
+                Ok(LinearNormalizedF32::new_with_clamp(output)?.into())
             }
             FloatNeuronLayoutType::Linear => {
                 Err(FeagiDataProcessingError::NotImplemented) // TODO

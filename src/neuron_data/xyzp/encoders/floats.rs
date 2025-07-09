@@ -1,6 +1,6 @@
 use crate::error::{FeagiDataProcessingError, NeuronError};
 use crate::neuron_data::xyzp::{NeuronXYZPEncoder, NeuronXYZP, NeuronXYZPArrays};
-use crate::io_data::{IOTypeVariant, LinearNormalizedF32};
+use crate::io_data::{IOTypeData, IOTypeVariant, LinearNormalizedF32};
 use crate::genomic_structures::CorticalAreaDimensions;
 use crate::genomic_structures::CorticalIOChannelIndex;
 use crate::neuron_data::neuron_layouts::FloatNeuronLayoutType;
@@ -17,10 +17,12 @@ impl NeuronXYZPEncoder for LinearNormalizedFloatNeuronXYZPEncoder {
         IOTypeVariant::LinearNormalizedFloat
     }
 
-    fn write_neuron_data_single_channel(&self, value: LinearNormalizedF32, target_to_overwrite: &mut NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
+    fn write_neuron_data_single_channel(&self, value: IOTypeData, target_to_overwrite: &mut NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
         if *channel > self.channel_count {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *channel, self.channel_count))).into());
         }
+        
+        let value: LinearNormalizedF32 = value.try_into()?;
 
         match self.translator_type {
             FloatNeuronLayoutType::PSPBidirectional => {

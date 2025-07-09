@@ -12,7 +12,7 @@ use super::{NeuronXYZPArrays};
 pub trait NeuronXYZPEncoder {
 
     fn get_data_type(&self) -> IOTypeVariant;
-    
+
     fn write_neuron_data_single_channel(&self, wrapped_value: IOTypeData, target_to_overwrite: &mut NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError>;
 
     fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalIOChannelIndex, IOTypeData>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
@@ -26,7 +26,7 @@ pub trait NeuronXYZPEncoder {
 pub trait NeuronXYZPDecoder {
 
     fn get_data_type(&self) -> IOTypeVariant;
-    
+
     fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<IOTypeData, FeagiDataProcessingError>;
 
     fn read_neuron_data_multi_channel(&self, neuron_data: &NeuronXYZPArrays, channels: Vec<CorticalIOChannelIndex>) -> Result<Vec<IOTypeData>, FeagiDataProcessingError> {
