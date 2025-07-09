@@ -14,7 +14,7 @@ pub struct FloatNeuronXYZPDecoder {
     channel_count: u32
 }
 
-impl NeuronXYZPDecoder<LinearNormalizedF32> for FloatNeuronXYZPDecoder {
+impl NeuronXYZPDecoder for FloatNeuronXYZPDecoder {
     fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<LinearNormalizedF32, FeagiDataProcessingError> {
         if *channel > self.channel_count {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *channel, self.channel_count))).into());

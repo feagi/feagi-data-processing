@@ -9,7 +9,7 @@ use crate::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZPDecoder, NeuronXYZPEn
 
 
 
-pub struct SensoryChannelStreamCache<T: std::fmt::Display + Clone> {
+pub struct SensoryChannelStreamCache {
     stream_cache_processor: Box<dyn StreamCacheProcessor<T>>,
     neuron_xyzp_encoder:  Box< dyn NeuronXYZPEncoder<T>>,
     channel: CorticalIOChannelIndex,

@@ -14,6 +14,7 @@ impl IOTypeVariant {
     }
 }
 
+#[derive(Debug, Clone)]
 pub enum IOTypeData
 {
     LinearNormalizedFloat(LinearNormalizedF32),

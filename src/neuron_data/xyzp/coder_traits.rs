@@ -1,19 +1,16 @@
 use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError};
 use crate::genomic_structures::CorticalIOChannelIndex;
+use crate::io_data::IOTypeData;
 use super::{NeuronXYZPArrays};
-use super::decoders::floats::{FloatNeuronXYZPDecoder};
-use super::encoders::floats::{FloatNeuronXYZPEncoder};
 
 // Coders can be enums since they do not store values, they merely are organizational units directing
 // to specific methods for reading and writing neural data
 
+pub trait NeuronXYZPEncoder {
+    fn write_neuron_data_single_channel(&self, wrapped_value: IOTypeData, target_to_overwrite: &mut NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError>;
 
-
-pub trait NeuronXYZPEncoder<T> {
-    fn write_neuron_data_single_channel(&self, value: T, target_to_overwrite: &mut NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError>;
-
-    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalIOChannelIndex, T>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
+    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalIOChannelIndex, IOTypeData>, target_to_overwrite: &mut NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
         for (channel, values) in channels_and_values {
             self.write_neuron_data_single_channel(values, target_to_overwrite, channel)?;
         };
@@ -21,11 +18,11 @@ pub trait NeuronXYZPEncoder<T> {
     }
 }
 
-pub trait NeuronXYZPDecoder<T> {
-    fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<T, FeagiDataProcessingError>;
+pub trait NeuronXYZPDecoder {
+    fn read_neuron_data_single_channel(&self, neuron_data: &NeuronXYZPArrays, channel: CorticalIOChannelIndex) -> Result<IOTypeData, FeagiDataProcessingError>;
 
-    fn read_neuron_data_multi_channel(&self, neuron_data: &NeuronXYZPArrays, channels: Vec<CorticalIOChannelIndex>) -> Result<Vec<T>, FeagiDataProcessingError> {
-        let mut output: Vec<T> = Vec::with_capacity(channels.len());
+    fn read_neuron_data_multi_channel(&self, neuron_data: &NeuronXYZPArrays, channels: Vec<CorticalIOChannelIndex>) -> Result<Vec<IOTypeData>, FeagiDataProcessingError> {
+        let mut output: Vec<IOTypeData> = Vec::with_capacity(channels.len());
         for channel in channels {
             output.push(self.read_neuron_data_single_channel(neuron_data, channel)?);
         };

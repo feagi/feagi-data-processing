@@ -18,7 +18,7 @@ pub struct CacheLocation {
 
 pub struct SensoryIOCache {
     // Device lookup stores the actual caches directly
-    device_lookup: HashMap<AgentDeviceIndex, Vec<Box<dyn SensoryChannelStreamCache<IOTypeData>>>>,
+    device_lookup: HashMap<AgentDeviceIndex, Vec<Box<dyn SensoryChannelStreamCache>>>,
     // Stream caches use location references to find caches in device_lookup
     stream_caches: HashMap<CacheKey, CacheLocation>,
 }

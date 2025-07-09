@@ -15,7 +15,7 @@ use crate::neuron_data::xyzp::NeuronXYZPArrays;
 /// An `ImageFrame` stores image data as a 3D array of f32 values along with information
 /// about the color channel format and color space. The internal storage uses row-major
 /// ordering (height, width, channels) for efficient processing.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ImageFrame {
     /// The pixel data stored as a 3D array with dimensions (height, width, channels)
     pixels: Array3<f32>,
