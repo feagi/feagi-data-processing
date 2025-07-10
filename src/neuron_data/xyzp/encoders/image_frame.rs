@@ -1,5 +1,5 @@
 use crate::error::{FeagiDataProcessingError, IODataError, NeuronError};
-use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, CorticalType, SingleChannelDimensions};
+use crate::genomic_structures::{CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SingleChannelDimensions};
 use crate::neuron_data::xyzp::{NeuronXYZPEncoder, NeuronXYZP, CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 use crate::io_data::{ImageFrame, IOTypeData, IOTypeVariant};
 
@@ -11,7 +11,7 @@ pub struct ImageFrameNeuronXYZPEncoder {
 }
 
 impl NeuronXYZPEncoder for ImageFrameNeuronXYZPEncoder {
-    fn get_data_type(&self) -> IOTypeVariant {
+    fn get_data_type() -> IOTypeVariant {
         IOTypeVariant::ImageFrame
     }
 
@@ -25,8 +25,8 @@ impl NeuronXYZPEncoder for ImageFrameNeuronXYZPEncoder {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *cortical_channel, self.channel_count))).into());
         }
 
-        if wrapped_value.variant() != self.get_data_type() {
-            return Err(NeuronError::UnableToGenerateNeuronData(format!("Given sensor value is not {}! Instead received type {}!", self.get_data_type().to_string(), wrapped_value.variant().to_string())).into());
+        if wrapped_value.variant() != Self::get_data_type() {
+            return Err(NeuronError::UnableToGenerateNeuronData(format!("Given sensor value is not {}! Instead received type {}!", Self::get_data_type().to_string(), wrapped_value.variant().to_string())).into());
         }
         
         let mut image: ImageFrame = wrapped_value.try_into().unwrap();
@@ -44,7 +44,14 @@ impl NeuronXYZPEncoder for ImageFrameNeuronXYZPEncoder {
 }
 
 impl ImageFrameNeuronXYZPEncoder {
-    pub fn new(number_channels: u32, cortical_type: CorticalType, threshold: f32, expected_image_resolution_per_channel: (usize, usize)) -> Result<Self, FeagiDataProcessingError> {
-        
+    pub fn new(number_channels: u32, cortical_type: CorticalType, cortical_index: CorticalGroupingIndex, threshold: f32, expected_image_resolution_per_channel: (usize, usize)) -> Result<Self, FeagiDataProcessingError> {
+        cortical_type.verify_valid_io_variant(&Self::get_data_type())?;
+        let cortical_id = CorticalID::try_from_cortical_type(&cortical_type, cortical_index)?;
+        Ok(ImageFrameNeuronXYZPEncoder{
+            single_cortical_id: [cortical_id],
+            channel_count: number_channels,
+            expected_image_resolution_per_channel,
+            threshold,
+        })
     }
 }

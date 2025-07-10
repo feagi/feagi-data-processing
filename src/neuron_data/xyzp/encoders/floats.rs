@@ -14,9 +14,10 @@ pub struct LinearNormalizedFloatNeuronXYZPEncoder {
 
 impl NeuronXYZPEncoder for LinearNormalizedFloatNeuronXYZPEncoder {
     
-    fn get_data_type(&self) -> IOTypeVariant {
+    fn get_data_type() -> IOTypeVariant {
         IOTypeVariant::LinearNormalizedFloat
     }
+    
 
     fn get_cortical_ids_writing_to(&self) -> &[CorticalID] {
         &self.single_cortical_id
@@ -27,8 +28,8 @@ impl NeuronXYZPEncoder for LinearNormalizedFloatNeuronXYZPEncoder {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *cortical_channel, self.channel_count))).into());
         }
 
-        if wrapped_value.variant() != self.get_data_type() {
-            return Err(NeuronError::UnableToGenerateNeuronData(format!("Given sensor value is not {}! Instead received type {}!", self.get_data_type().to_string(), wrapped_value.variant().to_string())).into());
+        if wrapped_value.variant() != LinearNormalizedFloatNeuronXYZPEncoder::get_data_type() {
+            return Err(NeuronError::UnableToGenerateNeuronData(format!("Given sensor value is not {}! Instead received type {}!", Self::get_data_type().to_string(), wrapped_value.variant().to_string())).into());
         }
         
         let value: LinearNormalizedF32 = wrapped_value.try_into().unwrap();
@@ -75,6 +76,7 @@ impl NeuronXYZPEncoder for LinearNormalizedFloatNeuronXYZPEncoder {
 
 impl LinearNormalizedFloatNeuronXYZPEncoder {
     pub fn new(number_channels: u32, cortical_type: CorticalType, cortical_index: CorticalGroupingIndex, translator_type: FloatNeuronLayoutType) -> Result<Self, FeagiDataProcessingError> {
+        cortical_type.verify_valid_io_variant(&Self::get_data_type())?;
         let cortical_id = CorticalID::try_from_cortical_type(&cortical_type, cortical_index)?;
         Ok(LinearNormalizedFloatNeuronXYZPEncoder {
             translator_type,

@@ -11,7 +11,8 @@ use super::{NeuronXYZPArrays, CorticalMappedXYZPNeuronData};
 
 pub trait NeuronXYZPEncoder {
 
-    fn get_data_type(&self) -> IOTypeVariant;
+    fn get_data_type() -> IOTypeVariant;
+    
     fn get_cortical_ids_writing_to(&self) -> &[CorticalID];
 
     fn write_neuron_data_single_channel(&self, wrapped_value: IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError>;
@@ -26,16 +27,16 @@ pub trait NeuronXYZPEncoder {
 
 pub trait NeuronXYZPDecoder {
 
-    fn get_data_type(&self) -> IOTypeVariant;
+    fn get_data_type() -> IOTypeVariant;
 
     fn get_cortical_ids_reading_from(&self) -> &[CorticalID];
 
-    fn read_neuron_data_single_channel(&self, neuron_data: &CorticalMappedXYZPNeuronData, channel: &CorticalIOChannelIndex) -> Result<IOTypeData, FeagiDataProcessingError>;
+    fn read_neuron_data_single_channel(&self, cortical_channel: CorticalIOChannelIndex, neuron_data: &CorticalMappedXYZPNeuronData) -> Result<IOTypeData, FeagiDataProcessingError>;
 
     fn read_neuron_data_multi_channel(&self, neuron_data: &CorticalMappedXYZPNeuronData, channels: &[CorticalIOChannelIndex]) -> Result<Vec<IOTypeData>, FeagiDataProcessingError> {
         let mut output: Vec<IOTypeData> = Vec::with_capacity(channels.len());
         for channel in channels {
-            output.push(self.read_neuron_data_single_channel(neuron_data, channel)?);
+            output.push(self.read_neuron_data_single_channel(*channel, neuron_data)?);
         };
         Ok(output)
     }

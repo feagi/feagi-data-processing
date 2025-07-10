@@ -88,7 +88,7 @@ macro_rules! define_io_cortical_types {
             
             pub fn verify_valid_io_variant(&self, checking: &IOTypeVariant) -> Result<(), FeagiDataProcessingError> {
                 if !self.get_possible_io_variants().contains(checking){
-                    return Err(IODataError::InvalidParameters(format!("IO Type Variant {} is invalid for Cortical IO Type {}!", checking.into(), self.to_string())).into());
+                    return Err(IODataError::InvalidParameters(format!("IO Type Variant {} is invalid for Cortical IO Type {}!", checking, self.to_string())).into());
                 }
                 Ok(())
             }
@@ -146,6 +146,26 @@ impl CorticalType {
             }
         }
         
+    }
+    
+    pub fn get_possible_io_variants(&self) -> &[IOTypeVariant] {
+        match self {
+            Self::Custom => &[],
+            Self::Memory => &[],
+            Self::Core(c) => &[],
+            Self::Sensory(s) => s.get_possible_io_variants(),
+            Self::Motor(m) => m.get_possible_io_variants(),
+        }
+    }
+    
+    pub fn verify_valid_io_variant(&self, checking: &IOTypeVariant) -> Result<(), FeagiDataProcessingError> {
+        match self {
+            Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas cannot have any valid IO Type Variant!".into()).into()),
+            Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas cannot have any valid IO Type Variant!".into()).into()),
+            Self::Core(c) => Err(IODataError::InvalidParameters("Core Cortical Areas cannot have any valid IO Type Variant!".into()).into()),
+            Self::Sensory(s) => {s.verify_valid_io_variant(checking)},
+            Self::Motor(m) => {m.verify_valid_io_variant(checking)},
+        }
     }
 
 }
