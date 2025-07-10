@@ -5,7 +5,8 @@ use crate::io_data::{ImageFrame, LinearNormalizedF32};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IOTypeVariant {
     LinearNormalizedFloat,
-    ImageFrame
+    ImageFrame,
+    SegmentedImageFrame,
 }
 
 impl IOTypeVariant {
@@ -19,6 +20,7 @@ impl std::fmt::Display for IOTypeVariant {
         match self { 
             IOTypeVariant::LinearNormalizedFloat => write!(f, "Linear normalized"),
             IOTypeVariant::ImageFrame => write!(f, "Image frame"),
+            IOTypeVariant::SegmentedImageFrame => write!(f, "Segmented image frame"),
         }
     }
 }

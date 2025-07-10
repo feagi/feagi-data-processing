@@ -1,7 +1,7 @@
 use std::fmt;
-use crate::error::{FeagiBytesError, FeagiDataProcessingError, GenomeError};
+use crate::error::{FeagiBytesError, FeagiDataProcessingError, GenomeError, IODataError};
 use crate::genomic_structures::cortical_id::{CorticalID};
-use crate::genomic_structures::SingleChannelDimensions;
+use crate::genomic_structures::{CorticalIOChannelIndex, SingleChannelDimensions};
 use crate::genomic_structures::index_types::CorticalGroupingIndex;
 use crate::io_data::IOTypeVariant;
 macro_rules! define_io_cortical_types {
@@ -12,7 +12,7 @@ macro_rules! define_io_cortical_types {
                     friendly_debug_name: $display_name:expr,
                     base_ascii: $base_ascii:expr,
                     channel_dimensions: $channel_dimensions:expr,
-                    io_variant: $io_variant:expr,
+                    io_variants: $io_variants:expr,
                 }
             ),* $(,)?
         }
@@ -77,13 +77,20 @@ macro_rules! define_io_cortical_types {
                     ),*
                 }
             }
-            
-            pub fn get_expected_io_variant(&self) -> IOTypeVariant {
+
+            pub fn get_possible_io_variants(&self) -> &[IOTypeVariant] {
                 match self {
                     $(
-                        Self::$cortical_type_key_name => $io_variant
+                        Self::$cortical_type_key_name => &$io_variants
                     ),*
                 }
+            }
+            
+            pub fn verify_valid_io_variant(&self, checking: &IOTypeVariant) -> Result<(), FeagiDataProcessingError> {
+                if !self.get_possible_io_variants().contains(checking){
+                    return Err(IODataError::InvalidParameters(format!("IO Type Variant {} is invalid for Cortical IO Type {}!", checking.into(), self.to_string())).into());
+                }
+                Ok(())
             }
 
         }
@@ -124,7 +131,23 @@ impl CorticalType {
         }
     }
     
-    
+    pub fn try_as_cortical_id(&self, io_cortical_index: CorticalGroupingIndex) -> Result<CorticalID, FeagiDataProcessingError> {
+        match self {
+            Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas can have arbritary Cortical IDs and thus cannot be convert to from type!".into()).into()),
+            Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas can have arbritary Cortical IDs and thus cannot be convert to from type!".into()).into()),
+            Self::Core(c) => {
+                return Ok(CorticalID::new_core_cortical_area_id(*c)?)
+            }
+            Self::Sensory(s) => {
+                return Ok(CorticalID::new_sensor_cortical_area_id(*s, io_cortical_index)?);
+            }
+            Self::Motor(m) => {
+                return Ok(CorticalID::new_motor_cortical_area_id(*m, io_cortical_index)?);
+            }
+        }
+        
+    }
+
 }
 
 
@@ -186,122 +209,122 @@ define_io_cortical_types!{
             friendly_debug_name: "Infrared Sensor",
             base_ascii: b"iinf00",
             channel_dimensions: SingleChannelDimensions::new(Some(1), Some(1), Some(1)),
-            io_variant: IOTypeVariant::LinearNormalizedFloat,
+            io_variants: [IOTypeVariant::LinearNormalizedFloat],
         },
         ReverseInfrared => {
             friendly_debug_name: "Reverse Infrared Sensor",
             base_ascii: b"iiif00",
             channel_dimensions: SingleChannelDimensions::new(Some(1), Some(1), Some(1)),
-            io_variant: IOTypeVariant::LinearNormalizedFloat,
+            io_variants: [IOTypeVariant::LinearNormalizedFloat],
         },
-        
+
         VisionCenterGray => {
             friendly_debug_name: "Center Vision Input (Grayscale)",
             base_ascii: b"ivcc00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionTopLeftGray => {
             friendly_debug_name: "Top Left Vision Input (Grayscale)",
             base_ascii: b"ivtl00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionTopMiddleGray => {
             friendly_debug_name: "Top Middle Vision Input (Grayscale)",
             base_ascii: b"ivtm00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionTopRightGray => {
             friendly_debug_name: "Top Right Vision Input (Grayscale)",
             base_ascii: b"ivtr00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionMiddleLeftGray => {
             friendly_debug_name: "Middle Left Vision Input (Grayscale)",
             base_ascii: b"ivml00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionMiddleRightGray => {
             friendly_debug_name: "Middle Right Vision Input (Grayscale)",
             base_ascii: b"ivmr00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionBottomLeftGray => {
             friendly_debug_name: "Bottom Left Vision Input (Grayscale)",
             base_ascii: b"ivbl00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionBottomMiddleGray => {
             friendly_debug_name: "Bottom Middle Vision Input (Grayscale)",
             base_ascii: b"ivbm00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionBottomRightGray => {
             friendly_debug_name: "Bottom Right Vision Input (Grayscale)",
             base_ascii: b"ivbr00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionCenterColor => {
             friendly_debug_name: "Center Vision Input (Color)",
             base_ascii: b"iVcc00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionTopLeftColor => {
             friendly_debug_name: "Top Left Vision Input (Color)",
             base_ascii: b"iVtl00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionTopMiddleColor => {
             friendly_debug_name: "Top Middle Vision Input (Color)",
             base_ascii: b"iVtm00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionTopRightColor => {
             friendly_debug_name: "Top Right Vision Input (Color)",
             base_ascii: b"iVtr00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionMiddleLeftColor => {
             friendly_debug_name: "Middle Left Vision Input (Color)",
             base_ascii: b"iVml00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionMiddleRightColor => {
             friendly_debug_name: "Middle Right Vision Input (Color)",
             base_ascii: b"iVmr00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionBottomLeftColor => {
             friendly_debug_name: "Bottom Left Vision Input (Color)",
             base_ascii: b"iVbl00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionBottomMiddleColor => {
             friendly_debug_name: "Bottom Middle Vision Input (Color)",
             base_ascii: b"iVbm00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
         VisionBottomRightColor => {
             friendly_debug_name: "Bottom Right Vision Input (Color)",
             base_ascii: b"iVbr00",
             channel_dimensions: SingleChannelDimensions::new(None, None, None),
-            io_variant: IOTypeVariant::ImageFrame,
+            io_variants: [IOTypeVariant::ImageFrame],
         },
     }    
 }
@@ -322,7 +345,7 @@ define_io_cortical_types!{
             friendly_debug_name: "Spinning Motor",
             base_ascii: b"omot00",
             channel_dimensions: SingleChannelDimensions::new(Some(1), Some(1), None),
-            io_variant: IOTypeVariant::LinearNormalizedFloat,
+            io_variants: [IOTypeVariant::LinearNormalizedFloat],
         },
     }    
 }

@@ -178,4 +178,14 @@ impl CorticalMappedXYZPNeuronData {
     pub fn borrow_mut(&mut self, cortical_id: &CorticalID) -> Option<&mut NeuronXYZPArrays> {
         self.mappings.get_mut(&cortical_id)
     }
+    
+    pub fn ensure_clear_and_borrow_mut(&mut self, cortical_id: &CorticalID, estimated_neuron_count: usize) -> &mut NeuronXYZPArrays {
+        if self.mappings.contains_key(cortical_id) {
+            let neurons = self.mappings.get_mut(cortical_id).unwrap();
+            neurons.reset_indexes();
+            return neurons;
+        }
+        _ = self.mappings.insert(cortical_id.clone(), NeuronXYZPArrays::new(estimated_neuron_count).unwrap());
+        self.mappings.get_mut(cortical_id).unwrap()
+    }
 }

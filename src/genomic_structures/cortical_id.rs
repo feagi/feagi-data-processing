@@ -1,5 +1,5 @@
 use crate::error::{FeagiDataProcessingError, GenomeError};
-use super::{CorticalType, SensorCorticalType, MotorCorticalType, CoreCorticalType};
+use super::{CorticalType, SensorCorticalType, MotorCorticalType, CoreCorticalType, CorticalIOChannelIndex};
 use super::index_types::CorticalGroupingIndex;
 
 
@@ -88,6 +88,7 @@ impl CorticalID {
             ]
         }
     }
+    
     pub fn from_bytes(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<Self, FeagiDataProcessingError> {
         let as_string = String::from_utf8(bytes.to_vec());
         if as_string.is_err() {
@@ -113,7 +114,10 @@ impl CorticalID {
         Ok(CorticalID {bytes })
     }
     
-
+    pub fn try_from_cortical_type(cortical_type: &CorticalType, io_cortical_index: CorticalGroupingIndex) -> Result<Self, FeagiDataProcessingError> {
+        CorticalType::try_as_cortical_id(cortical_type, io_cortical_index)
+    }
+    
     
     pub fn as_bytes(&self) -> &[u8; CorticalID::CORTICAL_ID_LENGTH] {
         &self.bytes
