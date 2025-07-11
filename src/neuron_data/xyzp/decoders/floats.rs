@@ -16,7 +16,7 @@ pub struct LinearNormalizedFloatNeuronXYZPDecoder {
 }
 
 impl NeuronXYZPDecoder for LinearNormalizedFloatNeuronXYZPDecoder {
-    fn get_data_type() -> IOTypeVariant {
+    fn get_data_type(&self) -> IOTypeVariant {
         IOTypeVariant::LinearNormalizedFloat
     }
 
@@ -104,7 +104,7 @@ impl NeuronXYZPDecoder for LinearNormalizedFloatNeuronXYZPDecoder {
 
 impl LinearNormalizedFloatNeuronXYZPDecoder {
     pub fn new(number_channels: u32, cortical_type: CorticalType, cortical_index: CorticalGroupingIndex, translator_type: FloatNeuronLayoutType, resolution_depth: usize) -> Result<Self, FeagiDataProcessingError> {
-        cortical_type.verify_valid_io_variant(&Self::get_data_type())?;
+        cortical_type.verify_valid_io_variant(&IOTypeVariant::LinearNormalizedFloat)?;
         let cortical_id = CorticalID::try_from_cortical_type(&cortical_type, cortical_index)?;
         let cortical_dimensions = translator_type.create_dimensions_for_translator_type(number_channels, resolution_depth)?;
         

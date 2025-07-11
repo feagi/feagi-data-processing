@@ -7,11 +7,12 @@ use super::{NeuronXYZPArrays, CorticalMappedXYZPNeuronData};
 // Coders can be enums since they do not store values, they merely are organizational units directing
 // to specific methods for reading and writing neural data
 
+// TODO could we turn this into an enum via Enum_Dispatch?
 // TODO right now the multi channel functions call the single functions in a loop, while this technically works, we can do better. Right now each single channel fn iterates over all neurons for some types (floats), looking just for the specific channel it is set to. We can vectorize this
 
 pub trait NeuronXYZPEncoder {
 
-    fn get_data_type() -> IOTypeVariant;
+    fn get_encoded_data_type(&self) -> IOTypeVariant;
     
     fn get_cortical_ids_writing_to(&self) -> &[CorticalID];
 
@@ -27,7 +28,7 @@ pub trait NeuronXYZPEncoder {
 
 pub trait NeuronXYZPDecoder {
 
-    fn get_data_type() -> IOTypeVariant;
+    fn get_data_type(&self) -> IOTypeVariant;
 
     fn get_cortical_ids_reading_from(&self) -> &[CorticalID];
 

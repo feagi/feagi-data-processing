@@ -20,7 +20,7 @@ impl SensoryChannelStreamCache {
                channel: CorticalIOChannelIndex,
     ) -> Result<Self, FeagiDataProcessingError> {
         
-        if stream_cache_processor.get_data_type() != neuron_xyzp_encoder.get_data_type() {
+        if stream_cache_processor.get_data_type() != neuron_xyzp_encoder.get_encoded_data_type() {
             return Err(FeagiDataProcessingError::InternalError("Stream Cache Processor and Neuron Encoder do not have matching data types!".into()));
         }
         

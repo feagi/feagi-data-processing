@@ -1,3 +1,8 @@
-mod identity_processors;
+mod stream_cache_processor_trait;
 
-pub use identity_processors::*;
+pub mod float;
+pub mod image_frame;
+
+pub use stream_cache_processor_trait::StreamCacheProcessor;
+
+
