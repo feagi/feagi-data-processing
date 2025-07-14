@@ -21,11 +21,8 @@ Effectively a dictionary mapping the CorticalID of a cortical area with the Neur
 graph TD
     A["Cortical Mapped XYZP Neuron Data (Dictionary<Type B, Type C>)"]
 
-    subgraph Type B
+    subgraph (Viewed as Dictionary)
         B1["Key: CorticalID"]
-    end
-
-    subgraph Type C
         C1["Value: XYZP Neuron Array"]
         C2["Array of X"]
         C3["Array of Y"]
@@ -33,11 +30,12 @@ graph TD
         C5["Array of P"]
     end
 
-    subgraph Type D
+    subgraph XYZP Neuron Struct
         D["XYZP Neuron { X, Y, Z, P }"]
     end
 
     A --> B1
+    A --> C1
     B1 --> C1
     C1 --> C2
     C1 --> C3
