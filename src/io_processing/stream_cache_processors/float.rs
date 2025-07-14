@@ -3,6 +3,7 @@ use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{IOTypeData, IOTypeVariant};
 use super::StreamCacheProcessor;
 
+#[derive(Debug, Clone)]
 pub struct IdentityLinearFloatCacheProcessor {
     previous_value: IOTypeData,
 }

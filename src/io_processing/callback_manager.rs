@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::io_data::IOTypeData;
+use crate::io_data::{IOTypeData, IOTypeVariant};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct CallbackSubscriberID {
@@ -14,23 +14,23 @@ impl CallbackSubscriberID {
 
 pub struct CallBackManager {
     callbacks: HashMap<usize, Box<dyn Fn(&IOTypeData) + Send + Sync>>,
-    next_id: usize // This will fail if more than 18,446,744,073,709,551,615 callbacks are registered (on 64bit). Too Bad!
+    next_id: usize, // This will fail if more than 18,446,744,073,709,551,615 callbacks are registered (on 64bit). Too Bad!
+    data_type: IOTypeVariant,
 }
 
 impl  CallBackManager {
-    pub fn new() -> CallBackManager {
+    pub fn new(data_type: IOTypeVariant) -> CallBackManager {
         Self {
             callbacks: HashMap::new(),
-            next_id: 0
+            next_id: 0,
+            data_type,
         }
     }
 
-    pub fn register<F>(&mut self, callback: F) -> CallbackSubscriberID
-    where
-        F: Fn(&IOTypeData) + Send + Sync + 'static,
+    pub fn register(&mut self, callback:  Box<dyn Fn(&IOTypeData) + Send + Sync>) -> CallbackSubscriberID
     {
         let id = self.next_id;
-        self.callbacks.insert(id, Box::new(callback));
+        self.callbacks.insert(id, callback);
         self.next_id += 1;
         CallbackSubscriberID::new(id)
     }

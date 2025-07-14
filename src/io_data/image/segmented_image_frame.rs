@@ -84,8 +84,8 @@ impl SegmentedImageFrame {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrame) if all segments were created successfully
     /// - Err(DataProcessingError) if any segment creation fails
-    pub fn new(segment_resolutions: &SegmentedVisionTargetResolutions, segment_color_channels: &ChannelFormat,
-    segment_color_space: &ColorSpace, input_frames_source_width_height: (usize, usize)) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
+    pub fn new(segment_resolutions: &SegmentedFrameTargetResolutions, segment_color_channels: &ChannelFormat,
+               segment_color_space: &ColorSpace, input_frames_source_width_height: (usize, usize)) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
         Ok(SegmentedImageFrame {
             lower_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_left),
             middle_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_left),
@@ -161,7 +161,7 @@ impl SegmentedImageFrame {
     /// - The source frame has a different resolution than expected
     /// - Any of the cropping or resizing operations fail
     pub fn update_segments(&mut self, source_frame: &ImageFrame, 
-                           center_properties: SegmentedVisionCenterProperties)
+                           center_properties: SegmentedFrameCenterProperties)
         -> Result<(), FeagiDataProcessingError> {
         if source_frame.get_channel_format() != self.get_color_channels(){
             return Err(IODataError::InvalidParameters("Input Image frame does not have matching color channel count!".into()).into());

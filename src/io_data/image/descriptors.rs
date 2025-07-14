@@ -410,14 +410,14 @@ pub enum MemoryOrderLayout {
 /// This structure defines the coordinates and size of the central region
 /// in a normalized coordinate space (0.0 to 1.0).
 #[derive(PartialEq, Clone, Copy)]
-pub struct SegmentedVisionCenterProperties {
+pub struct SegmentedFrameCenterProperties {
     /// Center point coordinates in normalized space (0.0-1.0), from the top left
     center_coordinates_normalized_yx: (f32, f32), // Scaled from 0 to 1
     /// Size of the center region in normalized space (0.0-1.0)
     center_size_normalized_yx: (f32, f32), // ditto
 }
 
-impl SegmentedVisionCenterProperties {
+impl SegmentedFrameCenterProperties {
     /// Creates a new SegmentedVisionCenterProperties with row-major coordinates.
     /// 
     /// This constructor creates center properties using normalized coordinates where
@@ -433,7 +433,7 @@ impl SegmentedVisionCenterProperties {
     /// A Result containing either:
     /// - Ok(SegmentedVisionCenterProperties) if the parameters are valid
     /// - Err(DataProcessingError) if coordinates or size are outside valid ranges
-    pub fn new_row_major_where_origin_top_left(center_coordinates_normalized_yx: (f32, f32), center_size_normalized_yx: (f32, f32)) -> Result<SegmentedVisionCenterProperties, FeagiDataProcessingError> {
+    pub fn new_row_major_where_origin_top_left(center_coordinates_normalized_yx: (f32, f32), center_size_normalized_yx: (f32, f32)) -> Result<SegmentedFrameCenterProperties, FeagiDataProcessingError> {
         let range_0_1: RangeInclusive<f32> = 0.0..=1.0;
         if !(range_0_1.contains(&center_coordinates_normalized_yx.0) && range_0_1.contains(&center_coordinates_normalized_yx.1)) {
             return Err(IODataError::InvalidParameters("Central vision center coordinates are to be normalized and must be between 0 and 1!".into()).into())
@@ -449,7 +449,7 @@ impl SegmentedVisionCenterProperties {
             return Err(IODataError::InvalidParameters("Resulting central vision crop includes regions outside input image!".into()).into())
         }
         
-        Ok(SegmentedVisionCenterProperties {
+        Ok(SegmentedFrameCenterProperties {
             center_coordinates_normalized_yx,
             center_size_normalized_yx,
         })
@@ -470,8 +470,8 @@ impl SegmentedVisionCenterProperties {
     /// A Result containing either:
     /// - Ok(SegmentedVisionCenterProperties) if the parameters are valid
     /// - Err(DataProcessingError) if coordinates or size are outside valid ranges
-    pub fn cartesian_where_origin_bottom_left(center_coordinates_normalized_cartesian_xy: (f32, f32), center_size_normalized_xy: (f32, f32)) -> Result<SegmentedVisionCenterProperties, FeagiDataProcessingError> {
-        SegmentedVisionCenterProperties::new_row_major_where_origin_top_left(
+    pub fn cartesian_where_origin_bottom_left(center_coordinates_normalized_cartesian_xy: (f32, f32), center_size_normalized_xy: (f32, f32)) -> Result<SegmentedFrameCenterProperties, FeagiDataProcessingError> {
+        SegmentedFrameCenterProperties::new_row_major_where_origin_top_left(
             (center_coordinates_normalized_cartesian_xy.1, 1.0 - center_coordinates_normalized_cartesian_xy.0),
             (center_size_normalized_xy.1, center_size_normalized_xy.0))
     }
@@ -484,8 +484,8 @@ impl SegmentedVisionCenterProperties {
     /// # Returns
     /// 
     /// A SegmentedVisionCenterProperties with default centered configuration.
-    pub fn create_default_centered() -> SegmentedVisionCenterProperties {
-        SegmentedVisionCenterProperties::new_row_major_where_origin_top_left((0.5, 0.5), (0.5, 0.5)).unwrap()
+    pub fn create_default_centered() -> SegmentedFrameCenterProperties {
+        SegmentedFrameCenterProperties::new_row_major_where_origin_top_left((0.5, 0.5), (0.5, 0.5)).unwrap()
     }
     
     /// Calculates the source corner points for all nine segments of a segmented vision frame.
@@ -548,7 +548,7 @@ impl SegmentedVisionCenterProperties {
 /// This structure stores the desired output resolution for each of the segments
 /// in a grid arrangement (3x3): corners, edges, and center.
 #[derive(PartialEq, Clone, Copy)]
-pub struct SegmentedVisionTargetResolutions {
+pub struct SegmentedFrameTargetResolutions {
     /// Resolution for lower-left segment as (width, height)
     pub lower_left: (usize, usize),
     /// Resolution for middle-left segment as (width, height)
@@ -569,7 +569,7 @@ pub struct SegmentedVisionTargetResolutions {
     pub center: (usize, usize),
 }
 
-impl SegmentedVisionTargetResolutions {
+impl SegmentedFrameTargetResolutions {
 
     /// Creates a new SegmentedVisionTargetResolutions with individual segment resolutions.
     /// 
@@ -603,13 +603,13 @@ impl SegmentedVisionTargetResolutions {
         lower_right: (usize, usize),
         lower_middle: (usize, usize),
         center: (usize, usize),
-    ) -> Result<SegmentedVisionTargetResolutions, FeagiDataProcessingError> {
+    ) -> Result<SegmentedFrameTargetResolutions, FeagiDataProcessingError> {
         if lower_left.0 == 0 || lower_left.1 == 0 || middle_left.0 == 0 || middle_left.1 == 0 || upper_left.0 == 0 || upper_left.1 == 0 || upper_middle.0 == 0 || upper_middle.1 == 0 || // Yandre-dev moment
             upper_right.0 == 0 || upper_right.1 == 0 || middle_right.0 == 0 || middle_right.1 == 0 || lower_right.0 == 0 || lower_right.1 == 0 || lower_middle.0 == 0 || lower_middle.1 == 0 ||
             center.0 == 0 || center.1 == 0 {
             return Err(IODataError::InvalidParameters("Dimensions must exceed 0 for all segments on all axis!".into()).into());
         }
-        Ok(SegmentedVisionTargetResolutions {
+        Ok(SegmentedFrameTargetResolutions {
             lower_left,
             middle_left,
             upper_left,
@@ -637,19 +637,19 @@ impl SegmentedVisionTargetResolutions {
     /// A Result containing either:
     /// - Ok(SegmentedVisionTargetResolutions) if all resolutions are valid (non-zero)
     /// - Err(DataProcessingError) if any resolution has zero width or height
-    pub fn create_with_same_sized_peripheral(center_width_height: (usize, usize), peripheral_width_height: (usize, usize)) -> Result<SegmentedVisionTargetResolutions, FeagiDataProcessingError> {
-        SegmentedVisionTargetResolutions::new(peripheral_width_height, peripheral_width_height,
-                                                     peripheral_width_height, peripheral_width_height,
-                                                     peripheral_width_height, peripheral_width_height,
-                                                     peripheral_width_height, peripheral_width_height,
-                                                     center_width_height)
+    pub fn create_with_same_sized_peripheral(center_width_height: (usize, usize), peripheral_width_height: (usize, usize)) -> Result<SegmentedFrameTargetResolutions, FeagiDataProcessingError> {
+        SegmentedFrameTargetResolutions::new(peripheral_width_height, peripheral_width_height,
+                                             peripheral_width_height, peripheral_width_height,
+                                             peripheral_width_height, peripheral_width_height,
+                                             peripheral_width_height, peripheral_width_height,
+                                             center_width_height)
     }
 }
 
 /// For internal use, convenient grouping for segmented image frame to store corner points on where from the source various regions should be cropped from
 #[derive(PartialEq, Clone, Copy)]
 #[derive(Debug)]
-pub struct SegmentedVisionFrameSourceCroppingPointGrouping {
+pub(crate) struct SegmentedVisionFrameSourceCroppingPointGrouping {
     /// Corner points for the lower-left segment
     pub lower_left: CornerPoints,
     /// Corner points for the middle-left segment

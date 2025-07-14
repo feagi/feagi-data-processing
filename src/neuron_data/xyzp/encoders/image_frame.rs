@@ -19,7 +19,7 @@ impl NeuronXYZPEncoder for ImageFrameNeuronXYZPEncoder {
         &self.single_cortical_id
     }
 
-    fn write_neuron_data_single_channel(&self, wrapped_value: IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
+    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
 
         if *cortical_channel > self.channel_count {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *cortical_channel, self.channel_count))).into());
@@ -29,7 +29,7 @@ impl NeuronXYZPEncoder for ImageFrameNeuronXYZPEncoder {
             return Err(NeuronError::UnableToGenerateNeuronData(format!("Given sensor value is not {}! Instead received type {}!", self.get_encoded_data_type().to_string(), wrapped_value.variant().to_string())).into());
         }
 
-        let mut image: ImageFrame = wrapped_value.try_into().unwrap();
+        let mut image: ImageFrame = wrapped_value.
         if image.get_cartesian_width_height() != self.expected_image_resolution_per_channel {
             return Err(IODataError::InvalidParameters("Input impage does not have the expected resolution!".into()).into());
         }

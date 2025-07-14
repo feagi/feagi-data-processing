@@ -1,11 +1,12 @@
 use std::fmt;
+use std::fmt::Debug;
 use crate::error::FeagiDataProcessingError;
 use crate::io_data::{IOTypeData, IOTypeVariant};
 
 // Since Implementations of this trait may differ in size or be dynamically sized, we cannot 
 // turn this into an enum. Please Don't Try!
 
-pub trait StreamCacheProcessor: fmt::Display {
+pub trait StreamCacheProcessor: fmt::Display + Debug {
     fn get_input_data_type(&self) -> IOTypeVariant;
 
     fn get_output_data_type(&self) -> IOTypeVariant;

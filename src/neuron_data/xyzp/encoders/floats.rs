@@ -23,7 +23,7 @@ impl NeuronXYZPEncoder for LinearNormalizedFloatNeuronXYZPEncoder {
         &self.single_cortical_id
     }
 
-    fn write_neuron_data_single_channel(&self, wrapped_value: IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
+    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         if *cortical_channel > self.channel_count {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *cortical_channel, self.channel_count))).into());
         }

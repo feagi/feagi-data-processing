@@ -4,7 +4,7 @@ use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex};
 use crate::io_data::{IOTypeData, IOTypeVariant};
 use super::{NeuronXYZPArrays, CorticalMappedXYZPNeuronData};
 
-// Coders can be enums since they do not store values, they merely are organizational units directing
+// Coders can be enums since they do not store dynamic values, they merely are organizational units directing
 // to specific methods for reading and writing neural data
 
 // TODO could we turn this into an enum via Enum_Dispatch?
@@ -16,9 +16,9 @@ pub trait NeuronXYZPEncoder {
     
     fn get_cortical_ids_writing_to(&self) -> &[CorticalID];
 
-    fn write_neuron_data_single_channel(&self, wrapped_value: IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError>;
+    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError>;
 
-    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalIOChannelIndex, IOTypeData>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
+    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalIOChannelIndex, &IOTypeData>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         for (channel, values) in channels_and_values {
             self.write_neuron_data_single_channel(values, channel, write_target)?;
         };

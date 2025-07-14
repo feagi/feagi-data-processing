@@ -1,4 +1,5 @@
 use std::cmp::PartialEq;
+use crate::error::FeagiDataProcessingError;
 use crate::io_data::{ImageFrame, LinearNormalizedF32};
 
 
@@ -50,10 +51,21 @@ impl TryFrom<IOTypeData> for LinearNormalizedF32 {
     fn try_from(value: IOTypeData) -> Result<Self, Self::Error> {
         match value {
             IOTypeData::LinearNormalizedFloat(float) => Ok(float),
-            other => Err(other),
+            _ => Err(FeagiDataProcessingError::IOData("This variable is not a Linear Normalized F32!".into()).into()),
         }
     }
 }
+
+impl TryFrom<&IOTypeData> for LinearNormalizedF32 {
+    type Error = IOTypeData;
+    fn try_from(value: &IOTypeData) -> Result<Self, Self::Error> {
+        match value { 
+            IOTypeData::LinearNormalizedFloat(float) => Ok(*float),
+            other => Err(FeagiDataProcessingError::IOData("This variable is not a Linear Normalized F32!".into()).into()),
+        }
+    }
+}
+
 
 impl TryFrom<IOTypeData> for ImageFrame {
     type Error = IOTypeData;
@@ -61,7 +73,7 @@ impl TryFrom<IOTypeData> for ImageFrame {
     fn try_from(value: IOTypeData) -> Result<Self, Self::Error> {
         match value {
             IOTypeData::ImageFrame(image) => Ok(image),
-            other => Err(other),
+            other => Err(FeagiDataProcessingError::IOData("This variable is not a Linear Normalized F32!".into()).into()),
         }
     }
 }
