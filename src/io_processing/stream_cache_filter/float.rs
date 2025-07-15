@@ -1,20 +1,20 @@
 use std::fmt::{Display, Formatter};
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{IOTypeData, IOTypeVariant};
-use super::StreamCacheProcessor;
+use super::StreamCacheFilter;
 
 #[derive(Debug, Clone)]
-pub struct IdentityLinearFloatCacheProcessor {
+pub struct IdentityLinearFloatCacheFilter {
     previous_value: IOTypeData,
 }
 
-impl Display for IdentityLinearFloatCacheProcessor {
+impl Display for IdentityLinearFloatCacheFilter {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Identity Linear Float processor value: {:?}", self.previous_value)
     }
 }
 
-impl StreamCacheProcessor for IdentityLinearFloatCacheProcessor {
+impl StreamCacheFilter for IdentityLinearFloatCacheFilter {
     
     fn get_input_data_type(&self) -> IOTypeVariant {
         IOTypeVariant::LinearNormalizedFloat
@@ -37,7 +37,7 @@ impl StreamCacheProcessor for IdentityLinearFloatCacheProcessor {
     }
 }
 
-impl IdentityLinearFloatCacheProcessor {
+impl IdentityLinearFloatCacheFilter {
     pub fn new(initial_value: IOTypeData) -> Result<Self, FeagiDataProcessingError> {
         if initial_value.variant() != IOTypeVariant::LinearNormalizedFloat {
             return Err(IODataError::InvalidParameters("Initial Value for IdentityLinearFloatCacheProcessor must be a LinearNormalizedFloat!".into()).into());

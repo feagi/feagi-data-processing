@@ -1,68 +1,145 @@
-// Caches all streaming data relevant to an cortical type
+// Caches all streaming data relevant to a cortical type
 
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SingleChannelDimensions};
-use crate::io_data::IOTypeVariant;
-use crate::io_processing::StreamCacheProcessor;
+use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType};
+use crate::io_data::{IOTypeData, IOTypeVariant};
+use crate::io_processing::{StreamCacheFilter};
 use crate::neuron_data::xyzp::NeuronXYZPEncoder;
+
+// TODO can we collapse the lookup for agent device indexes into a single hashmap lookup? It should be possible
 
 pub struct SensorXYZPDeviceGroupCache {
     representing_cortical_type: CorticalType,
-    per_cortical_area_neuron_encoder_update_time_channel_count: HashMap<CorticalID, (Box<dyn NeuronXYZPEncoder>, Instant, u32)>,
-    device_mapping: HashMap<AgentDeviceIndex, (CorticalID, CorticalIOChannelIndex, Instant)>,
-    per_channel_processors: HashMap<AgentDeviceIndex, Box<dyn StreamCacheProcessor>>, // TODO doesnt this not allow the use of agent device indexes to multiple channels?
-    total_channels_across_all_areas: u32,
-    data_type_encoded_to_neurons: IOTypeVariant
+    data_type_encoded_to_neurons: IOTypeVariant,
+    channel_mappings: HashMap<(CorticalID, CorticalIOChannelIndex), Box<dyn StreamCacheFilter>>,
+    agent_device_mapping: HashMap<AgentDeviceIndex, Vec<(CorticalID, CorticalIOChannelIndex)>>
 }
 
 impl SensorXYZPDeviceGroupCache {
     
-    pub fn does_sensor_cortical_area_exist(&self, cortical_index: CorticalGroupingIndex) -> Result<bool, FeagiDataProcessingError> {
-        let target_cortical_id: CorticalID = CorticalID::try_from_cortical_type(&self.representing_cortical_type, cortical_index)?;
-        Ok(self.per_cortical_area_neuron_encoder_update_time_channel_count.contains_key(&target_cortical_id))
+    pub fn new(cortical_type: CorticalType, encoding_data_type: IOTypeVariant) -> Result<Self, FeagiDataProcessingError> {
+        cortical_type.verify_is_sensor()?;
+        cortical_type.verify_valid_io_variant(&encoding_data_type)?;
+        
+        Ok(SensorXYZPDeviceGroupCache{
+            representing_cortical_type: cortical_type,
+            data_type_encoded_to_neurons: encoding_data_type,
+            channel_mappings: HashMap::new(),
+            agent_device_mapping: HashMap::new(),
+        })
     }
     
-    pub fn register_sensor_cortical_area(&mut self, cortical_index: CorticalGroupingIndex, neuron_encoder: Box<dyn NeuronXYZPEncoder>, number_channels: usize) -> Result<(), FeagiDataProcessingError> {
-        let target_cortical_id: CorticalID = CorticalID::try_from_cortical_type(&self.representing_cortical_type, cortical_index)?;
-        if !self.per_cortical_area_neuron_encoder_update_time_channel_count.contains_key(&target_cortical_id) {
-            return Err(IODataError::InvalidParameters(format!("Unable to register sensor to to already registered cortical ID '{}'!", &target_cortical_id.to_string())).into());
-        }
-        if neuron_encoder.get_encoded_data_type() != self.data_type_encoded_to_neurons {
-            return Err(IODataError::InvalidParameters(format!("Cortical Type '{}' only accepts '{}' encoders! Given '{}' encoder is not valid!",
-                                                              self.representing_cortical_type.to_string(), self.data_type_encoded_to_neurons.to_string(), neuron_encoder.get_encoded_data_type().to_string())).into());
-        }
-        if number_channels == 0 {
-            return Err(IODataError::InvalidParameters("Cannot register sensor with zero channels!".into()).into());
+    pub fn register_sensory_channel(&mut self, cortical_id: CorticalID, channel: CorticalIOChannelIndex, sensory_filter: Box<dyn StreamCacheFilter>) -> Result<(), FeagiDataProcessingError> {
+        if cortical_id.get_cortical_type() != self.representing_cortical_type {
+            return Err(IODataError::InvalidParameters(format!("Expected sensory cortical area of type {} but received cortical ID representing type {}!",
+                                                              self.representing_cortical_type.to_string(), cortical_id.get_cortical_type().to_string())).into())
         }
         
-        self.per_cortical_area_neuron_encoder_update_time_channel_count.insert(target_cortical_id, (neuron_encoder, Instant::now(), number_channels));
+        // We cannot check here if the channel index is too large!
+        
+        if self.is_channel_mapped(cortical_id, channel) {
+            return Err(IODataError::InvalidParameters(format!("Channel mapping of cortical ID '{}' and channel index '{}' is already registered!", cortical_id.to_string(), channel.to_string())).into())
+        }
+        
+        if sensory_filter.get_output_data_type() != self.data_type_encoded_to_neurons {
+            return Err(IODataError::InvalidParameters(format!("The sensory filter output type must match {}, however the given filter outputs {}! (Note the input of the sensor filter does NOT need to match)",
+                                                              self.data_type_encoded_to_neurons.to_string(), sensory_filter.get_output_data_type().to_string())).into())
+        }
+        
+        
+        
+        // TODO check if any image segment processing is done on none center types!
+        
+        self.channel_mappings.insert((cortical_id, channel), sensory_filter);
+        Ok(())
+        
+    }
+    
+    pub fn register_agent_device_index_to_sensory_channel(&mut self, agent_index: AgentDeviceIndex, cortical_id: CorticalID, channel: CorticalIOChannelIndex)  -> Result<(), FeagiDataProcessingError> {
+        if !self.is_channel_mapped(cortical_id, channel) {
+            return Err(IODataError::InvalidParameters(format!("No sensory channel registration of channel index {} under cortical ID {} exists for agent device index registration!",
+                                                              channel.to_string(), cortical_id.to_string())).into())
+        }
+        
+        if !self.is_agent_mapped(agent_index) {
+            self.agent_device_mapping.insert(agent_index, vec![(cortical_id, channel)]);
+        }
+        else {
+            let vec: &mut Vec<(CorticalID, CorticalIOChannelIndex)> = self.agent_device_mapping.get_mut(&agent_index).unwrap();
+            vec.push((cortical_id, channel));
+        }
+        
         Ok(())
     }
     
-    pub fn register_sensor_device(&mut self,
-                           cortical_index: CorticalGroupingIndex,
-                           channel_index: CorticalIOChannelIndex,
-                           agent_device_index: AgentDeviceIndex,       
-                           stream_cache_processor: Box<dyn StreamCacheProcessor>,
-                           neuron_xyzp_encoder: Box<dyn NeuronXYZPEncoder>) -> Result<(), FeagiDataProcessingError> {
-        
-        let target_cortical_id: CorticalID = CorticalID::try_from_cortical_type(&self.representing_cortical_type, cortical_index)?;
-        if !self.per_cortical_area_neuron_encoder_update_time_channel_count.contains_key(&target_cortical_id) {
-            return Err(IODataError::InvalidParameters(format!("Unable to register sensor to non-registered cortical ID '{}'!", &target_cortical_id.to_string())).into());
+    pub fn update_value_by_channel(&mut self, cortical_id: CorticalID, channel: CorticalIOChannelIndex, value: IOTypeData) -> Result<(), FeagiDataProcessingError> {
+        let mapping = self.channel_mappings.get_mut(&(cortical_id, channel));
+        if mapping.is_none() {
+            return Err(IODataError::InvalidParameters(format!("No sensory channel registration of channel index {} under cortical ID {} exists!",
+                                                              channel.to_string(), cortical_id.to_string())).into())
         }
-        if *channel_index >= self.per_cortical_area_neuron_encoder_update_time_channel_count.get(&target_cortical_id).unwrap().2 {
-            return Err(IODataError::InvalidParameters(format!("Requested Channel index {} is greater than max available'!", *channel_index)).into());
-        }
-        if self.per_channel_processors.contains_key(&agent_device_index) {
-            return Err(IODataError::InvalidParameters(format!("Agent Device Index {} already mapped to '!", *channel_index)).into());
-        }
-        
-        
+        let filter = mapping.unwrap();
+        _ = filter.process_new_input(value)?;
+        Ok(())
     }
     
+    pub fn update_value_by_agent_index(&mut self, agent_device_index: AgentDeviceIndex, value: IOTypeData) -> Result<(), FeagiDataProcessingError> {
+        let mapping = self.agent_device_mapping.get_mut(&agent_device_index);
+        if mapping.is_none() {
+            return Err(IODataError::InvalidParameters(format!("No agent device index  registration of {} exists!",
+                                                              agent_device_index.to_string())).into())
+        }
+        
+        let mappings_to_cortical_id_channel: &mut Vec<(CorticalID, CorticalIOChannelIndex)> = mapping.unwrap();
+        match mappings_to_cortical_id_channel.len() {
+            0 => {
+                return Err(FeagiDataProcessingError::InternalError("Agent Device Index called on mapping with zero elements!".into()))
+            }
+            1 => {
+                // Most common case where there is a 1 to 1 mapping. We do this to avoid cloning the value as we can just transfer the ownership instead
+                let cortical_id_channel = mappings_to_cortical_id_channel[0];
+                let filter = self.channel_mappings.get_mut(&cortical_id_channel);
+                if filter.is_none() {
+                    return Err(FeagiDataProcessingError::InternalError(format!("failed to locate initialized agent device index {}!", agent_device_index.to_string())))
+                }
+                let filter = filter.unwrap();
+                _ = filter.process_new_input(value)?;
+                return Ok(());
+            }
+            (number_mappings_from_agent_index) => {
+                // In order to use 1 less clone, we will iterate over the vector except for the last value, at which then we simply pass in the value's ownership
+                let last_agent_index_index = number_mappings_from_agent_index - 1;
+                for agent_index_index in 0..last_agent_index_index {
+                    let cortical_id_channel = mappings_to_cortical_id_channel[agent_index_index];
+                    let filter = self.channel_mappings.get_mut(&cortical_id_channel);
+                    if filter.is_none() {
+                        return Err(FeagiDataProcessingError::InternalError(format!("failed to locate initialized agent device index {}!", agent_device_index.to_string())))
+                    }
+                    let filter = filter.unwrap();
+                    _ = filter.process_new_input(value.clone())?; // We cannot avoid this. Each filter needs to own the value for the processing it may do
+                    // Me when I have no option but to use clone https://media1.tenor.com/m/ChT4Gyw2N-0AAAAd/anger-duck.gif
+                }
+                let cortical_id_channel = mappings_to_cortical_id_channel[last_agent_index_index];
+                let filter = self.channel_mappings.get_mut(&cortical_id_channel);
+                if filter.is_none() {
+                    return Err(FeagiDataProcessingError::InternalError(format!("failed to locate initialized agent device index {}!", agent_device_index.to_string())))
+                }
+                let filter = filter.unwrap();
+                _ = filter.process_new_input(value)?;
+                return Ok(());
+            }
+        }
+    }
+    fn is_channel_mapped(&self, cortical_id: CorticalID, channel: CorticalIOChannelIndex) -> bool {
+        self.channel_mappings.get(&(cortical_id, channel)).is_some()
+    }
     
+    fn is_agent_mapped(&self, agent_index: AgentDeviceIndex) -> bool {
+        self.agent_device_mapping.get(&agent_index).is_some()
+    }
     
-    
+
 }

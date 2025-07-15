@@ -1,7 +1,6 @@
 use std::cmp::PartialEq;
-use crate::error::FeagiDataProcessingError;
+use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{ImageFrame, LinearNormalizedF32};
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IOTypeVariant {
@@ -46,37 +45,61 @@ impl From<ImageFrame> for IOTypeData {
 }
 
 impl TryFrom<IOTypeData> for LinearNormalizedF32 {
-    type Error = IOTypeData;
+    type Error = FeagiDataProcessingError;
 
     fn try_from(value: IOTypeData) -> Result<Self, Self::Error> {
         match value {
             IOTypeData::LinearNormalizedFloat(float) => Ok(float),
-            _ => Err(FeagiDataProcessingError::IOData("This variable is not a Linear Normalized F32!".into()).into()),
+            other => Err(IODataError::InvalidParameters("This variable is not a Linear Normalized F32!".into()).into()),
         }
     }
 }
 
 impl TryFrom<&IOTypeData> for LinearNormalizedF32 {
-    type Error = IOTypeData;
+    type Error = FeagiDataProcessingError;
     fn try_from(value: &IOTypeData) -> Result<Self, Self::Error> {
         match value { 
             IOTypeData::LinearNormalizedFloat(float) => Ok(*float),
-            other => Err(FeagiDataProcessingError::IOData("This variable is not a Linear Normalized F32!".into()).into()),
+            _ => Err(IODataError::InvalidParameters("This variable is not a Linear Normalized F32!".into()).into()),
         }
     }
 }
 
 
 impl TryFrom<IOTypeData> for ImageFrame {
-    type Error = IOTypeData;
+    type Error = FeagiDataProcessingError;
 
     fn try_from(value: IOTypeData) -> Result<Self, Self::Error> {
         match value {
             IOTypeData::ImageFrame(image) => Ok(image),
-            other => Err(FeagiDataProcessingError::IOData("This variable is not a Linear Normalized F32!".into()).into()),
+            _ => Err(IODataError::InvalidParameters("This variable is not a Image Frame!".into()).into()),
         }
     }
 }
+
+impl<'a> TryFrom<&'a IOTypeData> for &'a ImageFrame {
+    type Error = FeagiDataProcessingError;
+
+    fn try_from(value: &'a IOTypeData) -> Result<Self, Self::Error> {
+        match value {
+            IOTypeData::ImageFrame(image_ref) => Ok(image_ref),
+            _ => Err(IODataError::InvalidParameters("This variable is not a Image Frame!".into()).into()),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a mut IOTypeData> for &'a mut ImageFrame {
+    type Error = FeagiDataProcessingError;
+
+    fn try_from(value: &'a mut IOTypeData) -> Result<Self, Self::Error> {
+        match value {
+            IOTypeData::ImageFrame(image_ref) => Ok(image_ref),
+            _ => Err(IODataError::InvalidParameters("This variable is not a Image Frame!".into()).into()),
+        }
+    }
+}
+
+
 
 impl IOTypeData {
     pub fn variant(&self) -> IOTypeVariant {

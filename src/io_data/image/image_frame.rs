@@ -733,7 +733,7 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the conversion was successful
     /// - Err(DataProcessingError) if the operation fails
-    pub fn write_thresholded_xyzp_neuron_arrays(&mut self, threshold: f32, write_target: &mut NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
+    pub fn write_thresholded_xyzp_neuron_arrays(& self, threshold: f32, write_target: &mut NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
         write_target.expand_to_new_max_count_if_required(self.get_max_capacity_neuron_count()); // make sure there's enough capacity
         write_target.reset_indexes(); // Ensure we push from the start

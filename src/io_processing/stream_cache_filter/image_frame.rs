@@ -1,20 +1,20 @@
 use std::fmt::{Display, Formatter};
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{IOTypeData, IOTypeVariant};
-use super::StreamCacheProcessor;
+use super::StreamCacheFilter;
 
 #[derive(Debug, Clone)]
-pub struct IdentityImageFrameCacheProcessor {
+pub struct IdentityImageFrameCacheFilter {
     previous_value: IOTypeData,
 }
 
-impl Display for IdentityImageFrameCacheProcessor {
+impl Display for IdentityImageFrameCacheFilter {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Identity Image Frame processor value: {:?}", self.previous_value)
     }
 }
 
-impl StreamCacheProcessor for IdentityImageFrameCacheProcessor {
+impl StreamCacheFilter for IdentityImageFrameCacheFilter {
     fn get_input_data_type(&self) -> IOTypeVariant {
         IOTypeVariant::ImageFrame
     }
@@ -36,7 +36,7 @@ impl StreamCacheProcessor for IdentityImageFrameCacheProcessor {
     }
 }
 
-impl IdentityImageFrameCacheProcessor {
+impl IdentityImageFrameCacheFilter {
     pub fn new(initial_value: IOTypeData) -> Result<Self, FeagiDataProcessingError> {
         if initial_value.variant() != IOTypeVariant::ImageFrame {
             return Err(IODataError::InvalidParameters("Initial Value for IdentityImageFrameCacheProcessor must be a ImageFrame!".into()).into());

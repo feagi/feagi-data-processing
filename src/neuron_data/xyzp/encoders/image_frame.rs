@@ -29,7 +29,7 @@ impl NeuronXYZPEncoder for ImageFrameNeuronXYZPEncoder {
             return Err(NeuronError::UnableToGenerateNeuronData(format!("Given sensor value is not {}! Instead received type {}!", self.get_encoded_data_type().to_string(), wrapped_value.variant().to_string())).into());
         }
 
-        let mut image: ImageFrame = wrapped_value.
+        let mut image: &ImageFrame = wrapped_value.try_into().unwrap();
         if image.get_cartesian_width_height() != self.expected_image_resolution_per_channel {
             return Err(IODataError::InvalidParameters("Input impage does not have the expected resolution!".into()).into());
         }
