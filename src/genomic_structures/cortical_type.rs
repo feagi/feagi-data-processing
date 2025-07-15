@@ -205,34 +205,34 @@ impl CorticalType {
     
     pub fn verify_is_core(&self) -> Result<(), FeagiDataProcessingError> {
         if !self.is_type_core() {
-            return Err(IODataError::InvalidParameters("Expected cortical type to be type Core!!".into()).into())
+            return Err(IODataError::InvalidParameters("Expected cortical type to be type Core!".into()).into())
         }
         Ok(())
     }
     pub fn verify_is_sensor(&self) -> Result<(), FeagiDataProcessingError> {
         if !self.is_type_sensor() {
-            return Err(IODataError::InvalidParameters("Expected cortical type to be type Sensor!!".into()).into())
+            return Err(IODataError::InvalidParameters("Expected cortical type to be type Sensor!".into()).into())
         }
         Ok(())
     }
     
     pub fn verify_is_motor(&self) -> Result<(), FeagiDataProcessingError> {
         if !self.is_type_motor() {
-            return Err(IODataError::InvalidParameters("Expected cortical type to be type Motor!!".into()).into())
+            return Err(IODataError::InvalidParameters("Expected cortical type to be type Motor!".into()).into())
         }
         Ok(())
     }
 
     pub fn verify_is_custom(&self) -> Result<(), FeagiDataProcessingError> {
         if !self.is_type_custom() {
-            return Err(IODataError::InvalidParameters("Expected cortical type to be type Custom!!".into()).into())
+            return Err(IODataError::InvalidParameters("Expected cortical type to be type Custom!".into()).into())
         }
         Ok(())
     }
 
     pub fn verify_is_memory(&self) -> Result<(), FeagiDataProcessingError> {
         if !self.is_type_memory() {
-            return Err(IODataError::InvalidParameters("Expected cortical type to be type Memory!!".into()).into())
+            return Err(IODataError::InvalidParameters("Expected cortical type to be type Memory!".into()).into())
         }
         Ok(())
     }
