@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType};
-use crate::io_processing::StreamCacheFilter;
+use crate::io_processing::StreamCacheProcessor;
 use super::device_group_caches::SensorXYZPDeviceGroupCache;
 
 
@@ -11,7 +11,7 @@ pub struct SensoryIOCache {
 }
 
 impl SensoryIOCache {
-    pub fn register_sensor(&mut self, sensor_type: CorticalType, cortical_group_index: CorticalGroupingIndex, channel: CorticalIOChannelIndex, sensory_filter: Box<dyn StreamCacheFilter>) -> Result<(), FeagiDataProcessingError> {
+    pub fn register_sensor(&mut self, sensor_type: CorticalType, cortical_group_index: CorticalGroupingIndex, channel: CorticalIOChannelIndex, sensory_filter: Box<dyn StreamCacheProcessor>) -> Result<(), FeagiDataProcessingError> {
         sensor_type.verify_is_sensor()?;
         
         if !self.cached.contains_key(&sensor_type) {

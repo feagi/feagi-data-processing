@@ -1,22 +1,22 @@
 use std::time::{Instant};
-use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, CorticalType};
+use crate::error::{FeagiDataProcessingError};
+use crate::genomic_structures::{CorticalIOChannelIndex};
 use crate::io_data::{IOTypeData, IOTypeVariant};
-use crate::io_processing::{CallBackManager, StreamCacheFilter};
-use crate::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZPDecoder, NeuronXYZPEncoder, CorticalMappedXYZPNeuronData};
+use crate::io_processing::{StreamCacheProcessor};
+use crate::neuron_data::xyzp::{NeuronXYZPEncoder, CorticalMappedXYZPNeuronData};
 
 // Per channel cache
 
 #[derive(Debug)]
 pub struct SensoryChannelStreamCache {
-    stream_cache_filter: Box<dyn StreamCacheFilter>,
+    stream_cache_filter: Box<dyn StreamCacheProcessor>,
     channel: CorticalIOChannelIndex,
     last_updated: Instant
 }
 
 impl SensoryChannelStreamCache {
     
-    pub fn new(stream_cache_filter: Box<dyn StreamCacheFilter>,
+    pub fn new(stream_cache_filter: Box<dyn StreamCacheProcessor>,
                channel: CorticalIOChannelIndex,
                 ) -> Result<Self, FeagiDataProcessingError> {
         
