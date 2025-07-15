@@ -13,20 +13,17 @@ use crate::neuron_data::xyzp::NeuronXYZPEncoder;
 
 pub struct SensorXYZPDeviceGroupCache {
     representing_cortical_type: CorticalType,
-    data_type_encoded_to_neurons: IOTypeVariant,
     channel_mappings: HashMap<(CorticalID, CorticalIOChannelIndex), Box<dyn StreamCacheFilter>>,
     agent_device_mapping: HashMap<AgentDeviceIndex, Vec<(CorticalID, CorticalIOChannelIndex)>>
 }
 
 impl SensorXYZPDeviceGroupCache {
     
-    pub fn new(cortical_type: CorticalType, encoding_data_type: IOTypeVariant) -> Result<Self, FeagiDataProcessingError> {
+    pub fn new(cortical_type: CorticalType) -> Result<Self, FeagiDataProcessingError> {
         cortical_type.verify_is_sensor()?;
-        cortical_type.verify_valid_io_variant(&encoding_data_type)?;
         
         Ok(SensorXYZPDeviceGroupCache{
             representing_cortical_type: cortical_type,
-            data_type_encoded_to_neurons: encoding_data_type,
             channel_mappings: HashMap::new(),
             agent_device_mapping: HashMap::new(),
         })
@@ -44,12 +41,12 @@ impl SensorXYZPDeviceGroupCache {
             return Err(IODataError::InvalidParameters(format!("Channel mapping of cortical ID '{}' and channel index '{}' is already registered!", cortical_id.to_string(), channel.to_string())).into())
         }
         
-        if sensory_filter.get_output_data_type() != self.data_type_encoded_to_neurons {
-            return Err(IODataError::InvalidParameters(format!("The sensory filter output type must match {}, however the given filter outputs {}! (Note the input of the sensor filter does NOT need to match)",
-                                                              self.data_type_encoded_to_neurons.to_string(), sensory_filter.get_output_data_type().to_string())).into())
+        let verify_type = self.representing_cortical_type.verify_valid_io_variant(&sensory_filter.get_output_data_type());
+        if verify_type.is_err() {
+            return Err(IODataError::InvalidParameters(format!("The sensory filter outputs {}, which is not allowed for this cortical type {}! The only allowed types for this cortical type are '{}'!  (Note the input of the sensor filter does NOT need to match)",
+                                                              sensory_filter.get_output_data_type().to_string(), self.representing_cortical_type.to_string(), self.representing_cortical_type.get_possible_io_variants().iter().map(|x| x.to_string()).collect::<Vec<String>>().join(", ")
+            )).into())
         }
-        
-        
         
         // TODO check if any image segment processing is done on none center types!
         
