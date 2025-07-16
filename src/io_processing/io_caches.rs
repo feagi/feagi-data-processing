@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType};
+use crate::io_data::IOTypeData;
 use crate::io_processing::{SensoryChannelStreamCache, StreamCacheProcessor};
 
 pub struct SensorCache {
@@ -10,9 +11,9 @@ pub struct SensorCache {
 }
 
 impl SensorCache {
-    
-    
-    pub fn register_cortical_area(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: usize) 
+
+
+    pub fn register_cortical_area(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: usize)
         -> Result<(), FeagiDataProcessingError> {
 
         cortical_type.verify_is_sensor()?;
@@ -22,15 +23,15 @@ impl SensorCache {
         if number_supported_channels == 0 {
             return Err(IODataError::InvalidParameters("A cortical area cannot be registered with 0 channels!".into()).into())
         }
-        
+
         _ = self.cortical_area_metadata.insert(
             CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index),
             CorticalAreaCacheDetails::new(cortical_type.try_as_cortical_id(cortical_grouping_index)?, number_supported_channels)
         );
         Ok(())
     }
-    
-    pub fn register_channel(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex,  
+
+    pub fn register_channel(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex,
                             channel: CorticalIOChannelIndex, sensory_processor: Box<dyn StreamCacheProcessor>, should_sensor_allow_sending_stale_data: bool) ->
     Result<(), FeagiDataProcessingError> {
 
@@ -47,17 +48,17 @@ impl SensorCache {
                                                                *channel, cortical_type, cortical_grouping_index, cortical_area_details.number_channels)).into());
         }
         if self.is_channel_cache_registered(cortical_type, cortical_grouping_index, channel) {
-            return Err( IODataError::InvalidParameters(format!("Unable to register sensor cache to already existing Cortical Type {:?}, Group Index {:?}, Channel {:?}!", 
+            return Err( IODataError::InvalidParameters(format!("Unable to register sensor cache to already existing Cortical Type {:?}, Group Index {:?}, Channel {:?}!",
                                                                cortical_type, cortical_grouping_index, channel)).into())
         }
-        
+
         let full_channel_key: FullChannelCacheKey = FullChannelCacheKey::new(cortical_type, cortical_grouping_index, channel);
         let sensory_stream_cache = SensoryChannelStreamCache::new(sensory_processor, channel, should_sensor_allow_sending_stale_data)?;
         _ = self.channel_caches.insert(full_channel_key, sensory_stream_cache);
         Ok(())
     }
-    
-    pub fn register_agent_device_index(&mut self, agent_device_index: AgentDeviceIndex, cortical_type: CorticalType, 
+
+    pub fn register_agent_device_index(&mut self, agent_device_index: AgentDeviceIndex, cortical_type: CorticalType,
                                        cortical_grouping_index: CorticalGroupingIndex, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
 
         cortical_type.verify_is_sensor()?;
@@ -78,25 +79,49 @@ impl SensorCache {
         }
         Ok(())
     }
+
+    pub fn update_value_by_channel(&mut self, value: IOTypeData, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
+        self.try_update_value(value, cortical_type, cortical_grouping_index, channel)?;
+        Ok(())
+    }
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    pub fn update_value_by_agent_device_index(&mut self, value: IOTypeData, cortical_type: CorticalType, agent_device_index: AgentDeviceIndex) -> Result<(), FeagiDataProcessingError> {
+        let channel_keys = self.try_get_agent_proxy_keys(cortical_type, agent_device_index)?;
+        
+        match channel_keys.len() {
+            0 => {
+                return Err(FeagiDataProcessingError::InternalError("Agent Device Index called on mapping with zero elements!".into())); // This should never be possible
+            }
+            1 => {
+                // Most common case, only one mapping
+                let channel_key = &channel_keys[0];
+                self.try_update_value(value, channel_key.cortical_type, channel_key.cortical_group, channel_key.channel)?;
+                Ok(())
+            }
+            number_keys => {
+                // Multiple mappings. In order to save 1 clone operation, we update the values for Number_mapped_keys - 1 with clones, and simply pass the ownership for the last one
+                let second_last_index = number_keys - 1;
+                for i in 0..second_last_index {
+                    let channel_key = &channel_keys[i];
+                    self.try_update_value(value.clone(), channel_key.cortical_type, channel_key.cortical_group, channel_key.channel)?;
+                }
+                let channel_key = &channel_keys[second_last_index];
+                self.try_update_value(value.clone(), channel_key.cortical_type, channel_key.cortical_group, channel_key.channel)?;
+                Ok(())
+            }
+        }
+        
+        
+        
+    }
+
+
     
     
     fn is_cortical_area_registered(&self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex) -> bool {
         self.cortical_area_metadata.contains_key(&CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index))
     }
-    
+
     fn try_get_cortical_area_cache_details(&self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex) -> Result<&CorticalAreaCacheDetails, FeagiDataProcessingError> {
         let result = self.cortical_area_metadata.get(&CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index));
         match result {
@@ -104,9 +129,9 @@ impl SensorCache {
             None => Err(IODataError::InvalidParameters(format!("Cortical Area of Type {:?} of group index {:?} not found!", cortical_type, cortical_grouping_index)).into())
         }
     }
-    
-    
-    
+
+
+
     fn is_channel_cache_registered(&self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex,
                                    channel: CorticalIOChannelIndex) -> bool {
         self.channel_caches.contains_key(&FullChannelCacheKey::new(cortical_type, cortical_grouping_index, channel))
@@ -120,7 +145,7 @@ impl SensorCache {
             None => Err(IODataError::InvalidParameters(format!("Unable to find Cortical Type {:?}, Group Index {:?}, Channel {:?}!", cortical_type, cortical_grouping_index, channel)).into())
         }
     }
-    
+
     fn try_get_mut_channel_cache(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex,
                                  channel: CorticalIOChannelIndex) -> Result<&mut SensoryChannelStreamCache, FeagiDataProcessingError> {
         let result = self.channel_caches.get_mut(&FullChannelCacheKey::new(cortical_type, cortical_grouping_index, channel));
@@ -129,16 +154,16 @@ impl SensorCache {
             None => Err(IODataError::InvalidParameters(format!("Unable to find Cortical Type {:?}, Group Index {:?}, Channel {:?}!", cortical_type, cortical_grouping_index, channel)).into())
         }
     }
-    
-    
-    
+
+
+
     fn is_agent_key_proxy_registered(&self, cortical_type: CorticalType, agent_grouping_index: AgentDeviceIndex) -> bool {
         self.agent_key_proxy.contains_key(&AccessAgentLookupKey::new(cortical_type, agent_grouping_index))
     }
-    
+
     fn try_get_agent_proxy_keys(&self, cortical_type: CorticalType, agent_grouping_index: AgentDeviceIndex) -> Result<&Vec<FullChannelCacheKey>, FeagiDataProcessingError> {
         let result = self.agent_key_proxy.get(&AccessAgentLookupKey::new(cortical_type, agent_grouping_index));
-        match result { 
+        match result {
             Some(agent_proxy_keys) => {Ok(agent_proxy_keys)}
             None => Err(IODataError::InvalidParameters(format!("No device registered for cortical type {:?} using agent device index{:?}!", cortical_type, agent_grouping_index)).into())
         }
@@ -151,7 +176,19 @@ impl SensorCache {
             None => Err(IODataError::InvalidParameters(format!("No device registered for cortical type {:?} using agent device index{:?}!", cortical_type, agent_grouping_index)).into())
         }
     }
+
     
+    
+    fn try_update_value(&mut self, value: IOTypeData, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
+        let mut cache = self.try_get_mut_channel_cache(cortical_type, cortical_grouping_index, channel)?;
+        if cache.get_input_data_type() != value.variant() {
+            return Err(IODataError::InvalidParameters(format!("Got value type {:?} when expected type {:?} for Cortical Type {:?}, Group Index {:?}, Channel {:?}!", value.variant(),
+                                                              cache.get_input_data_type(), cortical_type, cortical_grouping_index, channel)).into());
+        }
+        _ = cache.update_sensor_value(value);
+        Ok(())
+    }
+
 }
 
 
@@ -250,6 +287,6 @@ impl  CorticalAreaCacheDetails {
             relevant_channel_lookups: Vec::new(),
             number_channels,
         }
-        
+
     }
 }
