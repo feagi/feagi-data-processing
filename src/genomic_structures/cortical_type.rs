@@ -417,6 +417,13 @@ define_io_cortical_types!{
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
         },
+        DigitalGPIOInput => {
+            friendly_debug_name: "GPIO Digital Input",
+            base_ascii: b"idgp00",
+            channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)),
+            io_variants: [IOTypeVariant::LinearNormalizedFloat],
+        }
+        
     }    
 }
 
@@ -432,8 +439,8 @@ impl From<SensorCorticalType> for CorticalType {
 
 define_io_cortical_types!{
     MotorCorticalType {
-        SpinningMotor => {
-            friendly_debug_name: "Spinning Motor",
+        RotoryMotor => {
+            friendly_debug_name: "Rotory Motor",
             base_ascii: b"omot00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), None),
             io_variants: [IOTypeVariant::LinearNormalizedFloat],

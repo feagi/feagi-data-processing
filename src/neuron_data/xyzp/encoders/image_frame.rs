@@ -1,6 +1,6 @@
 use crate::error::{FeagiDataProcessingError, IODataError, NeuronError};
-use crate::genomic_structures::{CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SingleChannelDimensionsRequirements};
-use crate::neuron_data::xyzp::{NeuronXYZPEncoder, NeuronXYZP, CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
+use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, CorticalType};
+use crate::neuron_data::xyzp::{NeuronXYZPEncoder, CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 use crate::io_data::{ImageFrame, IOTypeData, IOTypeVariant};
 
 pub struct ImageFrameNeuronXYZPEncoder {

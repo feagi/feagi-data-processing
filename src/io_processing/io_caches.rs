@@ -15,7 +15,7 @@ pub struct SensorCache {
 impl SensorCache {
 
 
-    pub fn register_cortical_area(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32, neuron_encoder: Box<dyn NeuronXYZPEncoder>)
+    pub fn register_cortical_area(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32)
         -> Result<(), FeagiDataProcessingError> {
 
         cortical_type.verify_is_sensor()?;
