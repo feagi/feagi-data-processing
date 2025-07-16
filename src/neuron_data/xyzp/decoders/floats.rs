@@ -19,10 +19,6 @@ impl NeuronXYZPDecoder for LinearNormalizedFloatNeuronXYZPDecoder {
     fn get_decoded_data_type(&self) -> IOTypeVariant {
         IOTypeVariant::LinearNormalizedFloat
     }
-
-    fn get_cortical_ids_reading_from(&self) -> &[CorticalID] {
-        &self.single_cortical_id
-    }
     
     fn read_neuron_data_single_channel(&self, cortical_channel: CorticalIOChannelIndex, neuron_data: &CorticalMappedXYZPNeuronData) -> Result<IOTypeData, FeagiDataProcessingError> {
 

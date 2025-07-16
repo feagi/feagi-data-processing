@@ -8,7 +8,6 @@ use crate::neuron_data::neuron_layouts::FloatNeuronLayoutType;
 
 pub struct LinearNormalizedFloatNeuronXYZPEncoder {
     translator_type: FloatNeuronLayoutType,
-    single_cortical_id: [CorticalID; 1],
     channel_count: u32
 }
 
@@ -18,12 +17,7 @@ impl NeuronXYZPEncoder for LinearNormalizedFloatNeuronXYZPEncoder {
         IOTypeVariant::LinearNormalizedFloat
     }
 
-
-    fn get_cortical_ids_writing_to(&self) -> &[CorticalID] {
-        &self.single_cortical_id
-    }
-
-    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
+    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, cortical_id_targets: &[CorticalID],  write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         if *cortical_channel > self.channel_count {
             return Err(FeagiDataProcessingError::from(NeuronError::UnableToGenerateNeuronData(format!("Requested channel {} is not supported when max channel is {}!", *cortical_channel, self.channel_count))).into());
         }
@@ -33,7 +27,7 @@ impl NeuronXYZPEncoder for LinearNormalizedFloatNeuronXYZPEncoder {
         }
 
         let value: LinearNormalizedF32 = wrapped_value.try_into().unwrap();
-        let cortical_id: &CorticalID = &self.single_cortical_id[0];
+        let cortical_id: &CorticalID = &cortical_id_targets[0];
         let translator_type = &self.translator_type;
 
         let generated_neuron_data: &mut NeuronXYZPArrays;
@@ -75,12 +69,10 @@ impl NeuronXYZPEncoder for LinearNormalizedFloatNeuronXYZPEncoder {
 }
 
 impl LinearNormalizedFloatNeuronXYZPEncoder {
-    pub fn new(number_channels: u32, cortical_type: CorticalType, cortical_index: CorticalGroupingIndex, translator_type: FloatNeuronLayoutType) -> Result<Self, FeagiDataProcessingError> {
+    pub fn new(number_channels: u32, cortical_type: CorticalType, translator_type: FloatNeuronLayoutType) -> Result<Self, FeagiDataProcessingError> {
         cortical_type.verify_valid_io_variant(&IOTypeVariant::LinearNormalizedFloat)?;
-        let cortical_id = CorticalID::try_from_cortical_type(&cortical_type, cortical_index)?;
         Ok(LinearNormalizedFloatNeuronXYZPEncoder {
             translator_type,
-            single_cortical_id: [cortical_id],
             channel_count: number_channels
         })
     }

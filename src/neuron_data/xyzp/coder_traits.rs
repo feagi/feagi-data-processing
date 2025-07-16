@@ -13,14 +13,12 @@ use super::{CorticalMappedXYZPNeuronData};
 pub trait NeuronXYZPEncoder {
 
     fn get_encoded_data_type(&self) -> IOTypeVariant;
-    
-    fn get_cortical_ids_writing_to(&self) -> &[CorticalID];
 
-    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError>;
+    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, cortical_id_targets: &[CorticalID], write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError>;
 
-    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalIOChannelIndex, &IOTypeData>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
+    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalIOChannelIndex, &IOTypeData>, cortical_id_targets: &[CorticalID], write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         for (channel, values) in channels_and_values {
-            self.write_neuron_data_single_channel(values, channel, write_target)?;
+            self.write_neuron_data_single_channel(values, channel, cortical_id_targets, write_target)?;
         };
         Ok(())
     }
@@ -29,8 +27,6 @@ pub trait NeuronXYZPEncoder {
 pub trait NeuronXYZPDecoder {
 
     fn get_decoded_data_type(&self) -> IOTypeVariant;
-
-    fn get_cortical_ids_reading_from(&self) -> &[CorticalID];
 
     fn read_neuron_data_single_channel(&self, cortical_channel: CorticalIOChannelIndex, neuron_data: &CorticalMappedXYZPNeuronData) -> Result<IOTypeData, FeagiDataProcessingError>;
 

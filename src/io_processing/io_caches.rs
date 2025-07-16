@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType};
+use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SensorCorticalType};
 use crate::io_data::IOTypeData;
 use crate::io_processing::{SensoryChannelStreamCache, StreamCacheProcessor};
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
@@ -26,9 +26,18 @@ impl SensorCache {
             return Err(IODataError::InvalidParameters("A cortical area cannot be registered with 0 channels!".into()).into())
         }
 
+        let cortical_metadata_key = CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index);
+        
+        let mut cortical_id_write_targets: Vec<CorticalID> = vec![cortical_type.try_as_cortical_id(cortical_grouping_index)?];
+        
+        // Unique case (TODO: add check for segmented encoder type)
+        if cortical_type == CorticalType::Sensory(SensorCorticalType::VisionCenterGray) && false {
+            cortical_id_write_targets = CorticalID::create_ordered_cortical_areas_for_segmented_vision(cortical_grouping_index, true).to_vec();
+        }
+        
         _ = self.cortical_area_metadata.insert(
-            CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index),
-            CorticalAreaCacheDetails::new(cortical_type.try_as_cortical_id(cortical_grouping_index)?, number_supported_channels, neuron_encoder)
+            cortical_metadata_key,
+            CorticalAreaCacheDetails::new(cortical_id_write_targets, number_supported_channels, neuron_encoder)
         );
         Ok(())
     }
@@ -129,23 +138,20 @@ impl SensorCache {
             }
         }
     }
-    
-    pub fn encode_to_neurons(&self, past_send_time: Instant, neurons_to_encode_to: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> { 
+
+    pub fn encode_to_neurons(&self, past_send_time: Instant, neurons_to_encode_to: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         // TODO move to using iter(), I'm using for loops now cause im still a rust scrub
         for cortical_area_details in self.cortical_area_metadata.values() {
-            let cortical_id = &cortical_area_details.cortical_id;
+            let cortical_id_targets = &cortical_area_details.neuron_data_location_by_cortical_ids;
             let channel_cache_keys = &cortical_area_details.relevant_channel_lookups;
             let neuron_encoder = &cortical_area_details.neuron_encoder;
             for channel_cache_key in channel_cache_keys {
                 let sensor_cache = self.channel_caches.get(channel_cache_key).unwrap();
-                sensor_cache.encode_to_neurons(neurons_to_encode_to, neuron_encoder)?
-                
+                sensor_cache.encode_to_neurons(neurons_to_encode_to, neuron_encoder, &cortical_id_targets)?
             }
-            
-            
         }
         Ok(())
-        
+
     }
 
 
@@ -308,16 +314,16 @@ impl AccessAgentLookupKey {
 
 
 pub(crate) struct CorticalAreaCacheDetails {
-    pub cortical_id: CorticalID,
+    pub neuron_data_location_by_cortical_ids: Vec<CorticalID>,
     pub relevant_channel_lookups: Vec<FullChannelCacheKey>,
     pub number_channels: u32,
     pub neuron_encoder: Box<dyn NeuronXYZPEncoder>
 }
 
 impl  CorticalAreaCacheDetails {
-    pub fn new(cortical_id: CorticalID, number_channels: u32, neuron_encoder: Box<dyn NeuronXYZPEncoder>) -> Self {
+    pub fn new(neuron_data_location_by_cortical_ids: Vec<CorticalID>, number_channels: u32, neuron_encoder: Box<dyn NeuronXYZPEncoder>) -> Self {
         CorticalAreaCacheDetails{
-            cortical_id,
+            neuron_data_location_by_cortical_ids,
             relevant_channel_lookups: Vec::new(),
             number_channels,
             neuron_encoder
