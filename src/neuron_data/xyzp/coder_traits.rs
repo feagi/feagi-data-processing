@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError};
 use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex};
 use crate::io_data::{IOTypeData, IOTypeVariant};
-use super::{NeuronXYZPArrays, CorticalMappedXYZPNeuronData};
+use super::{CorticalMappedXYZPNeuronData};
 
 // Coders can be enums since they do not store dynamic values, they merely are organizational units directing
 // to specific methods for reading and writing neural data
@@ -28,7 +28,7 @@ pub trait NeuronXYZPEncoder {
 
 pub trait NeuronXYZPDecoder {
 
-    fn get_data_type(&self) -> IOTypeVariant;
+    fn get_decoded_data_type(&self) -> IOTypeVariant;
 
     fn get_cortical_ids_reading_from(&self) -> &[CorticalID];
 

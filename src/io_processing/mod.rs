@@ -4,6 +4,7 @@ mod stream_cache_processors;
 pub mod byte_structures;
 mod channel_stream_caches;
 mod caches;
+mod io_caches;
 
 pub use callback_manager::{CallBackManager, CallbackSubscriberID};
 

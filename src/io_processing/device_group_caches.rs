@@ -12,6 +12,7 @@ use super::channel_stream_caches::SensoryChannelStreamCache;
 
 // TODO can we collapse the lookup for agent device indexes into a single hashmap lookup? It should be possible
 
+//region helper structs
 #[derive(Debug, Hash, Eq, PartialEq)]
 struct SensorKey {
     pub cortical_grouping_index: CorticalGroupingIndex,
@@ -25,30 +26,32 @@ impl SensorKey {
 }
 
 #[derive(Debug)]
-struct SensorMappedResult {
+struct SensorChannelMappedResult {
     pub sensory_channel_stream_cache: SensoryChannelStreamCache,
     pub cortical_id: CorticalID
 }
 
-impl SensorMappedResult {
+impl SensorChannelMappedResult {
     pub fn new(sensory_channel_stream_cache: SensoryChannelStreamCache, cortical_id: CorticalID) -> Self {
-        SensorMappedResult { sensory_channel_stream_cache, cortical_id }
+        SensorChannelMappedResult { sensory_channel_stream_cache, cortical_id }
     }
 }
-
+//endregion
 
 
 pub struct SensorXYZPDeviceGroupCache {
     representing_cortical_type: CorticalType,
-    channel_mappings: HashMap<SensorKey, SensorMappedResult>,
-    agent_device_mapping: HashMap<AgentDeviceIndex, Vec<SensorKey>>
-    
+    channel_mappings: HashMap<SensorKey, SensorChannelMappedResult>,
+    agent_device_mapping: HashMap<AgentDeviceIndex, Vec<SensorKey>>,
+    neuron_encoder: Box<dyn NeuronXYZPEncoder>,
+    encoder_cortical_group_to_channel_fast_lookup: HashMap<CorticalGroupingIndex, Vec<CorticalGroupingIndex>>
 }
 
 impl SensorXYZPDeviceGroupCache {
     
-    pub fn new(cortical_type: CorticalType) -> Result<Self, FeagiDataProcessingError> {
+    pub fn new(cortical_type: CorticalType, neuron_encoder: Box<dyn NeuronXYZPEncoder>) -> Result<Self, FeagiDataProcessingError> {
         cortical_type.verify_is_sensor()?;
+        cortical_type.verify_valid_io_variant()
         
         Ok(SensorXYZPDeviceGroupCache{
             representing_cortical_type: cortical_type,
@@ -57,7 +60,7 @@ impl SensorXYZPDeviceGroupCache {
         })
     }
     
-    pub fn register_sensory_channel(&mut self, cortical_grouping: CorticalGroupingIndex, channel: CorticalIOChannelIndex, sensory_processor: Box<dyn StreamCacheProcessor>) -> Result<(), FeagiDataProcessingError> {
+    pub fn register_sensory_channel(&mut self, cortical_grouping: CorticalGroupingIndex, channel: CorticalIOChannelIndex, sensory_processor: Box<dyn StreamCacheProcessor>, should_sensor_allow_sending_stale_data: bool) -> Result<(), FeagiDataProcessingError> {
         // We cannot check here if the channel index is too large!
         
         if self.is_channel_mapped(cortical_grouping, channel) {
@@ -74,11 +77,10 @@ impl SensorXYZPDeviceGroupCache {
 
         let cortical_id = CorticalID::try_from_cortical_type(&self.representing_cortical_type, cortical_grouping)?;
         let sensor_key = SensorKey::new(cortical_grouping, channel);
-        let sensory_stream_cache = SensoryChannelStreamCache::new(sensory_processor, channel)?;
-        let sensor_mapped_result = SensorMappedResult::new(sensory_stream_cache, cortical_id);
+        let sensory_stream_cache = SensoryChannelStreamCache::new(sensory_processor, channel, should_sensor_allow_sending_stale_data)?;
+        let sensor_mapped_result = SensorChannelMappedResult::new(sensory_stream_cache, cortical_id);
         _ = self.channel_mappings.insert(sensor_key, sensor_mapped_result);
         Ok(())
-        
     }
     
     pub fn register_agent_device_index_to_sensory_channel(&mut self, agent_index: AgentDeviceIndex, cortical_grouping: CorticalGroupingIndex, channel: CorticalIOChannelIndex)  -> Result<(), FeagiDataProcessingError> {
@@ -103,52 +105,88 @@ impl SensorXYZPDeviceGroupCache {
     }
     
     pub fn update_value_by_agent_index(&mut self, agent_device_index: AgentDeviceIndex, value: IOTypeData) -> Result<(), FeagiDataProcessingError> {
-        let check_sensor_keys: Option<&mut Vec<SensorKey>> = self.agent_device_mapping.get_mut(&agent_device_index);
+        // Get immutable reference to the sensor keys to check existence and length
+        let sensor_keys = match self.agent_device_mapping.get(&agent_device_index) {
+            Some(keys) => keys,
+            None => {
+                return Err(IODataError::InvalidParameters(format!("No agent device index  registration of {} exists!",
+                                                                  agent_device_index.to_string())).into())
+            }
+        };
         
-        if check_sensor_keys.is_none() {
-            return Err(IODataError::InvalidParameters(format!("No agent device index  registration of {} exists!",
-                                                              agent_device_index.to_string())).into())
-        }
-        let possible_sensor_mappings: &mut Vec<SensorKey> = check_sensor_keys.unwrap();
-        match possible_sensor_mappings.len() {
+        // We cannot make use of "update_value" here as we cannot borrow self mutably twice, so we expanded that function here.
+        match sensor_keys.len() {
             0 => {
                 return Err(FeagiDataProcessingError::InternalError("Agent Device Index called on mapping with zero elements!".into()))
             }
             1 => {
-                // Most common case where there is a 1 to 1 mapping. We do this to avoid cloning the value as we can just transfer the ownership instead
-                self.update_value(value, &possible_sensor_mappings[0])?;
-                return Ok(());
+                // Most common case where there is a 1 to 1 mapping
+                let sensor_key = &sensor_keys[0];
+                match self.channel_mappings.get_mut(sensor_key) {
+                    Some(mapped_channels) => {
+                        _ = mapped_channels.sensory_channel_stream_cache.update_sensor_value(value)?;
+                        return Ok(());
+                    }
+                    None => {
+                        return Err(FeagiDataProcessingError::InternalError(format!("No sensory channel registration of channel index {} under cortical grouping {} exists!",
+                                                                          sensor_key.cortical_io_channel_index.to_string(), sensor_key.cortical_grouping_index.to_string())).into())
+                    }
+                }
             }
-            (number_mappings_from_agent_index) => {
-                // In order to use 1 less clone, we will iterate over the vector except for the last value, at which then we simply pass in the value's ownership
-                let last_agent_index_index = number_mappings_from_agent_index - 1;
-                for agent_index_index in 0..last_agent_index_index {
-                    let cortical_id_channel = &possible_sensor_mappings[agent_index_index];
-                    self.update_value(value.clone(), cortical_id_channel)?; // We cannot avoid cloning. Each filter needs to own the value for the processing it may do
+            number_mappings => {
+                // For multiple mappings, we need to clone the value for all but the last
+                let last_index = number_mappings - 1;
+                for i in 0..number_mappings {
+                    let sensor_key = &sensor_keys[i];
+
+                    match self.channel_mappings.get_mut(sensor_key) {
+                        Some(mapped_channels) => {
+                            _ = mapped_channels.sensory_channel_stream_cache.update_sensor_value(value.clone())?;
+                        }
+                        None => {
+                            return Err(FeagiDataProcessingError::InternalError(format!("No sensory channel registration of channel index {} under cortical grouping {} exists!",
+                                                                              sensor_key.cortical_io_channel_index.to_string(), sensor_key.cortical_grouping_index.to_string())).into())
+                        }
+                    }
                     // Me when I have no option but to use clone https://media1.tenor.com/m/ChT4Gyw2N-0AAAAd/anger-duck.gif
                 }
-                let cortical_id_channel = &possible_sensor_mappings[last_agent_index_index];
-                self.update_value(value, cortical_id_channel)?;
-                return Ok(());
+                
+                // Handle the last one without cloning the value
+                let sensor_key = &sensor_keys[last_index];
+                match self.channel_mappings.get_mut(sensor_key) {
+                    Some(mapped_channels) => {
+                        _ = mapped_channels.sensory_channel_stream_cache.update_sensor_value(value)?;
+                        return Ok(());
+                    }
+                    None => {
+                        return Err(FeagiDataProcessingError::InternalError(format!("No sensory channel registration of channel index {} under cortical grouping {} exists!",
+                                                                          sensor_key.cortical_io_channel_index.to_string(), sensor_key.cortical_grouping_index.to_string())).into())
+                    }
+                }    
             }
         }
     }
     
-    pub fn encode_new_data_to_neurons(&self, current_time: Instant, neurons_to_encode_to: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
-        for stream_processor_and_id in self.channel_mappings.values() {
-            let mut stream_processor = &stream_processor_and_id.0;
-            let cortical_id = &stream_processor_and_id.1;
-            
-            if stream_processor.is_set_to_update_only_on_change() && stream_processor.is_value_more_recent_than_given(current_time) {
-                continue; // If our value is more recent, it means the data is old (already sent) and thus shouldn't be sent again
-            }
 
-            stream_processor.
+    pub fn encode_new_data_to_neurons(&self, past_send_time: Instant, neurons_to_encode_to: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
+        // TODO move to using iter(), I'm using for loops now cause im still a rust scrub
+        for stream_processor_and_id in self.channel_mappings.values() {
+            if !stream_processor_and_id.sensory_channel_stream_cache.should_push_new_value(past_send_time) {
+                continue;
+            }
+            stream_processor_and_id.sensory_channel_stream_cache.encode_to_neurons(
+                neurons_to_encode_to,
+                
+            )?;
             
             
+            
+            //stream_processor.
         };
+
+        Ok(())
     }
-    
+
     
     fn is_channel_mapped(&self, cortical_group: CorticalGroupingIndex, channel: CorticalIOChannelIndex) -> bool {
         self.channel_mappings.get(&SensorKey::new(cortical_group, channel)).is_some()
@@ -159,14 +197,16 @@ impl SensorXYZPDeviceGroupCache {
     }
     
     fn update_value(&mut self, value: IOTypeData, sensor_key: &SensorKey) -> Result<(), FeagiDataProcessingError> {
-        let mapping = self.channel_mappings.get_mut(sensor_key);
-        if mapping.is_none() {
-            return Err(IODataError::InvalidParameters(format!("No sensory channel registration of channel index {} under cortical grouping {} exists!",
-                                                              sensor_key.cortical_io_channel_index.to_string(), sensor_key.cortical_grouping_index.to_string())).into())
+        match self.channel_mappings.get_mut(sensor_key) {
+            Some(mapped_channels) => {
+                _ = mapped_channels.sensory_channel_stream_cache.update_sensor_value(value)?;
+                return Ok(());
+            }
+            None => {
+                return Err(IODataError::InvalidParameters(format!("No sensory channel registration of channel index {} under cortical grouping {} exists!",
+                                                                  sensor_key.cortical_io_channel_index.to_string(), sensor_key.cortical_grouping_index.to_string())).into())
+            }
         }
-        let mapped = mapping.unwrap();
-        _ = mapped.sensory_channel_stream_cache.update_sensor_value(value)?;
-        Ok(())
     }
     
     

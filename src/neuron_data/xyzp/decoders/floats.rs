@@ -16,7 +16,7 @@ pub struct LinearNormalizedFloatNeuronXYZPDecoder {
 }
 
 impl NeuronXYZPDecoder for LinearNormalizedFloatNeuronXYZPDecoder {
-    fn get_data_type(&self) -> IOTypeVariant {
+    fn get_decoded_data_type(&self) -> IOTypeVariant {
         IOTypeVariant::LinearNormalizedFloat
     }
 
