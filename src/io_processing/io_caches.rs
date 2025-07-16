@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType};
 use crate::io_data::IOTypeData;
 use crate::io_processing::{SensoryChannelStreamCache, StreamCacheProcessor};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
 
 pub struct SensorCache {
     channel_caches: HashMap<FullChannelCacheKey, SensoryChannelStreamCache>,
@@ -13,7 +15,7 @@ pub struct SensorCache {
 impl SensorCache {
 
 
-    pub fn register_cortical_area(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32)
+    pub fn register_cortical_area(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32, neuron_encoder: Box<dyn NeuronXYZPEncoder>)
         -> Result<(), FeagiDataProcessingError> {
 
         cortical_type.verify_is_sensor()?;
@@ -26,7 +28,7 @@ impl SensorCache {
 
         _ = self.cortical_area_metadata.insert(
             CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index),
-            CorticalAreaCacheDetails::new(cortical_type.try_as_cortical_id(cortical_grouping_index)?, number_supported_channels)
+            CorticalAreaCacheDetails::new(cortical_type.try_as_cortical_id(cortical_grouping_index)?, number_supported_channels, neuron_encoder)
         );
         Ok(())
     }
@@ -126,8 +128,23 @@ impl SensorCache {
                 Ok(())
             }
         }
-        
-        
+    }
+    
+    pub fn encode_to_neurons(&self, past_send_time: Instant, neurons_to_encode_to: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> { 
+        // TODO move to using iter(), I'm using for loops now cause im still a rust scrub
+        for cortical_area_details in self.cortical_area_metadata.values() {
+            let cortical_id = &cortical_area_details.cortical_id;
+            let channel_cache_keys = &cortical_area_details.relevant_channel_lookups;
+            let neuron_encoder = &cortical_area_details.neuron_encoder;
+            for channel_cache_key in channel_cache_keys {
+                let sensor_cache = self.channel_caches.get(channel_cache_key).unwrap();
+                sensor_cache.encode_to_neurons(neurons_to_encode_to, neuron_encoder)?
+                
+            }
+            
+            
+        }
+        Ok(())
         
     }
 
@@ -289,19 +306,21 @@ impl AccessAgentLookupKey {
 
 
 
-#[derive(Debug, Hash, PartialEq, Eq)]
+
 pub(crate) struct CorticalAreaCacheDetails {
     pub cortical_id: CorticalID,
     pub relevant_channel_lookups: Vec<FullChannelCacheKey>,
     pub number_channels: u32,
+    pub neuron_encoder: Box<dyn NeuronXYZPEncoder>
 }
 
 impl  CorticalAreaCacheDetails {
-    pub fn new(cortical_id: CorticalID, number_channels: u32) -> Self {
+    pub fn new(cortical_id: CorticalID, number_channels: u32, neuron_encoder: Box<dyn NeuronXYZPEncoder>) -> Self {
         CorticalAreaCacheDetails{
             cortical_id,
             relevant_channel_lookups: Vec::new(),
             number_channels,
+            neuron_encoder
         }
 
     }
