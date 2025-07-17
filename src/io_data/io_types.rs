@@ -1,10 +1,12 @@
 use std::cmp::PartialEq;
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::io_data::{ImageFrame, LinearNormalizedF32};
+use crate::io_data::{BoundedF32, ImageFrame, Linear0to1NormalizedF32, LinearM1to1NormalizedF32, SegmentedImageFrame};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IOTypeVariant {
-    LinearNormalizedFloat,
+    LinearM1to1NormalizedF32,
+    Linear0to1NormalizedF32,
+    BoundedF32,
     ImageFrame,
     SegmentedImageFrame,
 }
@@ -18,7 +20,9 @@ impl IOTypeVariant {
 impl std::fmt::Display for IOTypeVariant {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self { 
-            IOTypeVariant::LinearNormalizedFloat => write!(f, "Linear normalized"),
+            IOTypeVariant::LinearM1to1NormalizedF32 => write!(f, "Linear -1 - 1 normalized"),
+            IOTypeVariant::Linear0to1NormalizedF32 => write!(f, "Linear 0 - 1 normalized"),
+            IOTypeVariant::BoundedF32 => write!(f, "Bounded F32"),
             IOTypeVariant::ImageFrame => write!(f, "Image frame"),
             IOTypeVariant::SegmentedImageFrame => write!(f, "Segmented image frame"),
         }
@@ -29,13 +33,16 @@ impl std::fmt::Display for IOTypeVariant {
 #[derive(Debug, Clone)]
 pub enum IOTypeData
 {
-    LinearNormalizedFloat(LinearNormalizedF32),
+    LinearM1to1NormalizedF32(LinearM1to1NormalizedF32),
+    Linear0to1NormalizedF32(Linear0to1NormalizedF32),
+    BoundedF32(BoundedF32),
     ImageFrame(ImageFrame),
+    SegmentedImageFrame(SegmentedImageFrame),
 }
 
-impl From<LinearNormalizedF32> for IOTypeData {
-    fn from(value: LinearNormalizedF32) -> Self {
-        IOTypeData::LinearNormalizedFloat(value)
+impl From<LinearM1to1NormalizedF32> for IOTypeData {
+    fn from(value: LinearM1to1NormalizedF32) -> Self {
+        IOTypeData::LinearM1to1NormalizedF32(value)
     }
 }
 
@@ -45,23 +52,65 @@ impl From<ImageFrame> for IOTypeData {
     }
 }
 
-impl TryFrom<IOTypeData> for LinearNormalizedF32 {
+impl TryFrom<IOTypeData> for LinearM1to1NormalizedF32 {
     type Error = FeagiDataProcessingError;
 
     fn try_from(value: IOTypeData) -> Result<Self, Self::Error> {
         match value {
-            IOTypeData::LinearNormalizedFloat(float) => Ok(float),
-            other => Err(IODataError::InvalidParameters("This variable is not a Linear Normalized F32!".into()).into()),
+            IOTypeData::LinearM1to1NormalizedF32(float) => Ok(float),
+            _ => Err(IODataError::InvalidParameters("This variable is not a -1 - 1 Linear Normalized F32!".into()).into()),
         }
     }
 }
 
-impl TryFrom<&IOTypeData> for LinearNormalizedF32 {
+impl TryFrom<&IOTypeData> for LinearM1to1NormalizedF32 {
     type Error = FeagiDataProcessingError;
     fn try_from(value: &IOTypeData) -> Result<Self, Self::Error> {
         match value { 
-            IOTypeData::LinearNormalizedFloat(float) => Ok(*float),
-            _ => Err(IODataError::InvalidParameters("This variable is not a Linear Normalized F32!".into()).into()),
+            IOTypeData::LinearM1to1NormalizedF32(float) => Ok(*float),
+            _ => Err(IODataError::InvalidParameters("This variable is not a -1 - 1 Linear Normalized F32!".into()).into()),
+        }
+    }
+}
+
+impl TryFrom<IOTypeData> for Linear0to1NormalizedF32 {
+    type Error = FeagiDataProcessingError;
+
+    fn try_from(value: IOTypeData) -> Result<Self, Self::Error> {
+        match value {
+            IOTypeData::Linear0to1NormalizedF32(float) => Ok(float),
+            _ => Err(IODataError::InvalidParameters("This variable is not a 0 - 1 Linear Normalized F32!".into()).into()),
+        }
+    }
+}
+
+impl TryFrom<&IOTypeData> for Linear0to1NormalizedF32 {
+    type Error = FeagiDataProcessingError;
+    fn try_from(value: &IOTypeData) -> Result<Self, Self::Error> {
+        match value {
+            IOTypeData::Linear0to1NormalizedF32(float) => Ok(*float),
+            _ => Err(IODataError::InvalidParameters("This variable is not a 0 - 1 Linear Normalized F32!".into()).into()),
+        }
+    }
+}
+
+impl TryFrom<IOTypeData> for BoundedF32 {
+    type Error = FeagiDataProcessingError;
+
+    fn try_from(value: IOTypeData) -> Result<Self, Self::Error> {
+        match value {
+            IOTypeData::BoundedF32(float) => Ok(float),
+            _ => Err(IODataError::InvalidParameters("This variable is not a Bound F32!".into()).into()),
+        }
+    }
+}
+
+impl TryFrom<&IOTypeData> for BoundedF32 {
+    type Error = FeagiDataProcessingError;
+    fn try_from(value: &IOTypeData) -> Result<Self, Self::Error> {
+        match value {
+            IOTypeData::BoundedF32(float) => Ok(*float),
+            _ => Err(IODataError::InvalidParameters("This variable is not a Bound F32!".into()).into()),
         }
     }
 }
@@ -105,8 +154,11 @@ impl<'a> TryFrom<&'a mut IOTypeData> for &'a mut ImageFrame {
 impl IOTypeData {
     pub fn variant(&self) -> IOTypeVariant {
         match self {
-            IOTypeData::LinearNormalizedFloat(_) => IOTypeVariant::LinearNormalizedFloat,
-            IOTypeData::ImageFrame(_) => IOTypeVariant::ImageFrame
+            IOTypeData::LinearM1to1NormalizedF32(_) => IOTypeVariant::LinearM1to1NormalizedF32,
+            IOTypeData::Linear0to1NormalizedF32(_) => IOTypeVariant::Linear0to1NormalizedF32,
+            IOTypeData::BoundedF32(_) => IOTypeVariant::BoundedF32,
+            IOTypeData::ImageFrame(_) => IOTypeVariant::ImageFrame,
+            IOTypeData::SegmentedImageFrame(_) => IOTypeVariant::SegmentedImageFrame,
         }
     }
 }

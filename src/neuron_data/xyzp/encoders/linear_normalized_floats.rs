@@ -1,6 +1,6 @@
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::neuron_data::xyzp::{NeuronXYZPEncoder, NeuronXYZP, CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
-use crate::io_data::{IOTypeData, IOTypeVariant, LinearNormalizedF32};
+use crate::io_data::{IOTypeData, IOTypeVariant, LinearM1to1NormalizedF32};
 use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, SingleChannelDimensions};
 
 pub struct LinearNormalizedFloatSplitSignDividedNeuronXYZPEncoder {
@@ -10,7 +10,7 @@ pub struct LinearNormalizedFloatSplitSignDividedNeuronXYZPEncoder {
 
 impl NeuronXYZPEncoder for LinearNormalizedFloatSplitSignDividedNeuronXYZPEncoder {
     fn get_input_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::LinearNormalizedFloat
+        IOTypeVariant::LinearM1to1NormalizedF32
     }
 
     fn get_channel_dimensions(&self) -> &SingleChannelDimensions {
@@ -24,7 +24,7 @@ impl NeuronXYZPEncoder for LinearNormalizedFloatSplitSignDividedNeuronXYZPEncode
     fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         // We are not doing any sort of verification checks here, other than ensuring data types
 
-        let value: LinearNormalizedF32 = wrapped_value.try_into()?;
+        let value: LinearM1to1NormalizedF32 = wrapped_value.try_into()?;
 
         const NUMBER_NEURONS_IN_STRUCTURE: usize = 1;
         
@@ -66,7 +66,7 @@ pub struct LinearNormalizedFloatPSPBirdirectionalNeuronXYZPEncoder {
 // TODO Right now this is a clone of the above. This is technically correct but we can make it nicer
 impl NeuronXYZPEncoder for LinearNormalizedFloatPSPBirdirectionalNeuronXYZPEncoder {
     fn get_input_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::LinearNormalizedFloat
+        IOTypeVariant::LinearM1to1NormalizedF32
     }
 
     fn get_channel_dimensions(&self) -> &SingleChannelDimensions {
@@ -80,7 +80,7 @@ impl NeuronXYZPEncoder for LinearNormalizedFloatPSPBirdirectionalNeuronXYZPEncod
     fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         // We are not doing any sort of verification checks here, other than ensuring data types
 
-        let value: LinearNormalizedF32 = wrapped_value.try_into()?;
+        let value: LinearM1to1NormalizedF32 = wrapped_value.try_into()?;
 
         const NUMBER_NEURONS_IN_STRUCTURE: usize = 1;
 

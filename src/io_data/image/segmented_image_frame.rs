@@ -36,7 +36,7 @@ use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 /// This design allows FEAGI to process visual information with varying levels of detail,
 /// concentrating computational resources in the center of attention while maintaining
 /// awareness of the broader visual field.
-#[derive(Clone)]  // TODO Shouldnt this be called Segmented Image Frame?
+#[derive(Clone, Debug)]  // TODO Shouldnt this be called Segmented Image Frame?
 pub struct SegmentedImageFrame {
     /// Lower-left segment of the vision frame
     lower_left: ImageFrame,
