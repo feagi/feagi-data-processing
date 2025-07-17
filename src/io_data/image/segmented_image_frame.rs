@@ -241,7 +241,7 @@ impl SegmentedImageFrame {
         for index in 0..9 {
             let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
             let mut data: NeuronXYZPArrays = NeuronXYZPArrays::new(max_neurons)?;
-            ordered_refs[index].write_thresholded_xyzp_neuron_arrays(10.0, &mut data)?;
+            ordered_refs[index].write_xyzp_neuron_arrays(10.0, &mut data)?;
             output.insert(cortical_ids[index].clone(), data);
         }
         
@@ -276,7 +276,7 @@ impl SegmentedImageFrame {
                     return Err(FeagiDataProcessingError::InternalError("Unable to find cortical area to unwrap!".into())); // TODO specific error?
                 }
                 Some(mapped_data) => {
-                    ordered_refs[index].write_thresholded_xyzp_neuron_arrays(10.0, mapped_data)?;
+                    ordered_refs[index].write_xyzp_neuron_arrays(10.0, mapped_data)?;
                 }
             }
         }

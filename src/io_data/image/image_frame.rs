@@ -8,6 +8,7 @@
 use ndarray::{s, Array3, ArrayView3};
 use crate::io_data::image::descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::{FeagiDataProcessingError, IODataError};
+use crate::genomic_structures::CorticalIOChannelIndex;
 use crate::neuron_data::xyzp::NeuronXYZPArrays;
 
 /// Represents an image frame with pixel data and metadata for FEAGI vision processing.
@@ -733,16 +734,19 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the conversion was successful
     /// - Err(DataProcessingError) if the operation fails
-    pub fn write_thresholded_xyzp_neuron_arrays(& self, threshold: f32, write_target: &mut NeuronXYZPArrays) -> Result<(), FeagiDataProcessingError> {
+    pub fn write_xyzp_neuron_arrays(& self, write_target: &mut NeuronXYZPArrays, x_channel_offset: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
+        const EPSILON: f32 = 0.0001; // avoid writing near zero vals
+        
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
         write_target.expand_to_new_max_count_if_required(self.get_max_capacity_neuron_count()); // make sure there's enough capacity
         write_target.reset_indexes(); // Ensure we push from the start
+        let x_offset: u32 = *x_channel_offset * self.get_cartesian_width_height().0 as u32;
         
         // write to the vectors
         write_target.update_vectors_from_external(|x_vec, y_vec, c_vec, p_vec| {
             for ((y, x, c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
-                if color_val.abs() > threshold {
-                    x_vec.push(x as u32);
+                if color_val.abs() > EPSILON {
+                    x_vec.push(x as u32 + x_offset);
                     y_vec.push( y_flip_distance - y as u32);  // flip y
                     c_vec.push(c as u32);
                     p_vec.push(*color_val);
