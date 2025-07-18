@@ -5,20 +5,6 @@ use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
 
 pub trait NeuronXYZPEncoder {
-    /// Returns the I/O data type this encoder handles.
-    ///
-    /// This method specifies which [`IOTypeVariant`] this encoder is designed
-    /// to process. The type system uses this for validation and routing.
-    ///
-    /// # Returns
-    ///
-    /// The [`IOTypeVariant`] that this encoder can process.
-    fn get_input_data_type(&self) -> IOTypeVariant;
-    
-    fn get_channel_dimensions(&self) -> &SingleChannelDimensions;
-    
-    fn get_cortical_id_write_destinations(&self) -> &[CorticalID];
-    
     fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError>;
 
     /// Encodes multi-channel I/O data into neuron activations.

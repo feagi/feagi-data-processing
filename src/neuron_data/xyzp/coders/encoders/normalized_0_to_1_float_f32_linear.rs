@@ -6,22 +6,11 @@ use super::super::{NeuronXYZPEncoder};
 
 pub struct Normalized0To1F32LinearNeuronXYZPEncoder {
     channel_dimensions: SingleChannelDimensions,
-    cortical_write_target: [CorticalID; 1],
+    cortical_write_target: CorticalID,
     z_res: f32,
 }
 
 impl NeuronXYZPEncoder for Normalized0To1F32LinearNeuronXYZPEncoder {
-    fn get_input_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::NormalizedM1to1F32
-    }
-
-    fn get_channel_dimensions(&self) -> &SingleChannelDimensions {
-        &self.channel_dimensions
-    }
-
-    fn get_cortical_id_write_destinations(&self) -> &[CorticalID] {
-        &self.cortical_write_target
-    }
 
     fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         // We are not doing any sort of verification checks here, other than ensuring data types
@@ -39,14 +28,14 @@ impl NeuronXYZPEncoder for Normalized0To1F32LinearNeuronXYZPEncoder {
         );
 
         const NUMBER_NEURONS_IN_STRUCTURE: usize = 1;
-        let generated_neuron_data: &mut NeuronXYZPArrays = write_target.ensure_clear_and_borrow_mut(&self.cortical_write_target[0], NUMBER_NEURONS_IN_STRUCTURE);
+        let generated_neuron_data: &mut NeuronXYZPArrays = write_target.ensure_clear_and_borrow_mut(&self.cortical_write_target, NUMBER_NEURONS_IN_STRUCTURE);
         generated_neuron_data.add_neuron(&neuron);
         Ok(())
     }
 }
 
 impl Normalized0To1F32LinearNeuronXYZPEncoder {
-    pub fn new(cortical_write_target: [CorticalID; 1], channel_dimensions: SingleChannelDimensions) -> Self {
+    pub fn new(cortical_write_target: CorticalID, channel_dimensions: SingleChannelDimensions) -> Self {
         let z_res: f32 = channel_dimensions.get_z() as f32;
         Normalized0To1F32LinearNeuronXYZPEncoder {
             channel_dimensions,

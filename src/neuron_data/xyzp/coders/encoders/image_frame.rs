@@ -10,18 +10,6 @@ pub struct ImageFrameNeuronXYZPEncoder {
 }
 
 impl NeuronXYZPEncoder for ImageFrameNeuronXYZPEncoder {
-    fn get_input_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::ImageFrame
-    }
-
-    fn get_channel_dimensions(&self) -> &SingleChannelDimensions {
-        &self.channel_dimensions
-    }
-
-    fn get_cortical_id_write_destinations(&self) -> &[CorticalID] {
-        &self.cortical_write_target
-    }
-
     fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         // We are not doing any sort of verification checks here, other than ensuring data types
 
@@ -35,16 +23,10 @@ impl NeuronXYZPEncoder for ImageFrameNeuronXYZPEncoder {
 }
 
 impl ImageFrameNeuronXYZPEncoder {
-    pub fn new(cortical_id_target: CorticalID, image_cartesian_width_height: (u32, u32), channel_format: ChannelFormat) -> Result<Self, FeagiDataProcessingError> {
-        let channel_dimensions: SingleChannelDimensions = SingleChannelDimensions::new(
-            image_cartesian_width_height.0,
-            image_cartesian_width_height.1,
-            channel_format as u32
-        )?;
-        
-        Ok(ImageFrameNeuronXYZPEncoder{
+    pub fn new(cortical_write_target: CorticalID, channel_dimensions: SingleChannelDimensions) -> Self {        
+        ImageFrameNeuronXYZPEncoder{
             channel_dimensions,
-            cortical_write_target: [cortical_id_target; 1]
-        })
+            cortical_write_target: [cortical_write_target; 1]
+        }
     }
 }

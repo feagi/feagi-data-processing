@@ -1,6 +1,6 @@
 use crate::error::FeagiDataProcessingError;
-use crate::genomic_structures::{CorticalID, SingleChannelDimensions};
-use crate::neuron_data::xyzp::{NeuronXYZPEncoder, NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder};
+use crate::genomic_structures::{CorticalID, CorticalType, SingleChannelDimensions};
+use crate::neuron_data::xyzp::{NeuronXYZPEncoder, NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder, NormalizedM1to1F32FloatSplitSignDividedNeuronXYZPEncoder, Normalized0To1F32LinearNeuronXYZPEncoder, ImageFrameNeuronXYZPEncoder};
 
 pub(crate) enum NeuronCoderType {
     Encoder(NeuronCoderVariantType),
@@ -14,21 +14,25 @@ pub(crate) enum NeuronCoderVariantType {
     ImageFrame,
 }
 
-pub(crate) fn instantiate_encoder_by_type(neuron_coder_type: NeuronCoderType, cortical_ids_targeted:  channel_dimensions: SingleChannelDimensions)
+pub(crate) fn instantiate_encoder_by_type(neuron_coder_type: NeuronCoderType, cortical_ids_targeted: &[CorticalID], channel_dimensions: SingleChannelDimensions)
     -> Result<Box<dyn NeuronXYZPEncoder>, FeagiDataProcessingError> {
     match neuron_coder_type {
         NeuronCoderType::Decoder(neuron_coder_type) => {
             return Err(FeagiDataProcessingError::InternalError("Cannot use this func to instantiate a neuron decoder".to_string()))
         }
-        NeuronCoderType::Encoder(neuron_coder_type) => {
-            match neuron_coder_type {
+        NeuronCoderType::Encoder(neuron_encoder_type) => {
+            match neuron_encoder_type {
+                NeuronCoderVariantType::NormalizedM1To1F32_SplitSignDivided => {
+                    Ok(Box::new(NormalizedM1to1F32FloatSplitSignDividedNeuronXYZPEncoder::new(cortical_ids_targeted.clone()[0], channel_dimensions)))
+                }
                 NeuronCoderVariantType::NormalizedM1To1F32_PSPBirdirectionalDivided => {
-                    
-                    
-                    return Ok(Box<dyn NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder::new())
+                    Ok(Box::new(NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder::new(cortical_ids_targeted.clone()[0], channel_dimensions)))
                 }
                 NeuronCoderVariantType::Normalized0To1F32 => {
-                
+                    Ok(Box::new(Normalized0To1F32LinearNeuronXYZPEncoder::new(cortical_ids_targeted.clone()[0], channel_dimensions)))
+                }
+                NeuronCoderVariantType::ImageFrame => {
+                    Ok(Box::new(ImageFrameNeuronXYZPEncoder::new(cortical_ids_targeted.clone()[0], channel_dimensions)))
                 }
             }
         }
