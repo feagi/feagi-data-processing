@@ -301,13 +301,13 @@ define_io_cortical_types!{
             friendly_name::: "Infrared Sensor",
             base_ascii: b"iinf00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)),
-            io_variants: [IOTypeVariant::LinearM1to1NormalizedF32],
+            io_variants: [IOTypeVariant::NormalizedM1to1F32],
         },
         ReverseInfrared => {
             friendly_name::: "Reverse Infrared Sensor",
             base_ascii: b"iiif00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)),
-            io_variants: [IOTypeVariant::LinearM1to1NormalizedF32],
+            io_variants: [IOTypeVariant::NormalizedM1to1F32],
         },
 
         VisionCenterGray => {
@@ -422,19 +422,19 @@ define_io_cortical_types!{
             friendly_name::: "GPIO Digital Input",
             base_ascii: b"idgp00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)),
-            io_variants: [IOTypeVariant::LinearM1to1NormalizedF32],
+            io_variants: [IOTypeVariant::NormalizedM1to1F32],
         },
         Proximity => {
             friendly_name::: "Proximity",
             base_ascii: b"ipro00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), None),
-            io_variants: [IOTypeVariant::LinearM1to1NormalizedF32],
+            io_variants: [IOTypeVariant::NormalizedM1to1F32],
         },
         Miscellaneous => {
             friendly_name::: "Miscellaneous",
             base_ascii: b"imis00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::LinearM1to1NormalizedF32],
+            io_variants: [IOTypeVariant::NormalizedM1to1F32],
         }
 
     }    
@@ -456,7 +456,7 @@ define_io_cortical_types!{
             friendly_name::: "Rotory Motor",
             base_ascii: b"omot00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), None),
-            io_variants: [IOTypeVariant::LinearM1to1NormalizedF32],
+            io_variants: [IOTypeVariant::NormalizedM1to1F32],
         },
     }    
 }

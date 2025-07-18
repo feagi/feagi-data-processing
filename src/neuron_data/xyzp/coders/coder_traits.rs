@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError};
 use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, SingleChannelDimensions};
 use crate::io_data::{IOTypeData, IOTypeVariant};
-use super::{CorticalMappedXYZPNeuronData};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
 
 pub trait NeuronXYZPEncoder {
     /// Returns the I/O data type this encoder handles.

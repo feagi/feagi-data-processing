@@ -18,11 +18,11 @@ impl Display for IdentityLinearFloatCacheProcessor {
 impl StreamCacheProcessor for IdentityLinearFloatCacheProcessor {
 
     fn get_input_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::LinearM1to1NormalizedF32
+        IOTypeVariant::NormalizedM1to1F32
     }
 
     fn get_output_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::LinearM1to1NormalizedF32
+        IOTypeVariant::NormalizedM1to1F32
     }
 
     fn get_most_recent_output(&self) -> &IOTypeData {
@@ -40,7 +40,7 @@ impl StreamCacheProcessor for IdentityLinearFloatCacheProcessor {
 
 impl IdentityLinearFloatCacheProcessor {
     pub fn new(initial_value: IOTypeData) -> Result<Self, FeagiDataProcessingError> {
-        if initial_value.variant() != IOTypeVariant::LinearM1to1NormalizedF32 {
+        if initial_value.variant() != IOTypeVariant::NormalizedM1to1F32 {
             return Err(IODataError::InvalidParameters("Initial Value for IdentityLinearFloatCacheProcessor must be a LinearNormalizedFloat!".into()).into());
         }
         Ok(Self { previous_value: initial_value})

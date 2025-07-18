@@ -83,25 +83,27 @@ impl BoundedF32 {
 }
 
 
+// TODO change the ranges here to constants
+
 
 #[derive(Debug, Clone, PartialEq, Copy, PartialOrd)]
-pub struct LinearM1to1NormalizedF32 {
+pub struct NormalizedM1To1F32 {
     value: BoundedF32
 }
 
-impl std::fmt::Display for LinearM1to1NormalizedF32 {
+impl std::fmt::Display for NormalizedM1To1F32 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{} (LinearM1to1NormalizedF32)", self.value)
     }
 }
 
-impl Into<f32> for LinearM1to1NormalizedF32 {
+impl Into<f32> for NormalizedM1To1F32 {
     fn into(self) -> f32 {
         self.value.value
     }
 }
 
-impl LinearM1to1NormalizedF32 {
+impl NormalizedM1To1F32 {
     pub fn new(float: f32) -> Result<Self, FeagiDataProcessingError> {
         Ok(Self { value: BoundedF32::new_with_error(float, -1.0, 1.0)? })
     }
@@ -132,24 +134,24 @@ impl LinearM1to1NormalizedF32 {
 
 
 #[derive(Debug, Clone, PartialEq, Copy, PartialOrd)]
-pub struct Linear0to1NormalizedF32 {
+pub struct Normalized0To1F32 {
     value: BoundedF32
 }
 
-impl std::fmt::Display for Linear0to1NormalizedF32 {
+impl std::fmt::Display for Normalized0To1F32 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 
         write!(f, "{} (Linear0to1NormalizedF32)", self.value)
     }
 }
 
-impl Into<f32> for Linear0to1NormalizedF32 {
+impl Into<f32> for Normalized0To1F32 {
     fn into(self) -> f32 {
         self.value.value
     }
 }
 
-impl Linear0to1NormalizedF32 {
+impl Normalized0To1F32 {
     pub fn new(float: f32) -> Result<Self, FeagiDataProcessingError> {
         Ok(Self { value: BoundedF32::new_with_error(float, 0.0, 1.0)? })
     }

@@ -1,7 +1,8 @@
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, SingleChannelDimensions};
-use crate::io_data::{IOTypeData, IOTypeVariant, LinearM1to1NormalizedF32};
-use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays, NeuronXYZPDecoder};
+use crate::io_data::{IOTypeData, IOTypeVariant, NormalizedM1To1F32};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
+use super::super::NeuronXYZPDecoder;
 
 pub struct LinearNormalizedFloatSplitSignDividedNeuronXYZPDecoder {
     channel_dimensions: SingleChannelDimensions,
@@ -10,7 +11,7 @@ pub struct LinearNormalizedFloatSplitSignDividedNeuronXYZPDecoder {
 
 impl NeuronXYZPDecoder for LinearNormalizedFloatSplitSignDividedNeuronXYZPDecoder {
     fn get_decoded_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::LinearM1to1NormalizedF32
+        IOTypeVariant::NormalizedM1to1F32
     }
 
     fn get_channel_dimensions(&self) -> &SingleChannelDimensions {
@@ -25,7 +26,7 @@ impl NeuronXYZPDecoder for LinearNormalizedFloatSplitSignDividedNeuronXYZPDecode
         
         let cortical_id = self.cortical_read_source[0];
         if !read_from.contains(&cortical_id) {
-            return Ok(LinearM1to1NormalizedF32::new_zero().into());
+            return Ok(NormalizedM1To1F32::new_zero().into());
         }
         const CHANNEL_WIDTH: u32 = 2;
 
@@ -57,7 +58,7 @@ impl NeuronXYZPDecoder for LinearNormalizedFloatSplitSignDividedNeuronXYZPDecode
             }
         };
         output /= channel_neuron_count as f32;
-        Ok(LinearM1to1NormalizedF32::new_with_clamp(output)?.into())
+        Ok(NormalizedM1To1F32::new_with_clamp(output)?.into())
     }
 }
 
@@ -85,7 +86,7 @@ pub struct LinearNormalizedFloatPSPBirdirectionalDividedNeuronXYZPDecoder {
 // TODO right now the logic is a clone of the above, however we can optimize it specifically for this
 impl NeuronXYZPDecoder for LinearNormalizedFloatPSPBirdirectionalDividedNeuronXYZPDecoder {
     fn get_decoded_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::LinearM1to1NormalizedF32
+        IOTypeVariant::NormalizedM1to1F32
     }
 
     fn get_channel_dimensions(&self) -> &SingleChannelDimensions {
@@ -100,7 +101,7 @@ impl NeuronXYZPDecoder for LinearNormalizedFloatPSPBirdirectionalDividedNeuronXY
 
         let cortical_id = self.cortical_read_source[0];
         if !read_from.contains(&cortical_id) {
-            return Ok(LinearM1to1NormalizedF32::new_zero().into());
+            return Ok(NormalizedM1To1F32::new_zero().into());
         }
         const CHANNEL_WIDTH: u32 = 2;
 
@@ -132,7 +133,7 @@ impl NeuronXYZPDecoder for LinearNormalizedFloatPSPBirdirectionalDividedNeuronXY
             }
         };
         output /= channel_neuron_count as f32;
-        Ok(LinearM1to1NormalizedF32::new_with_clamp(output)?.into())
+        Ok(NormalizedM1To1F32::new_with_clamp(output)?.into())
     }
 }
 
