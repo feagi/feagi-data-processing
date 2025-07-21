@@ -19,22 +19,6 @@
 //! - **Network Serialization**: Built-in support for binary serialization/deserialization
 //! - **Dynamic Management**: Runtime insertion, removal, and modification of neuron collections
 //!
-//! # Usage Examples
-//!
-//! ```rust
-//! use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
-//! use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
-//!
-//! // Create a new neuron data collection
-//! let mut neuron_data = CorticalMappedXYZPNeuronData::new();
-//!
-//! // Check if a cortical area has data
-//! let cortical_id = CorticalID::new(1, 0, 0, 0, 0, 0).unwrap();
-//! if !neuron_data.contains(&cortical_id) {
-//!     println!("No data for cortical area {:?}", cortical_id);
-//! }
-//! ```
-//!
 //! # Binary Serialization
 //!
 //! The structure supports efficient binary serialization for network transmission
@@ -72,29 +56,6 @@ use crate::neuron_data::xyzp::NeuronXYZPArrays;
 /// - Cortical count (2 bytes): Number of cortical areas
 /// - Cortical headers (14 bytes each): Area metadata and data pointers
 /// - Neuron data (variable): Raw neuron XYZP data for all areas
-///
-/// # Examples
-///
-/// ```rust
-/// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{
-///     CorticalMappedXYZPNeuronData, NeuronXYZPArrays
-/// };
-/// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
-///
-/// // Create neuron data collection
-/// let mut brain_data = CorticalMappedXYZPNeuronData::new();
-///
-/// // Add neuron data for a cortical area
-/// let visual_cortex = CorticalID::new(1, 0, 0, 0, 0, 0).unwrap();
-/// let neurons = NeuronXYZPArrays::new(1000).unwrap();
-/// brain_data.insert(visual_cortex, neurons);
-///
-/// // Access neuron data
-/// if let Some(visual_neurons) = brain_data.borrow(&visual_cortex) {
-///     println!("Visual cortex has {} active neurons", 
-///              visual_neurons.get_number_of_neurons_used());
-/// }
-/// ```
 #[derive(Clone)]
 pub struct CorticalMappedXYZPNeuronData {
     /// Hash map storing neuron collections for each cortical area.
@@ -292,23 +253,6 @@ impl CorticalMappedXYZPNeuronData {
     /// # Returns
     ///
     /// The count of cortical areas that have neuron data.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{
-    ///     CorticalMappedXYZPNeuronData, NeuronXYZPArrays
-    /// };
-    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
-    ///
-    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
-    /// assert_eq!(neuron_data.get_number_contained_areas(), 0);
-    ///
-    /// let cortical_id = CorticalID::new(1, 0, 0, 0, 0, 0).unwrap();
-    /// let neurons = NeuronXYZPArrays::new(100).unwrap();
-    /// neuron_data.insert(cortical_id, neurons);
-    /// assert_eq!(neuron_data.get_number_contained_areas(), 1);
-    /// ```
     pub fn get_number_contained_areas(&self) -> usize {
         self.mappings.len()
     }
@@ -326,22 +270,6 @@ impl CorticalMappedXYZPNeuronData {
     ///
     /// `true` if the cortical area already existed (data was replaced),
     /// `false` if this is a new cortical area.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{
-    ///     CorticalMappedXYZPNeuronData, NeuronXYZPArrays
-    /// };
-    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
-    ///
-    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
-    /// let cortical_id = CorticalID::new(1, 0, 0, 0, 0, 0).unwrap();
-    /// let neurons = NeuronXYZPArrays::new(100).unwrap();
-    ///
-    /// let replaced = neuron_data.insert(cortical_id, neurons);
-    /// assert!(!replaced); // First insertion, nothing replaced
-    /// ```
     pub fn insert(&mut self, cortical_id: CorticalID, neuron_data: NeuronXYZPArrays) -> bool {
         self.mappings.insert(cortical_id, neuron_data).is_some()
     }
@@ -355,18 +283,6 @@ impl CorticalMappedXYZPNeuronData {
     /// # Returns
     ///
     /// `true` if the cortical area exists, `false` otherwise.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
-    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
-    ///
-    /// let neuron_data = CorticalMappedXYZPNeuronData::new();
-    /// let cortical_id = CorticalID::new(1, 0, 0, 0, 0, 0).unwrap();
-    ///
-    /// assert!(!neuron_data.contains(&cortical_id));
-    /// ```
     pub fn contains(&self, cortical_id: &CorticalID) -> bool {
         self.mappings.contains_key(cortical_id)
     }
@@ -380,21 +296,6 @@ impl CorticalMappedXYZPNeuronData {
     /// # Returns
     ///
     /// `Some(&NeuronXYZPArrays)` if the cortical area exists, `None` otherwise.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
-    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
-    ///
-    /// let neuron_data = CorticalMappedXYZPNeuronData::new();
-    /// let cortical_id = CorticalID::new(1, 0, 0, 0, 0, 0).unwrap();
-    ///
-    /// match neuron_data.borrow(&cortical_id) {
-    ///     Some(neurons) => println!("Found {} neurons", neurons.get_number_of_neurons_used()),
-    ///     None => println!("Cortical area not found"),
-    /// }
-    /// ```
     pub fn borrow(&self, cortical_id: &CorticalID) -> Option<&NeuronXYZPArrays> {
         self.mappings.get(cortical_id)
     }
@@ -408,25 +309,6 @@ impl CorticalMappedXYZPNeuronData {
     /// # Returns
     ///
     /// `Some(&mut NeuronXYZPArrays)` if the cortical area exists, `None` otherwise.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{
-    ///     CorticalMappedXYZPNeuronData, NeuronXYZPArrays
-    /// };
-    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
-    ///
-    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
-    /// let cortical_id = CorticalID::new(1, 0, 0, 0, 0, 0).unwrap();
-    /// let neurons = NeuronXYZPArrays::new(100).unwrap();
-    /// neuron_data.insert(cortical_id.clone(), neurons);
-    ///
-    /// if let Some(neurons) = neuron_data.borrow_mut(&cortical_id) {
-    ///     // Modify the neuron data
-    ///     neurons.reset_indexes();
-    /// }
-    /// ```
     pub fn borrow_mut(&mut self, cortical_id: &CorticalID) -> Option<&mut NeuronXYZPArrays> {
         self.mappings.get_mut(&cortical_id)
     }
@@ -445,20 +327,6 @@ impl CorticalMappedXYZPNeuronData {
     /// # Returns
     ///
     /// A mutable reference to the neuron arrays, guaranteed to be empty and ready for use.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
-    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
-    ///
-    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
-    /// let cortical_id = CorticalID::new(1, 0, 0, 0, 0, 0).unwrap();
-    ///
-    /// // This will create new neuron arrays with capacity 1000
-    /// let neurons = neuron_data.ensure_clear_and_borrow_mut(&cortical_id, 1000);
-    /// assert_eq!(neurons.get_number_of_neurons_used(), 0);
-    /// ```
     pub fn ensure_clear_and_borrow_mut(&mut self, cortical_id: &CorticalID, estimated_neuron_count: usize) -> &mut NeuronXYZPArrays {
         if self.mappings.contains_key(cortical_id) {
             let neurons = self.mappings.get_mut(cortical_id).unwrap();

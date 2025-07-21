@@ -40,17 +40,17 @@ impl SingleChannelDimensionsRequirements {
         }
         
         if self.y.is_some() {
-            output += format!("Y axis length must be {},", self.y.unwrap());
+            output.push_str(&format!("Y axis length must be {},", self.y.unwrap()));
         }
         else {
-            output = format!("Y axis length must be non-zero,");
+            output.push_str("Y axis length must be non-zero,");
         }
         
         if self.z.is_some() {
-            output = format!("and Z axis length must be {}.", self.z.unwrap());
+            output.push_str(&format!("and Z axis length must be {}.", self.z.unwrap()));
         }
         else {
-            output = format!("and Z length must be non-zero.");
+            output.push_str("and Z length must be non-zero.");
         }
         output
     }

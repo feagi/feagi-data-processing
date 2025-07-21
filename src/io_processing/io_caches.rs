@@ -4,7 +4,7 @@ use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SingleChannelDimensions};
 use crate::io_data::IOTypeData;
 use crate::io_processing::{SensoryChannelStreamCache, StreamCacheProcessor};
-use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
 use crate::neuron_data::xyzp::{NeuronCoderVariantType, instantiate_encoder_by_type};
 
 pub struct SensorCache {
@@ -157,7 +157,7 @@ impl SensorCache {
             let neuron_encoder = &cortical_area_details.neuron_encoder;
             for channel_cache_key in channel_cache_keys {
                 let sensor_cache = self.channel_caches.get(channel_cache_key).unwrap();
-                sensor_cache.encode_to_neurons(neurons_to_encode_to, neuron_encoder, &cortical_id_targets)?
+                sensor_cache.encode_to_neurons(neurons_to_encode_to, neuron_encoder)?
             }
         }
         Ok(())

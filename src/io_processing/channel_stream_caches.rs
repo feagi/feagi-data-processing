@@ -1,9 +1,10 @@
 use std::time::{Instant};
 use crate::error::{FeagiDataProcessingError};
-use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex};
+use crate::genomic_structures::{CorticalIOChannelIndex};
 use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::io_processing::{StreamCacheProcessor};
-use crate::neuron_data::xyzp::{NeuronXYZPEncoder, CorticalMappedXYZPNeuronData};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
+use crate::neuron_data::xyzp::NeuronXYZPEncoder;
 
 // Per channel cache
 

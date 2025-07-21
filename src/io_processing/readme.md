@@ -8,8 +8,8 @@ Various data structures can implement the trait "FeagiByteStructureCompatible" t
 
 To see technical information on the specifications of the Feagi Byte Structure, please read here (TODO).
 
-## Stream Cache Processor
-As neuronal data comes in (or before it goes out), the user may want to define a filter of some sort ot act upon the coded data. This are handled by Stream Cache Processors, which are configurable structures that act upon some processing method onto receiving / sending data. There are various types, depending on the type of data encoded:
+## Stream Cache Processors
+As neuronal data comes in (or before it goes out), the user may want to define a filter/preprocessing step of some sort ot act upon the coded data. This are handled by Stream Cache Processors, which are configurable structures that act upon some processing method onto receiving / sending data. There are various types, depending on the type of data encoded:
 - Identity
   - Does nothing. No filtering, averaging, anything.
 - Sliding Window Average

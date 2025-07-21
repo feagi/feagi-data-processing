@@ -10,3 +10,5 @@ pub use neuron_xyzp_arrays::NeuronXYZPArrays as NeuronXYZPArrays;
 pub use cortical_mapped_xyzp_neuron_data::CorticalMappedXYZPNeuronData as CorticalMappedXYZPNeuronData;
 
 pub use coders::{decoders, encoders, instantiate_encoder_by_type, NeuronCoderVariantType};
+
+pub use coders::{NeuronXYZPEncoder, NeuronXYZPDecoder};
