@@ -3,7 +3,7 @@ mod normalized_m1_to_1_f32_split_sign_divided;
 mod normalized_m1_to_1_f32_psp_bidirectional;
 mod normalized_0_to_1_float_f32_linear;
 
-pub(crate) use image_frame::{ImageFrameNeuronXYZPEncoder};
-pub(crate) use normalized_m1_to_1_f32_split_sign_divided::{NormalizedM1to1F32FloatSplitSignDividedNeuronXYZPEncoder};
-pub(crate) use normalized_m1_to_1_f32_psp_bidirectional::{NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder};
-pub(crate) use normalized_0_to_1_float_f32_linear::{Normalized0To1F32LinearNeuronXYZPEncoder};
+pub use image_frame::{ImageFrameNeuronXYZPEncoder};
+pub use normalized_m1_to_1_f32_split_sign_divided::{NormalizedM1to1F32FloatSplitSignDividedNeuronXYZPEncoder};
+pub use normalized_m1_to_1_f32_psp_bidirectional::{NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder};
+pub use normalized_0_to_1_float_f32_linear::{Normalized0To1F32LinearNeuronXYZPEncoder};

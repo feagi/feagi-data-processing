@@ -1,8 +1,8 @@
-use crate::error::{FeagiDataProcessingError, IODataError, NeuronError};
-use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, CorticalType, SingleChannelDimensions};
-use crate::neuron_data::xyzp::{NeuronXYZPEncoder, CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
-use crate::io_data::{ImageFrame, IOTypeData, IOTypeVariant};
-use crate::io_data::descriptors::ChannelFormat;
+use crate::error::{FeagiDataProcessingError};
+use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, SingleChannelDimensions};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
+use crate::neuron_data::xyzp::coders::NeuronXYZPEncoder;
+use crate::io_data::{ImageFrame, IOTypeData};
 
 pub struct ImageFrameNeuronXYZPEncoder {
     channel_dimensions: SingleChannelDimensions,

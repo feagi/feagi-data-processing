@@ -9,7 +9,7 @@
 use super::image_frame::ImageFrame;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use super::descriptors::*;
-use crate::genomic_structures::{CorticalGroupingIndex, CorticalID};
+use crate::genomic_structures::{CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex};
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 
 
@@ -209,28 +209,7 @@ impl SegmentedImageFrame {
     //endregion
     
     //region neuron export
-    
-    /// Exports all segments as a new cortical-mapped neuron data structure.
-    /// 
-    /// This method converts each of the nine segments into neuron data and maps them
-    /// to their corresponding cortical areas. Each segment is processed with a threshold
-    /// to determine which pixels become neurons, and the resulting data is organized
-    /// by cortical ID.
-    /// 
-    /// The cortical IDs follow a standard naming convention:
-    /// - Center: "iv00_C" (grayscale) or "iv00CC" (color)
-    /// - Peripheral segments: "iv00BL", "iv00ML", "iv00TL", "iv00TM", "iv00TR", "iv00MR", "iv00BR", "iv00BM"
-    /// 
-    /// # Arguments
-    /// 
-    /// * `_camera_index` - The camera index (currently unused but reserved for future multi-camera support)
-    /// 
-    /// # Returns
-    /// 
-    /// A Result containing either:
-    /// - Ok(CorticalMappedNeuronData) with neuron data for all nine segments
-    /// - Err(DataProcessingError) if any conversion fails
-    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: CorticalGroupingIndex) -> Result<CorticalMappedXYZPNeuronData, FeagiDataProcessingError> {
+    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: CorticalGroupingIndex, channel_index: CorticalIOChannelIndex) -> Result<CorticalMappedXYZPNeuronData, FeagiDataProcessingError> {
 
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
@@ -241,7 +220,7 @@ impl SegmentedImageFrame {
         for index in 0..9 {
             let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
             let mut data: NeuronXYZPArrays = NeuronXYZPArrays::new(max_neurons)?;
-            ordered_refs[index].write_xyzp_neuron_arrays(10.0, &mut data)?;
+            ordered_refs[index].write_xyzp_neuron_arrays(&mut data, channel_index)?;
             output.insert(cortical_ids[index].clone(), data);
         }
         
@@ -265,7 +244,7 @@ impl SegmentedImageFrame {
     /// A Result containing either:
     /// - Ok(()) if all segments were exported successfully
     /// - Err(DataProcessingError) if any cortical ID is not found or conversion fails
-    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
+    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData, channel_index: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
         for index in 0..9 {
@@ -276,7 +255,7 @@ impl SegmentedImageFrame {
                     return Err(FeagiDataProcessingError::InternalError("Unable to find cortical area to unwrap!".into())); // TODO specific error?
                 }
                 Some(mapped_data) => {
-                    ordered_refs[index].write_xyzp_neuron_arrays(10.0, mapped_data)?;
+                    ordered_refs[index].write_xyzp_neuron_arrays(mapped_data, channel_index)?;
                 }
             }
         }

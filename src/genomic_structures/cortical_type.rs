@@ -3,6 +3,7 @@ use crate::error::{FeagiBytesError, FeagiDataProcessingError, GenomeError, IODat
 use crate::genomic_structures::cortical_id::{CorticalID};
 use crate::genomic_structures::{SingleChannelDimensionsRequirements};
 use crate::genomic_structures::index_types::CorticalGroupingIndex;
+use crate::neuron_data::xyzp::NeuronCoderVariantType;
 use crate::io_data::IOTypeVariant;
 
 macro_rules! define_io_cortical_types {
@@ -14,6 +15,7 @@ macro_rules! define_io_cortical_types {
                     base_ascii: $base_ascii:expr,
                     channel_dimensions: $channel_dimensions:expr,
                     io_variants: $io_variants:expr,
+                    encoder_type: $encoder_type:expr,
                 }
             ),* $(,)?
         }
@@ -71,7 +73,7 @@ macro_rules! define_io_cortical_types {
                 CorticalID {bytes: output} // skip safety checks, we know this is fine
             }
 
-            pub fn get_single_channel_dimensions(&self) -> SingleChannelDimensionsRequirements {
+            pub fn get_channel_size_boundaries(&self) -> SingleChannelDimensionsRequirements {
                 match self {
                     $(
                         Self::$cortical_type_key_name => $channel_dimensions.unwrap()
@@ -93,7 +95,15 @@ macro_rules! define_io_cortical_types {
                 }
                 Ok(())
             }
-
+            
+            pub fn get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
+                match self {
+                    $(
+                        Self::$cortical_type_key_name => Ok($encoder_type)
+                    ),*
+                }
+            }
+            
         }
     }
 }
@@ -168,6 +178,27 @@ impl CorticalType {
             Self::Motor(m) => {m.verify_valid_io_variant(checking)},
         }
     }
+
+    pub fn try_get_channel_size_boundaries(&self) -> Result<SingleChannelDimensionsRequirements, FeagiDataProcessingError> {
+        match self {
+            Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas do not have channels!".into()).into()),
+            Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas do not have channels!".into()).into()),
+            Self::Core(c) => Ok(c.get_channel_size_boundaries()),
+            Self::Sensory(s) => Ok(s.get_channel_size_boundaries()),
+            Self::Motor(m) => Ok(m.get_channel_size_boundaries()),
+        }
+    }
+    
+    pub fn try_get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
+        match self {
+            Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas do not have coders!".into()).into()),
+            Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas do not have coders!".into()).into()),
+            Self::Core(_) => Err(IODataError::InvalidParameters("Core Cortical Areas do not have coders!".into()).into()),
+            Self::Sensory(s) => s.get_coder_type(),
+            Self::Motor(m) => m.get_coder_type(),
+        }
+    }
+    
     
     pub fn is_type_core(&self) -> bool {
         match self {
@@ -289,6 +320,13 @@ impl CoreCorticalType {
             _ => Err(handle_byte_id_mapping_fail(bytes)),
         }
     }
+    
+    pub fn get_channel_size_boundaries(&self)  -> SingleChannelDimensionsRequirements {
+        match self {
+            CoreCorticalType::Death => SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)).unwrap(),
+            CoreCorticalType::Power => SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)).unwrap()
+        }
+    }
 }
 
 //endregion
@@ -302,12 +340,14 @@ define_io_cortical_types!{
             base_ascii: b"iinf00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)),
             io_variants: [IOTypeVariant::NormalizedM1to1F32],
+            encoder_type: NeuronCoderVariantType::Normalized0To1F32,
         },
         ReverseInfrared => {
             friendly_name::: "Reverse Infrared Sensor",
             base_ascii: b"iiif00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)),
             io_variants: [IOTypeVariant::NormalizedM1to1F32],
+            encoder_type: NeuronCoderVariantType::Normalized0To1F32,
         },
 
         VisionCenterGray => {
@@ -315,126 +355,147 @@ define_io_cortical_types!{
             base_ascii: b"ivcc00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionTopLeftGray => {
             friendly_name::: "Top Left Vision Input (Grayscale)",
             base_ascii: b"ivtl00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionTopMiddleGray => {
             friendly_name::: "Top Middle Vision Input (Grayscale)",
             base_ascii: b"ivtm00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionTopRightGray => {
             friendly_name::: "Top Right Vision Input (Grayscale)",
             base_ascii: b"ivtr00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionMiddleLeftGray => {
             friendly_name::: "Middle Left Vision Input (Grayscale)",
             base_ascii: b"ivml00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionMiddleRightGray => {
             friendly_name::: "Middle Right Vision Input (Grayscale)",
             base_ascii: b"ivmr00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionBottomLeftGray => {
             friendly_name::: "Bottom Left Vision Input (Grayscale)",
             base_ascii: b"ivbl00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionBottomMiddleGray => {
             friendly_name::: "Bottom Middle Vision Input (Grayscale)",
             base_ascii: b"ivbm00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionBottomRightGray => {
             friendly_name::: "Bottom Right Vision Input (Grayscale)",
             base_ascii: b"ivbr00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionCenterColor => {
             friendly_name::: "Center Vision Input (Color)",
             base_ascii: b"iVcc00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionTopLeftColor => {
             friendly_name::: "Top Left Vision Input (Color)",
             base_ascii: b"iVtl00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionTopMiddleColor => {
             friendly_name::: "Top Middle Vision Input (Color)",
             base_ascii: b"iVtm00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionTopRightColor => {
             friendly_name::: "Top Right Vision Input (Color)",
             base_ascii: b"iVtr00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionMiddleLeftColor => {
             friendly_name::: "Middle Left Vision Input (Color)",
             base_ascii: b"iVml00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionMiddleRightColor => {
             friendly_name::: "Middle Right Vision Input (Color)",
             base_ascii: b"iVmr00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionBottomLeftColor => {
             friendly_name::: "Bottom Left Vision Input (Color)",
             base_ascii: b"iVbl00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionBottomMiddleColor => {
             friendly_name::: "Bottom Middle Vision Input (Color)",
             base_ascii: b"iVbm00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         VisionBottomRightColor => {
             friendly_name::: "Bottom Right Vision Input (Color)",
             base_ascii: b"iVbr00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
+            encoder_type: NeuronCoderVariantType::ImageFrame,
         },
         DigitalGPIOInput => {
             friendly_name::: "GPIO Digital Input",
             base_ascii: b"idgp00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)),
             io_variants: [IOTypeVariant::NormalizedM1to1F32],
+            encoder_type: NeuronCoderVariantType::Normalized0To1F32,
         },
         Proximity => {
             friendly_name::: "Proximity",
             base_ascii: b"ipro00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), None),
             io_variants: [IOTypeVariant::NormalizedM1to1F32],
+            encoder_type: NeuronCoderVariantType::Normalized0To1F32,
         },
         Miscellaneous => {
             friendly_name::: "Miscellaneous",
             base_ascii: b"imis00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
             io_variants: [IOTypeVariant::NormalizedM1to1F32],
+            encoder_type: NeuronCoderVariantType::Normalized0To1F32,
         }
 
     }    
@@ -457,6 +518,7 @@ define_io_cortical_types!{
             base_ascii: b"omot00",
             channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), None),
             io_variants: [IOTypeVariant::NormalizedM1to1F32],
+            encoder_type: NeuronCoderVariantType::NormalizedM1To1F32_PSPBirdirectionalDivided,
         },
     }    
 }

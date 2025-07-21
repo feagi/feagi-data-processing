@@ -20,11 +20,4 @@ impl CorticalAreaDimensions {
         (self.x, self.y, self.z)
     }
 
-    pub fn verify(&self) -> Result<(), FeagiDataProcessingError> {
-        if self.x == 0 || self.y == 0 || self.z == 0 {
-            return Err(GenomeError::InvalidCorticalDimensions("Cortical dimensions cannot be 0 in any direction!".into()).into());
-        }
-        Ok(())
-    }
-
 }

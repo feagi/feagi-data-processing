@@ -1,8 +1,8 @@
 use crate::error::FeagiDataProcessingError;
 use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, SingleChannelDimensions};
-use crate::io_data::{IOTypeData, IOTypeVariant, NormalizedM1To1F32};
-use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPArrays, NeuronXYZPEncoder};
-
+use crate::io_data::{IOTypeData, NormalizedM1To1F32};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPArrays};
+use crate::neuron_data::xyzp::coders::NeuronXYZPEncoder;
 pub struct NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder {
     channel_dimensions: SingleChannelDimensions,
     cortical_write_target: CorticalID

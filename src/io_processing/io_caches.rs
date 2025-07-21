@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SensorCorticalType};
+use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SingleChannelDimensions};
 use crate::io_data::IOTypeData;
 use crate::io_processing::{SensoryChannelStreamCache, StreamCacheProcessor};
-use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
+use crate::neuron_data::xyzp::{NeuronCoderVariantType, instantiate_encoder_by_type};
 
 pub struct SensorCache {
     channel_caches: HashMap<FullChannelCacheKey, SensoryChannelStreamCache>,
@@ -15,7 +16,7 @@ pub struct SensorCache {
 impl SensorCache {
 
 
-    pub fn register_cortical_area(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32)
+    pub fn register_single_cortical_area(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32, channel_dimensions: SingleChannelDimensions)
         -> Result<(), FeagiDataProcessingError> {
 
         cortical_type.verify_is_sensor()?;
@@ -25,15 +26,14 @@ impl SensorCache {
         if number_supported_channels == 0 {
             return Err(IODataError::InvalidParameters("A cortical area cannot be registered with 0 channels!".into()).into())
         }
-
+        channel_dimensions.verify_restrictions(&cortical_type.try_get_channel_size_boundaries()?)?; // Verify given channel dimensions are sensible for this cortical type
+        
+        
+        
         let cortical_metadata_key = CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index);
-        
-        let mut cortical_id_write_targets: Vec<CorticalID> = vec![cortical_type.try_as_cortical_id(cortical_grouping_index)?];
-        
-        // Unique case (TODO: add check for segmented encoder type)
-        if cortical_type == CorticalType::Sensory(SensorCorticalType::VisionCenterGray) && false {
-            cortical_id_write_targets = CorticalID::create_ordered_cortical_areas_for_segmented_vision(cortical_grouping_index, true).to_vec();
-        }
+        let cortical_id_write_targets: Vec<CorticalID> = vec![cortical_type.try_as_cortical_id(cortical_grouping_index)?]; // Only 1
+        let neuron_encoder_type = cortical_type.try_get_coder_type()?;
+        let neuron_encoder = instantiate_encoder_by_type(neuron_encoder_type, &cortical_id_write_targets, channel_dimensions)?;
         
         _ = self.cortical_area_metadata.insert(
             cortical_metadata_key,
@@ -41,6 +41,16 @@ impl SensorCache {
         );
         Ok(())
     }
+    
+    pub fn register_segmented_vision_cortical_areas(&mut self, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32)  -> Result<(), FeagiDataProcessingError> {
+
+        // Unique case (TODO: add check for segmented encoder type)
+        //if cortical_type == CorticalType::Sensory(SensorCorticalType::VisionCenterGray) && false {
+        //    cortical_id_write_targets = CorticalID::create_ordered_cortical_areas_for_segmented_vision(cortical_grouping_index, true).to_vec();
+        //}
+        Err(FeagiDataProcessingError::NotImplemented)
+    }
+    
 
     pub fn register_channel(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex,
                             channel: CorticalIOChannelIndex, sensory_processor: Box<dyn StreamCacheProcessor>, should_sensor_allow_sending_stale_data: bool) ->

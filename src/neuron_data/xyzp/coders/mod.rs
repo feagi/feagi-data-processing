@@ -1,9 +1,7 @@
 mod coder_traits;
 mod coder_types;
-mod decoders;
-mod encoders;
+pub mod decoders; // passes through all the types directly
+pub mod encoders;
 
-pub(crate) use encoders::*;
-pub(crate) use decoders::*;
-pub(crate) use coder_types::instantiate_encoder_by_type;
-pub(crate) use coder_traits::{NeuronXYZPEncoder, NeuronXYZPDecoder};
+pub use coder_types::{instantiate_encoder_by_type, NeuronCoderVariantType};
+pub use coder_traits::{NeuronXYZPEncoder, NeuronXYZPDecoder};
