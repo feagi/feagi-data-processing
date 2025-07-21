@@ -1,6 +1,6 @@
 [package]
 name = "feagi_core_data_structures_and_processing"
-version = "0.0.44"
+version = "0.0.45"
 edition = "2024"
 license = "Apache-2.0"
 description = "A library for FEAGI libraries to use to handle data processing"
@@ -9,7 +9,6 @@ description = "A library for FEAGI libraries to use to handle data processing"
 ndarray = "0.16.1"
 byteorder = "1.5.0"
 serde_json = "1.0.140"
-enum_dispatch = "0.3.13"
 
 [dev-dependencies]
 ndarray-npy = "0.9.1"
