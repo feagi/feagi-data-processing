@@ -476,14 +476,14 @@ impl SegmentedFrameCenterProperties {
             (center_size_normalized_xy.1, center_size_normalized_xy.0))
     }
 
-    /// Creates a default centered SegmentedVisionCenterProperties.
+    /// Creates a default centered SegmentedFrameCenterProperties.
     /// 
     /// This convenience method creates center properties with the center region
     /// positioned at the middle of the image with a moderate size.
     /// 
     /// # Returns
     /// 
-    /// A SegmentedVisionCenterProperties with default centered configuration.
+    /// A SegmentedFrameCenterProperties with default centered configuration.
     pub fn create_default_centered() -> SegmentedFrameCenterProperties {
         SegmentedFrameCenterProperties::new_row_major_where_origin_top_left((0.5, 0.5), (0.5, 0.5)).unwrap()
     }
@@ -571,7 +571,7 @@ pub struct SegmentedFrameTargetResolutions {
 
 impl SegmentedFrameTargetResolutions {
 
-    /// Creates a new SegmentedVisionTargetResolutions with individual segment resolutions.
+    /// Creates a new SegmentedFrameTargetResolutions with individual segment resolutions.
     /// 
     /// This constructor allows setting different resolutions for each of the nine segments
     /// in the segmented vision frame.
@@ -591,7 +591,7 @@ impl SegmentedFrameTargetResolutions {
     /// # Returns
     /// 
     /// A Result containing either:
-    /// - Ok(SegmentedVisionTargetResolutions) if all resolutions are valid (non-zero)
+    /// - Ok(SegmentedFrameTargetResolutions) if all resolutions are valid (non-zero)
     /// - Err(DataProcessingError) if any resolution has zero width or height
     pub fn new(
         lower_left: (usize, usize),
