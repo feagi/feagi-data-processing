@@ -7,7 +7,7 @@ use crate::io_data::{IOTypeData, IOTypeVariant};
 // Since Implementations of this trait may differ in size or be dynamically sized, we cannot 
 // turn this into an enum. Please Don't Try!
 
-pub trait StreamCacheProcessor: fmt::Display + Debug + Sync {
+pub trait StreamCacheProcessor: fmt::Display + Debug + Sync + Send {
     fn get_input_data_type(&self) -> IOTypeVariant;
 
     fn get_output_data_type(&self) -> IOTypeVariant;
