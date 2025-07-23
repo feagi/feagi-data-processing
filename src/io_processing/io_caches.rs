@@ -14,7 +14,14 @@ pub struct SensorCache {
 }
 
 impl SensorCache {
-
+    
+    pub fn new() -> SensorCache {
+        SensorCache {
+            channel_caches: HashMap::new(),
+            cortical_area_metadata: HashMap::new(),
+            agent_key_proxy: HashMap::new()
+        }
+    }
 
     pub fn register_single_cortical_area(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32, channel_dimensions: SingleChannelDimensions)
         -> Result<(), FeagiDataProcessingError> {
