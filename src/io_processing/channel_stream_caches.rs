@@ -46,7 +46,7 @@ impl SensoryChannelStreamCache {
         self.stream_cache_processor.get_most_recent_output()
     }
     
-    pub fn encode_to_neurons(&self, cortical_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData, encoder: &Box<dyn NeuronXYZPEncoder + Sync>) -> Result<(), FeagiDataProcessingError> {
+    pub fn encode_to_neurons(&self, cortical_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData, encoder: &Box<dyn NeuronXYZPEncoder + Sync + Send>) -> Result<(), FeagiDataProcessingError> {
         encoder.write_neuron_data_single_channel(self.stream_cache_processor.get_most_recent_output(), self.channel, cortical_mapped_neuron_data)
     }
     

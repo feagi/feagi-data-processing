@@ -12,7 +12,7 @@ pub enum NeuronCoderVariantType {
 }
 
 pub fn instantiate_encoder_by_type(neuron_coder_type: NeuronCoderVariantType, cortical_ids_targeted: &[CorticalID], channel_dimensions: SingleChannelDimensions)
-    -> Result<Box<dyn NeuronXYZPEncoder + Sync>, FeagiDataProcessingError> {
+    -> Result<Box<dyn NeuronXYZPEncoder + Sync + Send>, FeagiDataProcessingError> {
     
     const STANDARD_EXPECTED_CORTICAL_ID_COUNT: usize = 1;
     
