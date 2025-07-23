@@ -60,7 +60,7 @@ impl SensorCache {
     
 
     pub fn register_channel(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex,
-                            channel: CorticalIOChannelIndex, sensory_processor: Box<dyn StreamCacheProcessor + Sync>, should_sensor_allow_sending_stale_data: bool) ->
+                            channel: CorticalIOChannelIndex, sensory_processor: Box<dyn StreamCacheProcessor + Sync + Send>, should_sensor_allow_sending_stale_data: bool) ->
     Result<(), FeagiDataProcessingError> {
 
         cortical_type.verify_is_sensor()?;
@@ -334,11 +334,11 @@ pub(crate) struct CorticalAreaCacheDetails {
     pub neuron_data_location_by_cortical_ids: Vec<CorticalID>,
     pub relevant_channel_lookups: Vec<FullChannelCacheKey>,
     pub number_channels: u32,
-    pub neuron_encoder: Box<dyn NeuronXYZPEncoder + Sync>
+    pub neuron_encoder: Box<dyn NeuronXYZPEncoder + Sync + Send>
 }
 
 impl  CorticalAreaCacheDetails {
-    pub fn new(neuron_data_location_by_cortical_ids: Vec<CorticalID>, number_channels: u32, neuron_encoder: Box<dyn NeuronXYZPEncoder + Sync>) -> Self {
+    pub fn new(neuron_data_location_by_cortical_ids: Vec<CorticalID>, number_channels: u32, neuron_encoder: Box<dyn NeuronXYZPEncoder + Sync + Send>) -> Self {
         CorticalAreaCacheDetails{
             neuron_data_location_by_cortical_ids,
             relevant_channel_lookups: Vec::new(),
