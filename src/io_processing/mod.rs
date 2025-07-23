@@ -11,3 +11,5 @@ pub use stream_cache_processors::float::*;
 pub use stream_cache_processors::image_frame::*;
 
 pub use channel_stream_caches::{SensoryChannelStreamCache};
+
+pub use io_caches::{SensorCache};
