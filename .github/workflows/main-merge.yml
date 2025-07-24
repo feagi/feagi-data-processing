@@ -131,8 +131,33 @@ jobs:
         draft: false
         prerelease: false
     
+    - name: Merge main into staging
+      run: |
+        echo "Merging main into staging to keep staging up-to-date..."
+        
+        # Configure git
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Fetch latest changes
+        git fetch origin main staging
+        
+        # Switch to staging branch
+        git checkout staging
+        
+        # Merge main into staging
+        git merge origin/main --no-edit -m "Merge main into staging after release v${{ steps.version.outputs.version }}"
+        
+        # Push updated staging branch
+        git push origin staging
+        
+        echo "✅ Successfully merged main into staging"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
     - name: Notify success
       run: |
         echo "🎉 Release v${{ steps.version.outputs.version }} completed successfully!"
         echo "📦 Published to crates.io: https://crates.io/crates/feagi_core_data_structures_and_processing"
-        echo "🏷️ Tagged as: v${{ steps.version.outputs.version }}" 
+        echo "🏷️ Tagged as: v${{ steps.version.outputs.version }}"
+        echo "🔄 Staging branch updated with latest release" 
