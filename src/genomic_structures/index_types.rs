@@ -21,10 +21,14 @@ macro_rules! create_type_1d {
                 &self.0
             }
         }
+        
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                self.0.fmt(f)
+            }
+        }
     };
 }
-
-// TODO add Display
 
 
 // 0-255 in hexadecimal. cortical ID index for a specific cortical type in a genome

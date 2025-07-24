@@ -14,7 +14,9 @@ pub trait StreamCacheProcessor: fmt::Display + Debug + Sync + Send {
     
     fn get_most_recent_output(&self) -> &IOTypeData;
     
-    fn process_new_input(&mut self, value: IOTypeData) -> Result<&IOTypeData, FeagiDataProcessingError>; // Process in new input, get output
+    fn process_new_input(&mut self, value: &IOTypeData) -> Result<&IOTypeData, FeagiDataProcessingError>; // Process in new input, get output
     // NOTE: We will not do any explicit checks here as we already verify type safety explicitly on instantiation
     
 }
+
+// TODO JSON descriptors and parameter updates

@@ -18,11 +18,11 @@ impl Display for IdentityLinearFloatCacheProcessor {
 impl StreamCacheProcessor for IdentityLinearFloatCacheProcessor {
 
     fn get_input_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::NormalizedM1to1F32
+        IOTypeVariant::F32
     }
 
     fn get_output_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::NormalizedM1to1F32
+        IOTypeVariant::F32
     }
 
     fn get_most_recent_output(&self) -> &IOTypeData {
