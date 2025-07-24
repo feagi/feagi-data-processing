@@ -345,6 +345,15 @@ pub enum ColorSpace {
     Gamma
 }
 
+impl std::fmt::Display for ColorSpace {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ColorSpace::Linear => write!(f, "Linear"),
+            ColorSpace::Gamma => write!(f, "Gamma"),
+        }
+    }
+}
+
 /// Represents the color channel format of an image.
 ///
 /// This enum defines the possible color channel configurations for an image:
@@ -353,38 +362,37 @@ pub enum ColorSpace {
 /// - RGB: Three channels (red, green, blue)
 /// - RGBA: Four channels (red, green, blue, alpha)
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ChannelFormat {
+pub enum ChannelLayout {
     GrayScale = 1, // R
     RG = 2,
     RGB = 3,
     RGBA = 4,
 }
 
-impl ChannelFormat {
-    /// Creates a ChannelFormat from a usize value.
-    /// 
-    /// This method converts a numeric channel count into the corresponding
-    /// ChannelFormat enum variant.
-    /// 
-    /// # Arguments
-    /// 
-    /// * `val` - The number of color channels (1-4)
-    /// 
-    /// # Returns
-    /// 
-    /// A Result containing either:
-    /// - Ok(ChannelFormat) if the value is valid (1-4)
-    /// - Err(DataProcessingError) if the value is outside the valid range
-    pub fn from_usize(val: usize) -> Result<ChannelFormat, FeagiDataProcessingError> {
-        match val {
-            1 => Ok(ChannelFormat::GrayScale),
-            2 => Ok(ChannelFormat::RG),
-            3 => Ok(ChannelFormat::RGB),
-            4 => Ok(ChannelFormat::RGBA),
-            _ => Err(IODataError::InvalidParameters("The number of color channels must be at least 1 and not exceed the 4!".into()).into())
+impl std::fmt::Display for ChannelLayout {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ChannelLayout::GrayScale => write!(f, "GrayScale"),
+            ChannelLayout::RG => write!(f, "RedGreen"),
+            ChannelLayout::RGB => write!(f, "RedGreenBlue"),
+            ChannelLayout::RGBA => write!(f, "RedGreenBlueAlpha"),
         }
     }
 }
+
+impl TryFrom<usize> for ChannelLayout {
+    type Error = FeagiDataProcessingError;
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(ChannelLayout::GrayScale),
+            2 => Ok(ChannelLayout::RG),
+            3 => Ok(ChannelLayout::RGB),
+            4 => Ok(ChannelLayout::RGBA),
+            _ => Err(IODataError::InvalidParameters(format!("No Channel Layout has {} channels! Acceptable values are 1,2,3,4!", value)).into())
+        }
+    }
+}
+
 
 /// Represents the memory layout of an image array.
 ///
