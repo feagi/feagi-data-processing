@@ -4,7 +4,7 @@ mod io_types;
 
 pub use image::ImageFrame;
 pub use image::SegmentedImageFrame;
-pub use image::descriptors;
+pub use image::descriptors as image_descriptors;
 pub use json_structure::JsonStructure;
 pub use io_types::IOTypeData;
 pub use io_types::IOTypeVariant;

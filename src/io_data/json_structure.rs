@@ -69,7 +69,6 @@ impl FeagiByteStructureCompatible for JsonStructure {
     }
 }
 
-
 impl JsonStructure {
     const BYTE_STRUCTURE_TYPE: FeagiByteStructureType = FeagiByteStructureType::JSON;
     const BYTE_STRUCT_VERSION: u8 = 1;

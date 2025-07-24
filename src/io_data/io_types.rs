@@ -2,15 +2,13 @@ use std::cmp::PartialEq;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{ImageFrame, SegmentedImageFrame};
 
-// TODO turn all this redundant code into a Macro
-
+//region IOTypeVariant
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IOTypeVariant {
     F32,
     ImageFrame,
     SegmentedImageFrame,
 }
-
 
 impl IOTypeVariant {
     pub fn is_of(&self, io_type: &IOTypeData) -> bool { 
@@ -48,6 +46,9 @@ impl From<&IOTypeData> for IOTypeVariant {
     }
 }
 
+//endregion
+
+//region IOTypeData
 #[derive(Debug, Clone)]
 pub enum IOTypeData
 {
@@ -126,3 +127,5 @@ impl<'a> TryFrom<&'a mut IOTypeData> for &'a mut ImageFrame {
         }
     }
 }
+
+//endregion
