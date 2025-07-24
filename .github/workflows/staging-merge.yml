@@ -40,11 +40,11 @@ jobs:
       id: version
       run: |
         VERSION=$(grep '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
-        ORIGINAL_NAME=$(grep '^name = ' Cargo.toml | sed 's/name = "\(.*\)"/\1/')
+        CRATE_NAME=$(grep '^name = ' Cargo.toml | sed 's/name = "\(.*\)"/\1/')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "original_name=$ORIGINAL_NAME" >> $GITHUB_OUTPUT
+        echo "crate_name=$CRATE_NAME" >> $GITHUB_OUTPUT
         echo "Version: $VERSION"
-        echo "Original crate name: $ORIGINAL_NAME"
+        echo "Crate name: $CRATE_NAME"
     
     - name: Run tests
       run: cargo test --verbose
@@ -52,58 +52,18 @@ jobs:
     - name: Build package
       run: cargo build --release
     
-    - name: Package crate (original)
+    - name: Package crate
       run: cargo package --verbose
-    
-    - name: Backup original Cargo.toml
-      run: cp Cargo.toml Cargo.toml.backup
-    
-    - name: Modify crate name for test registry
-      run: |
-        # Create a test version of the crate name
-        ORIGINAL_NAME="${{ steps.version.outputs.original_name }}"
-        TEST_NAME="${ORIGINAL_NAME}_nightly"
-        
-        echo "Temporarily changing crate name from '$ORIGINAL_NAME' to '$TEST_NAME' for test registry"
-        
-        # Replace the name in Cargo.toml
-        sed -i "s/^name = \"$ORIGINAL_NAME\"/name = \"$TEST_NAME\"/" Cargo.toml
-        
-        # Verify the change
-        echo "Modified Cargo.toml name field:"
-        grep "^name = " Cargo.toml
-        
-        # Save the test name for later steps
-        echo "test_name=$TEST_NAME" >> $GITHUB_OUTPUT
-      id: modify_name
-    
-    - name: Package crate (test version)
-      run: |
-        echo "Packaging crate with test name: ${{ steps.modify_name.outputs.test_name }}"
-        cargo package --verbose --allow-dirty
     
     - name: Publish to crates.io
       run: |
-        echo "Publishing version ${{ steps.version.outputs.version }} of ${{ steps.modify_name.outputs.test_name }} to crates.io..."
+        echo "Publishing beta version ${{ steps.version.outputs.version }} of ${{ steps.version.outputs.crate_name }} to crates.io..."
         
         # Publish to the official crates.io registry
-        cargo publish --allow-dirty --token ${{ secrets.CARGO_PUSH_TOKEN }}
+        cargo publish --token ${{ secrets.CARGO_PUSH_TOKEN }}
         
-        echo "✅ Package published successfully to crates.io"
-        echo "Note: Crate name temporarily changed to ${{ steps.modify_name.outputs.test_name }} for nightly publishing"
+        echo "✅ Beta package published successfully to crates.io"
       continue-on-error: false
-    
-    - name: Restore original Cargo.toml
-      run: |
-        echo "Restoring original Cargo.toml..."
-        mv Cargo.toml.backup Cargo.toml
-        
-        # Verify restoration
-        echo "Restored crate name:"
-        grep "^name = " Cargo.toml
-        
-        # Clean up any generated files with test name
-        rm -f target/package/${{ steps.modify_name.outputs.test_name }}-${{ steps.version.outputs.version }}.crate
     
     - name: Create prerelease tag
       run: |
@@ -126,9 +86,9 @@ jobs:
         tag_name: v${{ steps.version.outputs.version }}-pre
         release_name: Prerelease v${{ steps.version.outputs.version }}
         body: |
-          🚀 Prerelease of ${{ steps.version.outputs.original_name }} v${{ steps.version.outputs.version }}
+          🚀 Beta release of ${{ steps.version.outputs.crate_name }} v${{ steps.version.outputs.version }}
           
-          This is a prerelease version from the staging branch.
+          This is a beta version from the staging branch, published to crates.io.
           
           **Changes:**
           - Version: ${{ steps.version.outputs.version }}
@@ -138,13 +98,14 @@ jobs:
           **Testing:**
           - ✅ All tests passed
           - ✅ Package builds successfully
-          - ✅ Test registry validation completed
+          - ✅ Published to crates.io as beta version
           - ✅ Ready for testing
           
-          **Test Registry Info:**
-          - Test crate name: `${{ steps.modify_name.outputs.test_name }}`
-          - Original crate name: `${{ steps.version.outputs.original_name }}`
+          **Installation:**
+          ```
+          cargo add ${{ steps.version.outputs.crate_name }}@${{ steps.version.outputs.version }}
+          ```
           
-          **Note:** This version has been validated and published to test registry but not yet published to the main crates.io registry.
+          **Note:** This beta version is available on crates.io for testing and integration.
         draft: false
         prerelease: true 
