@@ -18,44 +18,6 @@ jobs:
         repository: ${{ github.event.pull_request.head.repo.full_name }}
         ref: ${{ github.event.pull_request.head.ref }}
     
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        toolchain: stable
-    
-    - name: Install additional Rust components
-      run: |
-        rustup component add clippy rustfmt
-    
-    - name: Cache cargo registry
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
-    
-    - name: Check code formatting
-      run: cargo fmt --all -- --check
-    
-    - name: Run Clippy (linting)
-      run: cargo clippy --all-targets --all-features -- -D warnings
-    
-    - name: Run all tests
-      run: cargo test --verbose --all-features
-    
-    - name: Run tests in release mode
-      run: cargo test --release --verbose
-    
-    - name: Check documentation
-      run: cargo doc --no-deps --document-private-items
-    
-    - name: Build in release mode
-      run: cargo build --release --verbose
-    
     - name: Check version number increase
       run: |
         # Get current version from PR branch (HEAD)
@@ -98,6 +60,44 @@ jobs:
           exit 1
         fi
         echo "✅ Version format is valid: $VERSION"
+    
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: stable
+    
+    - name: Install additional Rust components
+      run: |
+        rustup component add clippy rustfmt
+    
+    - name: Cache cargo registry
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-
+    
+    - name: Check code formatting
+      run: cargo fmt --all -- --check
+    
+    - name: Run Clippy (linting)
+      run: cargo clippy --all-targets --all-features -- -D warnings
+    
+    - name: Run all tests
+      run: cargo test --verbose --all-features
+    
+    - name: Run tests in release mode
+      run: cargo test --release --verbose
+    
+    - name: Check documentation
+      run: cargo doc --no-deps --document-private-items
+    
+    - name: Build in release mode
+      run: cargo build --release --verbose
     
     - name: Check package can be published
       run: cargo package --verbose
