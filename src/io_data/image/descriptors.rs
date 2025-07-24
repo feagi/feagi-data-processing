@@ -429,7 +429,7 @@ impl SegmentedFrameCenterProperties {
     /// Creates a new SegmentedVisionCenterProperties with row-major coordinates.
     /// 
     /// This constructor creates center properties using normalized coordinates where
-    /// the origin (0,0) is at the top-left corner of the image. This is typical of many toolboxes such as Numpy
+    /// the origin (0,0) is in the top-left corner of the image. This is typical of many toolboxes such as Numpy
     /// 
     /// # Arguments
     /// 
@@ -466,7 +466,7 @@ impl SegmentedFrameCenterProperties {
     /// Creates a new SegmentedVisionCenterProperties with Cartesian coordinates.
     /// 
     /// This constructor creates center properties using normalized Cartesian coordinates
-    /// where the origin (0,0) is at the bottom-left corner of the image. This is typical in graphics pipelines.
+    /// where the origin (0,0) is in the bottom-left corner of the image. This is typical in graphics pipelines.
     /// 
     /// # Arguments
     /// 
@@ -510,7 +510,7 @@ impl SegmentedFrameCenterProperties {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrameSourceCroppingPointGrouping) with corner points for all segments
     /// - Err(DataProcessingError) if the calculations fail
-    pub fn calculate_source_corner_points_for_segemented_video_frame(&self, source_frame_width_height: (usize, usize))  -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, FeagiDataProcessingError> {
+    pub fn calculate_source_corner_points_for_segmented_video_frame(&self, source_frame_width_height: (usize, usize)) -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, FeagiDataProcessingError> {
         let center_corner_points = self.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
         Ok(SegmentedVisionFrameSourceCroppingPointGrouping{
             lower_left: CornerPoints::new_from_row_major((source_frame_width_height.1, 0), center_corner_points.lower_left_row_major())?,
@@ -612,7 +612,7 @@ impl SegmentedFrameTargetResolutions {
         lower_middle: (usize, usize),
         center: (usize, usize),
     ) -> Result<SegmentedFrameTargetResolutions, FeagiDataProcessingError> {
-        if lower_left.0 == 0 || lower_left.1 == 0 || middle_left.0 == 0 || middle_left.1 == 0 || upper_left.0 == 0 || upper_left.1 == 0 || upper_middle.0 == 0 || upper_middle.1 == 0 || // Yandre-dev moment
+        if lower_left.0 == 0 || lower_left.1 == 0 || middle_left.0 == 0 || middle_left.1 == 0 || upper_left.0 == 0 || upper_left.1 == 0 || upper_middle.0 == 0 || upper_middle.1 == 0 || // Yandredev moment
             upper_right.0 == 0 || upper_right.1 == 0 || middle_right.0 == 0 || middle_right.1 == 0 || lower_right.0 == 0 || lower_right.1 == 0 || lower_middle.0 == 0 || lower_middle.1 == 0 ||
             center.0 == 0 || center.1 == 0 {
             return Err(IODataError::InvalidParameters("Dimensions must exceed 0 for all segments on all axis!".into()).into());

@@ -36,7 +36,7 @@ use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 /// This design allows FEAGI to process visual information with varying levels of detail,
 /// concentrating computational resources in the center of attention while maintaining
 /// awareness of the broader visual field.
-#[derive(Clone, Debug)]  // TODO Shouldnt this be called Segmented Image Frame?
+#[derive(Clone, Debug)]
 pub struct SegmentedImageFrame {
     /// Lower-left segment of the vision frame
     lower_left: ImageFrame,
@@ -184,7 +184,7 @@ impl SegmentedImageFrame {
             // We either have no corner points for the cropping sources defined, or they are no longer
             // valid, we need to update them
             self.previous_cropping_points_for_source_from_segment = Some(
-                center_properties.calculate_source_corner_points_for_segemented_video_frame(source_frame.get_cartesian_width_height())?);
+                center_properties.calculate_source_corner_points_for_segmented_video_frame(source_frame.get_cartesian_width_height())?);
         }
         
         let cropping_points= self.previous_cropping_points_for_source_from_segment.unwrap(); // We know this exists by now

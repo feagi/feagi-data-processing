@@ -661,8 +661,8 @@ impl ImageFrame {
         let crop_resolution_f: (f32, f32) = (crop_resolution.0 as f32, crop_resolution.1 as f32);
         
         let dist_factor_yx: (f32, f32) = (
-            (crop_resolution_f.1 / resolution_f.1),
-            (crop_resolution_f.0 / resolution_f.0));
+            crop_resolution_f.1 / resolution_f.1,
+            crop_resolution_f.0 / resolution_f.0);
         
         let upper_left_corner_offset_yx: (usize, usize) = (
             source_cropping_points.upper_left_row_major().0,
