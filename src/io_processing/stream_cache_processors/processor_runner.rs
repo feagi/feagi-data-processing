@@ -54,6 +54,8 @@ impl ProcessorRunner {
         }
         
         self.time_updated = time_updated;
+
+        //TODO There has to be a better way to do this, but I keep running into limitations with mutating self.cache_processors
         
         // Process the first processor with the input value
         self.cache_processors[0].process_new_input(new_value)?;
@@ -61,7 +63,7 @@ impl ProcessorRunner {
         // Process subsequent processors using split_at_mut to avoid borrowing conflicts
         for i in 1..self.cache_processors.len() {
             let (left, right) = self.cache_processors.split_at_mut(i);
-            let previous_output = left[i - 1].get_most_recent_output();
+            let previous_output = left[i - 1].get_most_recent_output(); 
             right[0].process_new_input(previous_output)?;
         }
         
