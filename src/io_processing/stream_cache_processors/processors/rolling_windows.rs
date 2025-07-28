@@ -31,13 +31,9 @@ impl StreamCacheProcessor for LinearAverageRollingWindowProcessor {
     }
 
     fn process_new_input(&mut self, value: &IOTypeData) -> Result<&IOTypeData, FeagiDataProcessingError> {
-        let float_result = f32::try_from(value);
-        if float_result.is_err() {
-            return Err(IODataError::InvalidParameters("Value for LinearAverageRollingWindowProcessor must be a F32!".into()).into());
-        }
-
+        let float_result = f32::try_from(value)?;
         let new_index = (self.last_index + 1) % self.window.len();
-        self.window[new_index] = float_result.unwrap();
+        self.window[new_index] = float_result;
 
         self.last_index += 1;
 

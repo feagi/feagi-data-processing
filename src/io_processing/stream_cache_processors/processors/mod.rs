@@ -1,3 +1,6 @@
+/// Module of all StreamCacheProcessors, which handle the direct caching and transforming of data 
+/// going in and out of FEAGI
+
 mod identities;
 mod rolling_windows;
 mod ranges;

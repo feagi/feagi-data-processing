@@ -26,11 +26,9 @@ impl StreamCacheProcessor for IdentityFloatProcessor {
     fn get_most_recent_output(&self) -> &IOTypeData {
         &self.previous_value
     }
-
+    
+    /// Process new input and 
     fn process_new_input(&mut self, value: &IOTypeData) -> Result<&IOTypeData, FeagiDataProcessingError> {
-        if IOTypeVariant::from(value) != IOTypeVariant::F32 {
-            return Err(IODataError::InvalidParameters("Value for IdentityFloatProcessor must be a F32!".into()).into());
-        }
         self.previous_value = value.clone();
         Ok(&self.previous_value)
     }
@@ -72,9 +70,6 @@ impl StreamCacheProcessor for IdentityImageFrameProcessor {
     }
 
     fn process_new_input(&mut self, value: &IOTypeData) -> Result<&IOTypeData, FeagiDataProcessingError> {
-        if IOTypeVariant::from(value) != IOTypeVariant::ImageFrame {
-            return Err(IODataError::InvalidParameters("Value for IdentityImageFrameProcessor must be an ImageFrame!".into()).into());
-        }
         self.previous_value = value.clone();
         Ok(&self.previous_value)
     }
@@ -114,9 +109,6 @@ impl StreamCacheProcessor for IdentitySegmentedImageFrameProcessor {
     }
 
     fn process_new_input(&mut self, value: &IOTypeData) -> Result<&IOTypeData, FeagiDataProcessingError> {
-        if IOTypeVariant::from(value) != IOTypeVariant::SegmentedImageFrame {
-            return Err(IODataError::InvalidParameters("Value for IdentitySegmentedImageFrameProcessor must be an SegmentedImageFrame!".into()).into());
-        }
         self.previous_value = value.clone();
         Ok(&self.previous_value)
     }

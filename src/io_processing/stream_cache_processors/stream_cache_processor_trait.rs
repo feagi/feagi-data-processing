@@ -13,9 +13,10 @@ pub trait StreamCacheProcessor: fmt::Display + Debug + Sync + Send {
     fn get_output_data_type(&self) -> IOTypeVariant;
     
     fn get_most_recent_output(&self) -> &IOTypeData;
-    
+
+    /// Process new input and store internally the new value (and return a reference to it).
+    /// Do no type checking, types are already verified by ProcessRunner
     fn process_new_input(&mut self, value: &IOTypeData) -> Result<&IOTypeData, FeagiDataProcessingError>; // Process in new input, get output
-    // NOTE: We will not do any explicit checks here as we already verify type safety explicitly on instantiation
     
 }
 
