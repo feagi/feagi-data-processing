@@ -95,6 +95,17 @@ impl TryFrom<IOTypeData> for f32 {
     }
 }
 
+impl TryFrom<&IOTypeData> for f32 {
+    type Error = FeagiDataProcessingError;
+    fn try_from(value: &IOTypeData) -> Result<Self, Self::Error> {
+        match value {
+            IOTypeData::F32(float) => Ok(*float),
+            _ => Err(IODataError::InvalidParameters("This variable is not a f32!".into()).into()),
+        }
+    }
+}
+
+
 impl TryFrom<IOTypeData> for ImageFrame {
     type Error = FeagiDataProcessingError;
 
