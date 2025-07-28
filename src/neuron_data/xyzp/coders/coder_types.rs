@@ -4,6 +4,8 @@ use crate::neuron_data::xyzp::coders::{NeuronXYZPEncoder};
 use crate::neuron_data::xyzp::coders::encoders::{ImageFrameNeuronXYZPEncoder, NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder, NormalizedM1to1F32FloatSplitSignDividedNeuronXYZPEncoder, Normalized0To1F32LinearNeuronXYZPEncoder};
 
 pub enum NeuronCoderVariantType {
+    
+    
     NormalizedM1To1F32_SplitSignDivided,
     NormalizedM1To1F32_PSPBirdirectionalDivided,
     Normalized0To1F32,

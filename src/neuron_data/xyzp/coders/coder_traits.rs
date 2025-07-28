@@ -5,30 +5,11 @@ use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
 
 pub trait NeuronXYZPEncoder {
-    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError>;
+    
+    fn get_encodable_data_type(&self) -> IOTypeVariant;
 
-    /// Encodes multi-channel I/O data into neuron activations.
-    ///
-    /// This method processes multiple channels of data in a single call.
-    /// The default implementation calls [`write_neuron_data_single_channel`]
-    /// for each channel, but can be overridden for better performance.
-    ///
-    /// # Arguments
-    ///
-    /// * `channels_and_values` - Map of channel indices to their data
-    /// * `cortical_id_targets` - List of cortical areas to write to
-    /// * `write_target` - Neuron data collection to write activations to
-    ///
-    /// # Returns
-    ///
-    /// `Ok(())` on success, or a [`FeagiDataProcessingError`] on failure.
-    ///
-    /// # Performance Notes
-    ///
-    /// Consider overriding this method for vectorized processing when dealing
-    /// with large numbers of channels or when batch operations are more efficient.
-    ///
-    /// [`write_neuron_data_single_channel`]: NeuronXYZPEncoder::write_neuron_data_single_channel
+    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError>;
+    
     fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalIOChannelIndex, &IOTypeData>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         for (channel, values) in channels_and_values {
             self.write_neuron_data_single_channel(values, channel, write_target)?;
