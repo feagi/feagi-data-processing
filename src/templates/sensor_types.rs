@@ -52,11 +52,7 @@ macro_rules! sensor_definition {
             channel_dimensions: SingleChannelDimensionRange::new(1..2, 1..2, 1..u32::MAX),
             io_variants: [IOTypeVariant::F32],
             encoder_type: NeuronCoderVariantType::NormalizedM1To1F32,
-        }
-        
-        
-
-
+        },
         VisionCenterGray => {
             friendly_name: "Center Vision Input (Grayscale)",
             base_ascii: b"ivcc00",
