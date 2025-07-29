@@ -1,7 +1,11 @@
 mod coder_traits;
 mod coder_types;
-pub mod decoders; // passes through all the types directly
-pub mod encoders;
+mod decoders;
+mod encoders;
 
-pub use coder_types::{instantiate_encoder_by_type, NeuronCoderVariantType};
-pub use coder_traits::{NeuronXYZPEncoder, NeuronXYZPDecoder};
+// The only thing that *may* be used outside of this crate is the NeuronEncoderVariantType enum. 
+// The encoder logic is internal to this crate and nothing needs to know the details of the
+// encoders themselves, just their trait (which is spawned by the methods of NeuronEncoderVariantType)
+
+pub use coder_types::{NeuronEncoderVariantType};
+pub(crate) use coder_traits::{NeuronXYZPEncoder, NeuronXYZPDecoder};

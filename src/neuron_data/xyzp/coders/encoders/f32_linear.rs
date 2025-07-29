@@ -12,7 +12,7 @@ pub(crate) struct F32LinearNeuronXYZPEncoder {
 
 impl NeuronXYZPEncoder for F32LinearNeuronXYZPEncoder {
     fn get_encodable_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::F32
+        IOTypeVariant::F32Normalized0To1
     }
 
     fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {

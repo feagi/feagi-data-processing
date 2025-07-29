@@ -5,7 +5,7 @@ use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, Cortica
 use crate::io_data::IOTypeData;
 use crate::io_processing::{SensoryChannelStreamCache, StreamCacheProcessor};
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
-use crate::neuron_data::xyzp::{NeuronCoderVariantType, instantiate_encoder_by_type};
+use crate::neuron_data::xyzp::{NeuronEncoderVariantType, instantiate_encoder_by_type};
 
 pub struct SensorCache {
     channel_caches: HashMap<FullChannelCacheKey, SensoryChannelStreamCache>,

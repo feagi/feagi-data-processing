@@ -1,54 +1,46 @@
-use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::genomic_structures::{CorticalID, CorticalType, SingleChannelDimensions};
+use crate::error::{FeagiDataProcessingError};
+use crate::genomic_structures::{CorticalGroupingIndex, CorticalID, SingleChannelDimensions};
 use crate::neuron_data::xyzp::coders::{NeuronXYZPEncoder};
-use crate::neuron_data::xyzp::coders::encoders::{ImageFrameNeuronXYZPEncoder, NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder, NormalizedM1to1F32FloatSplitSignDividedNeuronXYZPEncoder, F32LinearNeuronXYZPEncoder};
+use crate::neuron_data::xyzp::coders::encoders::{ImageFrameNeuronXYZPEncoder, F32PSPBidirectionalNeuronXYZPEncoder, F32SplitSignDividedNeuronXYZPEncoder, F32LinearNeuronXYZPEncoder};
 
-pub enum NeuronCoderVariantType {
-    
-    
-    NormalizedM1To1F32_SplitSignDivided,
-    NormalizedM1To1F32_PSPBirdirectionalDivided,
-    Normalized0To1F32,
+pub enum NeuronEncoderVariantType { // Enum itself must be exposed (methods don't)
+    F32Normalized0To1_Linear,
+    F32NormalizedM1To1_PSPBidirectional,
+    F32NormalizedM1To1_SplitSignDivided,
     ImageFrame,
     SegmentedImageFrame,
 }
 
-pub fn instantiate_encoder_by_type(neuron_coder_type: NeuronCoderVariantType, cortical_ids_targeted: &[CorticalID], channel_dimensions: SingleChannelDimensions)
-    -> Result<Box<dyn NeuronXYZPEncoder + Sync + Send>, FeagiDataProcessingError> {
+impl NeuronEncoderVariantType {
+    pub(crate) fn instantiate_single_ipu_encoder(&self, cortical_id: &CorticalID, validated_channel_dimensions: &SingleChannelDimensions) // Doesn't need to be exposed out of crate
+        -> Result<Box<dyn NeuronXYZPEncoder + Sync + Send>, FeagiDataProcessingError> {
+        
+        // Assuming channel_dimensions is validated
+        
+        if !cortical_id.get_cortical_type().is_type_sensor() {
+            return Err(FeagiDataProcessingError::InternalError("Only IPUs can spawn encoders!".into()))
+        }
+        
+        match self {
+            NeuronEncoderVariantType::F32Normalized0To1_Linear => {
+                Ok(Box::new(F32LinearNeuronXYZPEncoder::new(cortical_id.clone(), validated_channel_dimensions.clone())))
+            }
+            NeuronEncoderVariantType::F32NormalizedM1To1_PSPBidirectional => {
+                Ok(Box::new(F32PSPBidirectionalNeuronXYZPEncoder::new(cortical_id.clone(), validated_channel_dimensions.clone())))
+            }
+            
+            NeuronEncoderVariantType::F32NormalizedM1To1_SplitSignDivided => {
+                Ok(Box::new(F32SplitSignDividedNeuronXYZPEncoder::new(cortical_id.clone(), validated_channel_dimensions.clone())))
+            }
+            
+            NeuronEncoderVariantType::ImageFrame => {
+                Ok(Box::new(ImageFrameNeuronXYZPEncoder::new(cortical_id.clone(), validated_channel_dimensions.clone())))
+            }
+            NeuronEncoderVariantType::SegmentedImageFrame => {
+                Err(FeagiDataProcessingError::InternalError("Segmented Image Frame is not a single IPU encoder!".into()))
+            }
+        }
+    }
     
-    const STANDARD_EXPECTED_CORTICAL_ID_COUNT: usize = 1;
-    
-    match neuron_coder_type {
-        NeuronCoderVariantType::NormalizedM1To1F32_SplitSignDivided => {
-            verify_number_cortical_IDs_sensible(cortical_ids_targeted, STANDARD_EXPECTED_CORTICAL_ID_COUNT);
-            Ok(Box::new(NormalizedM1to1F32FloatSplitSignDividedNeuronXYZPEncoder::new(cortical_ids_targeted.clone()[0], channel_dimensions)))
-        }
-        NeuronCoderVariantType::NormalizedM1To1F32_PSPBirdirectionalDivided => {
-            verify_number_cortical_IDs_sensible(cortical_ids_targeted, STANDARD_EXPECTED_CORTICAL_ID_COUNT);
-            Ok(Box::new(NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder::new(cortical_ids_targeted.clone()[0], channel_dimensions)))
-        }
-        NeuronCoderVariantType::Normalized0To1F32 => {
-            verify_number_cortical_IDs_sensible(cortical_ids_targeted, STANDARD_EXPECTED_CORTICAL_ID_COUNT);
-            Ok(Box::new(F32LinearNeuronXYZPEncoder::new(cortical_ids_targeted.clone()[0], channel_dimensions)))
-        }
-        NeuronCoderVariantType::ImageFrame => {
-            verify_number_cortical_IDs_sensible(cortical_ids_targeted, STANDARD_EXPECTED_CORTICAL_ID_COUNT);
-            Ok(Box::new(ImageFrameNeuronXYZPEncoder::new(cortical_ids_targeted.clone()[0], channel_dimensions)))
-        }
-        NeuronCoderVariantType::SegmentedImageFrame => {
-            const NUMBER_SEGMENTS_IN_SEGMENTED_FRAME: usize = 9;
-            verify_number_cortical_IDs_sensible(cortical_ids_targeted, NUMBER_SEGMENTS_IN_SEGMENTED_FRAME);
-            Err(FeagiDataProcessingError::NotImplemented) // TODO
-        }
-    }
-}
-
-fn verify_number_cortical_IDs_sensible(cortical_ids: &[CorticalID], expected_count: usize) -> Result<(), FeagiDataProcessingError> {
-    if cortical_ids.len() == 0 {
-        return Err(FeagiDataProcessingError::InternalError("Cannot instantiate a coder with 0 cortical IDs!".into()))
-    }
-    if expected_count != cortical_ids.len() {
-        return Err(FeagiDataProcessingError::InternalError(format!("Expected {} cortical IDs, but given {}!!", expected_count,cortical_ids.len())))
-    }
-    Ok(())
+    // TODO instantiate segmented image frame encoder, find a way to pass in the multiple dimensions
 }

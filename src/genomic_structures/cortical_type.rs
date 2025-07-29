@@ -3,7 +3,7 @@ use crate::error::{FeagiBytesError, FeagiDataProcessingError, GenomeError, IODat
 use crate::genomic_structures::cortical_id::{CorticalID};
 use crate::genomic_structures::{SingleChannelDimensionsRequirements};
 use crate::genomic_structures::index_types::CorticalGroupingIndex;
-use crate::neuron_data::xyzp::NeuronCoderVariantType;
+use crate::neuron_data::xyzp::NeuronEncoderVariantType;
 use crate::io_data::IOTypeVariant;
 
 macro_rules! define_io_cortical_types {
@@ -96,7 +96,7 @@ macro_rules! define_io_cortical_types {
                 Ok(())
             }
             
-            pub fn get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
+            pub fn get_coder_type(&self) -> Result<NeuronEncoderVariantType, FeagiDataProcessingError> {
                 match self {
                     $(
                         Self::$cortical_type_key_name => Ok($encoder_type)
@@ -189,7 +189,7 @@ impl CorticalType {
         }
     }
     
-    pub fn try_get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
+    pub fn try_get_coder_type(&self) -> Result<NeuronEncoderVariantType, FeagiDataProcessingError> {
         match self {
             Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas do not have coders!".into()).into()),
             Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas do not have coders!".into()).into()),
