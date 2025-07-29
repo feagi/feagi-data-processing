@@ -23,7 +23,7 @@ impl StreamCacheProcessor for LinearScaleTo0And1 {
     }
 
     fn get_output_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::F32
+        IOTypeVariant::F32Normalized0To1
     }
 
     fn get_most_recent_output(&self) -> &IOTypeData {
@@ -35,7 +35,7 @@ impl StreamCacheProcessor for LinearScaleTo0And1 {
         let clamped = float_result.clamp(self.lower, self.upper);
         let val_0_1 = (clamped - self.lower) / self.upper_minus_lower;
 
-        self.previous_value = IOTypeData::F32(val_0_1);
+        self.previous_value = IOTypeData::F32Normalized0To1(val_0_1);
         Ok(&self.previous_value)
     }
 }
@@ -59,7 +59,7 @@ impl LinearScaleTo0And1 {
         }
 
         Ok(LinearScaleTo0And1 {
-            previous_value: IOTypeData::F32(initial_value),
+            previous_value: IOTypeData::F32Normalized0To1(initial_value),
             lower: lower_bound,
             upper: upper_bound,
             upper_minus_lower: upper_bound - lower_bound,
@@ -87,7 +87,7 @@ impl StreamCacheProcessor for LinearScaleToM1And1 {
     }
 
     fn get_output_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::F32
+        IOTypeVariant::F32NormalizedM1To1
     }
 
     fn get_most_recent_output(&self) -> &IOTypeData {
@@ -99,7 +99,7 @@ impl StreamCacheProcessor for LinearScaleToM1And1 {
         let clamped = float_result.clamp(self.lower, self.upper);
         let val_m1_1 = ((clamped - self.lower) / self.upper_minus_lower_halved) - 1.0;
 
-        self.previous_value = IOTypeData::F32(val_m1_1);
+        self.previous_value = IOTypeData::F32NormalizedM1To1(val_m1_1);
         Ok(&self.previous_value)
     }
 }
@@ -123,7 +123,7 @@ impl LinearScaleToM1And1 {
         }
 
         Ok(LinearScaleToM1And1 {
-            previous_value: IOTypeData::F32(initial_value),
+            previous_value: IOTypeData::F32NormalizedM1To1(initial_value),
             lower: lower_bound,
             upper: upper_bound,
             upper_minus_lower_halved: (upper_bound - lower_bound) * 0.5,

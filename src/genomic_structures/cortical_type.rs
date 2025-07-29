@@ -11,7 +11,7 @@ macro_rules! define_io_cortical_types {
         $cortical_io_type_enum_name:ident {
             $(
                 $cortical_type_key_name:ident => {
-                    friendly_name::: $display_name:expr,
+                    friendly_name: $display_name:expr,
                     base_ascii: $base_ascii:expr,
                     channel_dimensions: $channel_dimensions:expr,
                     io_variants: $io_variants:expr,
@@ -497,7 +497,6 @@ define_io_cortical_types!{
             io_variants: [IOTypeVariant::F32],
             encoder_type: NeuronCoderVariantType::Normalized0To1F32,
         }
-
     }    
 }
 

@@ -3,6 +3,7 @@ mod cortical_area_dimensions;
 mod cortical_id;
 mod cortical_type;
 mod single_channel_dimensions;
+mod channel_dimension_range;
 
 pub use index_types::*;
 pub use cortical_area_dimensions::CorticalAreaDimensions;

@@ -4,7 +4,7 @@ use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, SingleChanne
 use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
 
-pub trait NeuronXYZPEncoder {
+pub(crate) trait NeuronXYZPEncoder {
     
     fn get_encodable_data_type(&self) -> IOTypeVariant;
 

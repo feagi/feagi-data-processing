@@ -1,7 +1,7 @@
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::{CorticalID, CorticalType, SingleChannelDimensions};
 use crate::neuron_data::xyzp::coders::{NeuronXYZPEncoder};
-use crate::neuron_data::xyzp::coders::encoders::{ImageFrameNeuronXYZPEncoder, NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder, NormalizedM1to1F32FloatSplitSignDividedNeuronXYZPEncoder, Normalized0To1F32LinearNeuronXYZPEncoder};
+use crate::neuron_data::xyzp::coders::encoders::{ImageFrameNeuronXYZPEncoder, NormalizedM1To1F32PSPBirdirectionalNeuronXYZPEncoder, NormalizedM1to1F32FloatSplitSignDividedNeuronXYZPEncoder, F32LinearNeuronXYZPEncoder};
 
 pub enum NeuronCoderVariantType {
     
@@ -29,7 +29,7 @@ pub fn instantiate_encoder_by_type(neuron_coder_type: NeuronCoderVariantType, co
         }
         NeuronCoderVariantType::Normalized0To1F32 => {
             verify_number_cortical_IDs_sensible(cortical_ids_targeted, STANDARD_EXPECTED_CORTICAL_ID_COUNT);
-            Ok(Box::new(Normalized0To1F32LinearNeuronXYZPEncoder::new(cortical_ids_targeted.clone()[0], channel_dimensions)))
+            Ok(Box::new(F32LinearNeuronXYZPEncoder::new(cortical_ids_targeted.clone()[0], channel_dimensions)))
         }
         NeuronCoderVariantType::ImageFrame => {
             verify_number_cortical_IDs_sensible(cortical_ids_targeted, STANDARD_EXPECTED_CORTICAL_ID_COUNT);

@@ -24,6 +24,8 @@ pub mod io_data;
 
 pub mod neuron_data;
 pub mod genomic_structures;
+mod templates;
+
 #[cfg(test)]
 mod tests {
     // Tests of each module are in the mod file of each module, and are run from there
