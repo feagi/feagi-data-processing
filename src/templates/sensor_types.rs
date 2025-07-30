@@ -154,6 +154,6 @@ macro_rules! sensor_definition {
                 channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                 default_coder_type: NeuronCoderVariantType::ImageFrame,
             }
-        }    
+        }
     };
 }
