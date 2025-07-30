@@ -334,7 +334,7 @@ impl CoreCorticalType {
 //region Sensor Cortical Area types
 
 define_io_cortical_types!{
-    sensor_definition!()
+    sensor_definition!{sensor_definition!()}
 }
 
 impl From<SensorCorticalType> for CorticalType {
