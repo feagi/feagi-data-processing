@@ -303,14 +303,8 @@ impl CoreCorticalType {
 
 //region Sensor Cortical Area types
 
-// Dispatch macro that specifically handles sensor_definition expansion
-macro_rules! define_cortical_types_with_macro {
-    (sensor_definition) => {
-        sensor_definition!(define_io_cortical_types)
-    };
-}
-
-define_cortical_types_with_macro!(sensor_definition);
+// Use sensor_definition directly with callback pattern
+sensor_definition!(define_io_cortical_types);
 
 impl From<SensorCorticalType> for CorticalType {
     fn from(input: SensorCorticalType) -> Self {
