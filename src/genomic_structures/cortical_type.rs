@@ -15,7 +15,7 @@ macro_rules! define_io_cortical_types {
                     friendly_name: $display_name:expr,
                     base_ascii: $base_ascii:expr,
                     channel_dimension_range: $channel_dimension_range:expr,
-                    encoder_type: $encoder_type:expr,
+                    default_coder_type: $default_coder_type:expr,
                 }
             ),* $(,)?
         }
@@ -80,26 +80,11 @@ macro_rules! define_io_cortical_types {
                     ),*
                 }
             }
-
-            pub fn get_possible_io_variants(&self) -> &[IOTypeVariant] {
-                match self {
-                    $(
-                        Self::$cortical_type_key_name => &$io_variants
-                    ),*
-                }
-            }
-            
-            pub fn verify_valid_io_variant(&self, checking: &IOTypeVariant) -> Result<(), FeagiDataProcessingError> {
-                if !self.get_possible_io_variants().contains(checking){
-                    return Err(IODataError::InvalidParameters(format!("IO Type Variant {} is invalid for Cortical IO Type {}!", checking, self.to_string())).into());
-                }
-                Ok(())
-            }
             
             pub fn get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
                 match self {
                     $(
-                        Self::$cortical_type_key_name => Ok($encoder_type)
+                        Self::$cortical_type_key_name => Ok($default_coder_type)
                     ),*
                 }
             }
@@ -334,7 +319,6 @@ impl CoreCorticalType {
 
 
 //region Sensor Cortical Area types
-
 define_io_cortical_types!(
     sensor_definition!()
 );

@@ -1,1 +1,1 @@
-mod sensor_types;
+pub mod sensor_types;
