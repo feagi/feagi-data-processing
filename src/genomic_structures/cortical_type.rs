@@ -1,7 +1,7 @@
 use std::fmt;
 use crate::error::{FeagiBytesError, FeagiDataProcessingError, GenomeError, IODataError};
 use crate::genomic_structures::cortical_id::{CorticalID};
-use crate::genomic_structures::{SingleChannelDimensionsRequirements};
+use crate::genomic_structures::{SingleChannelDimensionRange, SingleChannelDimensionsRequirements};
 use crate::genomic_structures::index_types::CorticalGroupingIndex;
 use crate::neuron_data::xyzp::NeuronEncoderVariantType;
 use crate::io_data::IOTypeVariant;
@@ -13,7 +13,7 @@ macro_rules! define_io_cortical_types {
                 $cortical_type_key_name:ident => {
                     friendly_name: $display_name:expr,
                     base_ascii: $base_ascii:expr,
-                    channel_dimensions: $channel_dimensions:expr,
+                    channel_dimension_range: $channel_dimension_range:expr,
                     io_variants: $io_variants:expr,
                     encoder_type: $encoder_type:expr,
                 }
@@ -73,10 +73,10 @@ macro_rules! define_io_cortical_types {
                 CorticalID {bytes: output} // skip safety checks, we know this is fine
             }
 
-            pub fn get_channel_size_boundaries(&self) -> SingleChannelDimensionsRequirements {
+            pub fn get_channel_dimension_range(&self) -> SingleChannelDimensionRange {
                 match self {
                     $(
-                        Self::$cortical_type_key_name => $channel_dimensions.unwrap()
+                        Self::$cortical_type_key_name => $channel_dimension_range.unwrap()
                     ),*
                 }
             }
@@ -179,7 +179,7 @@ impl CorticalType {
         }
     }
 
-    pub fn try_get_channel_size_boundaries(&self) -> Result<SingleChannelDimensionsRequirements, FeagiDataProcessingError> {
+    pub fn try_get_channel_size_boundaries(&self) -> Result<SingleChannelDimensionRange, FeagiDataProcessingError> {
         match self {
             Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas do not have channels!".into()).into()),
             Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas do not have channels!".into()).into()),
@@ -321,10 +321,10 @@ impl CoreCorticalType {
         }
     }
     
-    pub fn get_channel_size_boundaries(&self)  -> SingleChannelDimensionsRequirements {
+    pub fn get_channel_dimension_range(&self)  -> SingleChannelDimensionRange {
         match self {
-            CoreCorticalType::Death => SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)).unwrap(),
-            CoreCorticalType::Power => SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)).unwrap()
+            CoreCorticalType::Death => SingleChannelDimensionRange::new(1..2, 1..2, 1..2).unwrap(),
+            CoreCorticalType::Power =>SingleChannelDimensionRange::new(1..2, 1..2, 1..2).unwrap()
         }
     }
 }
@@ -350,9 +350,9 @@ impl From<SensorCorticalType> for CorticalType {
 define_io_cortical_types!{
     MotorCorticalType {
         RotoryMotor => {
-            friendly_name::: "Rotory Motor",
+            friendly_name: "Rotory Motor",
             base_ascii: b"omot00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), None),
+            channel_dimension_range: : ChannelDimensionRange::new(1..2, 1..2, 1..u32::MAX).unwrap(),
             io_variants: [IOTypeVariant::F32],
             encoder_type: NeuronCoderVariantType::NormalizedM1To1F32_PSPBirdirectionalDivided,
         },
