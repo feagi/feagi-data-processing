@@ -125,6 +125,7 @@ impl CorticalType {
             b'o' => MotorCorticalType::get_type_from_bytes(bytes),
             _ => Err(handle_byte_id_mapping_fail(bytes))
         }
+        
     }
     
     pub fn try_as_cortical_id(&self, io_cortical_index: CorticalGroupingIndex) -> Result<CorticalID, FeagiDataProcessingError> {
@@ -301,9 +302,15 @@ impl CoreCorticalType {
 
 
 //region Sensor Cortical Area types
-define_io_cortical_types! {
-    sensor_definition!()
+
+// Dispatch macro that specifically handles sensor_definition expansion
+macro_rules! define_cortical_types_with_macro {
+    (sensor_definition) => {
+        sensor_definition!(define_io_cortical_types)
+    };
 }
+
+define_cortical_types_with_macro!(sensor_definition);
 
 impl From<SensorCorticalType> for CorticalType {
     fn from(input: SensorCorticalType) -> Self {
