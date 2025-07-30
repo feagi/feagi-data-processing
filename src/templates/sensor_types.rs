@@ -1,16 +1,3 @@
-// Helper macro for direct access to sensor definition content when needed
-#[macro_export]
-macro_rules! get_sensor_definition {
-    () => {
-        sensor_definition!(direct_sensor_definition)
-    };
-}
-
-// Internal helper for the above
-macro_rules! direct_sensor_definition {
-    ($content:tt) => { $content };
-}
-
 /// Definition File for Sensors (Input Processing Units)
 #[macro_export]
 macro_rules! sensor_definition {
