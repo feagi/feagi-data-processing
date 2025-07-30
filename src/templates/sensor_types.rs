@@ -1,7 +1,18 @@
 /// Definition File for Sensors (Input Processing Units)
 #[macro_export]
 macro_rules! sensor_definition {
-    (iopu_template!{}) =>
+    (
+        $cortical_io_type_enum_name:ident {
+            $(
+                $cortical_type_key_name:ident => {
+                    friendly_name: $display_name:expr,
+                    base_ascii: $base_ascii:expr,
+                    channel_dimension_range: $channel_dimensions:expr,
+                    encoder_type: $encoder_type:expr,
+                }
+            ),* $(,)?
+        }
+    ) =>
     {
         SensorCorticalType {
             Infrared => {

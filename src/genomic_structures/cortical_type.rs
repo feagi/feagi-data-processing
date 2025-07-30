@@ -5,6 +5,7 @@ use crate::genomic_structures::{SingleChannelDimensionRange};
 use crate::genomic_structures::index_types::CorticalGroupingIndex;
 use crate::neuron_data::xyzp::NeuronCoderVariantType;
 use crate::io_data::IOTypeVariant;
+use crate::sensor_definition;
 
 macro_rules! define_io_cortical_types {
     (
@@ -330,11 +331,13 @@ impl CoreCorticalType {
 
 //endregion
 
+
+
 //region Sensor Cortical Area types
 
-define_io_cortical_types!{
-    sensor_definition!{iopu_template!{}}
-}
+define_io_cortical_types!(
+    sensor_definition!()
+);
 
 impl From<SensorCorticalType> for CorticalType {
     fn from(input: SensorCorticalType) -> Self {
