@@ -64,12 +64,7 @@ impl SensorCache {
     Result<(), FeagiDataProcessingError> {
 
         cortical_type.verify_is_sensor()?;
-        let verify_type = cortical_type.verify_valid_io_variant(&sensory_processor.get_output_data_type());
-        if verify_type.is_err() { // let's print out a more detailed error in this case
-            return Err(IODataError::InvalidParameters(format!("The sensory filter outputs {:?}, which is not allowed for this cortical type {:?}! The only allowed types for this cortical type are '{}'!  (Note the input of the sensor filter does NOT need to match)",
-                                                              sensory_processor.get_output_data_type(), cortical_type, cortical_type.get_possible_io_variants().iter().map(|x| x.to_string()).collect::<Vec<String>>().join(", ")
-            )).into())
-        }
+        // Note: IO variant validation has been simplified - the cortical type will handle appropriate encoding
         let cortical_area_details =  self.try_get_cortical_area_cache_details(cortical_type, cortical_grouping_index)?;
         if *channel >= cortical_area_details.number_channels {
             return Err( IODataError::InvalidParameters(format!("Unable to set channel index to {} as the channel count for cortical type {:?} group index {:?} is {}",

@@ -144,33 +144,15 @@ impl CorticalType {
         
     }
     
-    pub fn get_possible_io_variants(&self) -> &[IOTypeVariant] {
-        match self {
-            Self::Custom => &[],
-            Self::Memory => &[],
-            Self::Core(c) => &[],
-            Self::Sensory(s) => s.get_possible_io_variants(),
-            Self::Motor(m) => m.get_possible_io_variants(),
-        }
-    }
-    
-    pub fn verify_valid_io_variant(&self, checking: &IOTypeVariant) -> Result<(), FeagiDataProcessingError> {
-        match self {
-            Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas cannot have any valid IO Type Variant!".into()).into()),
-            Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas cannot have any valid IO Type Variant!".into()).into()),
-            Self::Core(c) => Err(IODataError::InvalidParameters("Core Cortical Areas cannot have any valid IO Type Variant!".into()).into()),
-            Self::Sensory(s) => {s.verify_valid_io_variant(checking)},
-            Self::Motor(m) => {m.verify_valid_io_variant(checking)},
-        }
-    }
+
 
     pub fn try_get_channel_size_boundaries(&self) -> Result<SingleChannelDimensionRange, FeagiDataProcessingError> {
         match self {
             Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas do not have channels!".into()).into()),
             Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas do not have channels!".into()).into()),
-            Self::Core(c) => Ok(c.get_channel_size_boundaries()),
-            Self::Sensory(s) => Ok(s.get_channel_size_boundaries()),
-            Self::Motor(m) => Ok(m.get_channel_size_boundaries()),
+            Self::Core(c) => Ok(c.get_channel_dimension_range()),
+            Self::Sensory(s) => Ok(s.get_channel_dimension_range()),
+            Self::Motor(m) => Ok(m.get_channel_dimension_range()),
         }
     }
     
@@ -339,8 +321,7 @@ define_io_cortical_types!{
             friendly_name: "Rotory Motor",
             base_ascii: b"omot00",
             channel_dimension_range: SingleChannelDimensionRange::new(1..2, 1..2, 1..u32::MAX),
-            io_variants: [IOTypeVariant::F32],
-            encoder_type: NeuronCoderVariantType::NormalizedM1To1F32_PSPBirdirectionalDivided,
+            default_coder_type: NeuronCoderVariantType::F32NormalizedM1To1_SplitSignDivided,
         },
     }    
 }
