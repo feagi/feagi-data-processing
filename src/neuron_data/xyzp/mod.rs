@@ -9,4 +9,4 @@ pub use neuron_xyzp_arrays::NeuronXYZPArrays;
 
 pub use cortical_mapped_xyzp_neuron_data::CorticalMappedXYZPNeuronData;
 
-pub use coders::{NeuronEncoderVariantType};
+pub use coders::{NeuronCoderVariantType};

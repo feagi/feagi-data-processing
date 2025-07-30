@@ -3,7 +3,7 @@ use crate::error::{FeagiBytesError, FeagiDataProcessingError, GenomeError, IODat
 use crate::genomic_structures::cortical_id::{CorticalID};
 use crate::genomic_structures::{SingleChannelDimensionRange, SingleChannelDimensionsRequirements};
 use crate::genomic_structures::index_types::CorticalGroupingIndex;
-use crate::neuron_data::xyzp::NeuronEncoderVariantType;
+use crate::neuron_data::xyzp::NeuronCoderVariantType;
 use crate::io_data::IOTypeVariant;
 
 macro_rules! define_io_cortical_types {
@@ -14,7 +14,6 @@ macro_rules! define_io_cortical_types {
                     friendly_name: $display_name:expr,
                     base_ascii: $base_ascii:expr,
                     channel_dimension_range: $channel_dimension_range:expr,
-                    io_variants: $io_variants:expr,
                     encoder_type: $encoder_type:expr,
                 }
             ),* $(,)?
@@ -96,7 +95,7 @@ macro_rules! define_io_cortical_types {
                 Ok(())
             }
             
-            pub fn get_coder_type(&self) -> Result<NeuronEncoderVariantType, FeagiDataProcessingError> {
+            pub fn get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
                 match self {
                     $(
                         Self::$cortical_type_key_name => Ok($encoder_type)
@@ -189,7 +188,7 @@ impl CorticalType {
         }
     }
     
-    pub fn try_get_coder_type(&self) -> Result<NeuronEncoderVariantType, FeagiDataProcessingError> {
+    pub fn try_get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
         match self {
             Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas do not have coders!".into()).into()),
             Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas do not have coders!".into()).into()),
@@ -334,7 +333,7 @@ impl CoreCorticalType {
 //region Sensor Cortical Area types
 
 define_io_cortical_types!{
-    sensor_definition!{sensor_definition!()}
+    sensor_definition!{sensor_definition!{}}
 }
 
 impl From<SensorCorticalType> for CorticalType {
