@@ -1,7 +1,7 @@
 use std::fmt;
 use crate::error::{FeagiBytesError, FeagiDataProcessingError, GenomeError, IODataError};
 use crate::genomic_structures::cortical_id::{CorticalID};
-use crate::genomic_structures::{SingleChannelDimensionRange, SingleChannelDimensionsRequirements};
+use crate::genomic_structures::{SingleChannelDimensionRange};
 use crate::genomic_structures::index_types::CorticalGroupingIndex;
 use crate::neuron_data::xyzp::NeuronCoderVariantType;
 use crate::io_data::IOTypeVariant;
@@ -333,7 +333,7 @@ impl CoreCorticalType {
 //region Sensor Cortical Area types
 
 define_io_cortical_types!{
-    sensor_definition!{sensor_definition!{}}
+    sensor_definition!{iopu_template!{}}
 }
 
 impl From<SensorCorticalType> for CorticalType {
@@ -351,7 +351,7 @@ define_io_cortical_types!{
         RotoryMotor => {
             friendly_name: "Rotory Motor",
             base_ascii: b"omot00",
-            channel_dimension_range: : ChannelDimensionRange::new(1..2, 1..2, 1..u32::MAX).unwrap(),
+            channel_dimension_range: SingleChannelDimensionRange::new(1..2, 1..2, 1..u32::MAX),
             io_variants: [IOTypeVariant::F32],
             encoder_type: NeuronCoderVariantType::NormalizedM1To1F32_PSPBirdirectionalDivided,
         },
