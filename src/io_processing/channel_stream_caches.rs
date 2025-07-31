@@ -5,12 +5,12 @@ use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::io_processing::{StreamCacheProcessor};
 use crate::io_processing::stream_cache_processors::ProcessorRunner;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
-use crate::neuron_data::xyzp::NeuronXYZPEncoder;
+use crate::neuron_data::xyzp::{NeuronXYZPEncoder};
 
 // Per channel cache
 
 #[derive(Debug)]
-pub struct SensoryChannelStreamCache { 
+pub(crate) struct SensoryChannelStreamCache { 
     processor_runner: ProcessorRunner,
     channel: CorticalIOChannelIndex,
     last_updated: Instant,
@@ -19,7 +19,7 @@ pub struct SensoryChannelStreamCache {
 
 impl SensoryChannelStreamCache {
     
-    pub fn new(cache_processors: Vec<Box<dyn StreamCacheProcessor>>,
+    pub fn new(cache_processors: Vec<Box<dyn StreamCacheProcessor + Sync + Send>>,
                channel: CorticalIOChannelIndex,
                should_allow_sending_stale_data: bool
                 ) -> Result<Self, FeagiDataProcessingError> {

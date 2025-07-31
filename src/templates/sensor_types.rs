@@ -38,7 +38,7 @@ macro_rules! sensor_definition {
                     friendly_name: "Battery Gauge",
                     base_ascii: b"ibat00",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..2, 1..2, 1..u32::MAX),
-                    default_coder_type: NeuronCoderVariantType::Normalized0To1F32,
+                    default_coder_type: NeuronCoderVariantType::F32Normalized0To1_Linear,
                 },
                 ServoPosition => {
                     friendly_name: "Servo Position",
