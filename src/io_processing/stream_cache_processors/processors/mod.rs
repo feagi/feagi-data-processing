@@ -1,4 +1,4 @@
-/// Module of all StreamCacheProcessors, which handle the direct caching and transforming of data 
+/// Module of all StreamCacheProcessors, which handle the direct caching, filtering, and transforming of data 
 /// going in and out of FEAGI
 
 mod identities;

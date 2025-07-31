@@ -1,8 +1,16 @@
+//! Identity processors that pass data through unchanged.
+//!
+//! This module provides "pass-through" processors that implement the StreamCacheProcessor
+//! interface but don't modify the data in any way. As at least 1 processor is required when
+//! adding channels, these are useful if the user does not wish to transform the data
+
 use std::fmt::{Display, Formatter};
+use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{IOTypeData, IOTypeVariant, ImageFrame, SegmentedImageFrame};
 use crate::io_processing::StreamCacheProcessor;
 
+/// A stream processor that passes float values through unchanged.
 #[derive(Debug, Clone)]
 pub struct IdentityFloatProcessor {
     previous_value: IOTypeData,
@@ -27,14 +35,22 @@ impl StreamCacheProcessor for IdentityFloatProcessor {
         &self.previous_value
     }
     
-    /// Process new input and 
-    fn process_new_input(&mut self, value: &IOTypeData) -> Result<&IOTypeData, FeagiDataProcessingError> {
+    /// Process new input and store it unchanged.
+    fn process_new_input(&mut self, value: &IOTypeData, _: Instant) -> Result<&IOTypeData, FeagiDataProcessingError> {
         self.previous_value = value.clone();
         Ok(&self.previous_value)
     }
 }
 
 impl IdentityFloatProcessor {
+    /// Creates a new IdentityFloatProcessor.
+    ///
+    /// # Arguments
+    /// * `initial_value` - The initial float value to store (must be finite)
+    ///
+    /// # Returns
+    /// * `Ok(IdentityFloatProcessor)` - A new processor instance
+    /// * `Err(FeagiDataProcessingError)` - If initial_value is invalid (NaN/infinite)
     pub fn new(initial_value: f32) -> Result<Self, FeagiDataProcessingError> {
         if initial_value.is_nan() || initial_value.is_infinite() {
             return Err(IODataError::InvalidParameters(format!("Given float {} is not valid!", initial_value)).into());
@@ -45,6 +61,7 @@ impl IdentityFloatProcessor {
     }
 }
 
+/// A stream processor that passes image frames through unchanged.
 #[derive(Debug, Clone)]
 pub struct IdentityImageFrameProcessor {
     previous_value: IOTypeData,
@@ -69,13 +86,20 @@ impl StreamCacheProcessor for IdentityImageFrameProcessor {
         &self.previous_value
     }
 
-    fn process_new_input(&mut self, value: &IOTypeData) -> Result<&IOTypeData, FeagiDataProcessingError> {
+    fn process_new_input(&mut self, value: &IOTypeData, _: Instant) -> Result<&IOTypeData, FeagiDataProcessingError> {
         self.previous_value = value.clone();
         Ok(&self.previous_value)
     }
 }
 
 impl IdentityImageFrameProcessor {
+    /// Creates a new IdentityImageFrameProcessor.
+    ///
+    /// # Arguments
+    /// * `initial_image` - The initial ImageFrame to store
+    ///
+    /// # Returns
+    /// * `Ok(IdentityImageFrameProcessor)` - A new processor instance
     pub fn new(initial_image: ImageFrame) -> Result<Self, FeagiDataProcessingError> {
         Ok(IdentityImageFrameProcessor{
             previous_value: IOTypeData::ImageFrame(initial_image),
@@ -84,6 +108,7 @@ impl IdentityImageFrameProcessor {
 }
 
 
+/// A stream processor that passes segmented image frames through unchanged.
 #[derive(Debug, Clone)]
 pub struct IdentitySegmentedImageFrameProcessor {
     previous_value: IOTypeData,
@@ -108,13 +133,20 @@ impl StreamCacheProcessor for IdentitySegmentedImageFrameProcessor {
         &self.previous_value
     }
 
-    fn process_new_input(&mut self, value: &IOTypeData) -> Result<&IOTypeData, FeagiDataProcessingError> {
+    fn process_new_input(&mut self, value: &IOTypeData, _: Instant) -> Result<&IOTypeData, FeagiDataProcessingError> {
         self.previous_value = value.clone();
         Ok(&self.previous_value)
     }
 }
 
 impl IdentitySegmentedImageFrameProcessor {
+    /// Creates a new IdentitySegmentedImageFrameProcessor.
+    ///
+    /// # Arguments
+    /// * `initial_segmented_image` - The initial SegmentedImageFrame to store
+    ///
+    /// # Returns
+    /// * `Ok(IdentitySegmentedImageFrameProcessor)` - A new processor instance
     pub fn new(initial_segmented_image: SegmentedImageFrame) -> Result<Self, FeagiDataProcessingError> {
         Ok(IdentitySegmentedImageFrameProcessor{
             previous_value: IOTypeData::SegmentedImageFrame(initial_segmented_image),

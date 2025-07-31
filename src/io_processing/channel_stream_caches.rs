@@ -34,8 +34,8 @@ impl SensoryChannelStreamCache {
     }
     
     pub fn update_sensor_value(&mut self, value: IOTypeData) -> Result<(), FeagiDataProcessingError> {
-        _ = self.processor_runner.update_value(&value)?;
         self.last_updated = Instant::now();
+        _ = self.processor_runner.update_value(&value, Instant::now())?;
         Ok(())
     }
     
