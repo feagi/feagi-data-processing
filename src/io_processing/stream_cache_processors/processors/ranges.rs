@@ -20,7 +20,7 @@ use crate::io_processing::StreamCacheProcessor;
 /// ```
 /// // Scale values from range [10, 50] to [0, 1]
 /// use feagi_core_data_structures_and_processing::io_processing::processors::LinearScaleTo0And1;
-/// let mut processor = LinearScaleTo0And1::new(10.0, 50.0, 30.0)?;
+/// let mut processor = LinearScaleTo0And1::new(10.0, 50.0, 30.0).unwrap();
 /// // Input 30.0 would map to 0.5 in the output range
 /// ```
 #[derive(Debug, Clone)]
@@ -107,7 +107,7 @@ impl LinearScaleTo0And1 {
 /// ```
 /// // Scale values from range [0, 100] to [-1, 1]
 /// use feagi_core_data_structures_and_processing::io_processing::processors::LinearScaleToM1And1;
-/// let mut processor = LinearScaleToM1And1::new(0.0, 100.0, 50.0)?;
+/// let mut processor = LinearScaleToM1And1::new(0.0, 100.0, 50.0).unwrap();
 /// // Input 50.0 would map to 0.0 in the output range
 /// ```
 #[derive(Debug, Clone)]

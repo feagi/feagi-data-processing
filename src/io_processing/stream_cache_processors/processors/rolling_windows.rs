@@ -20,7 +20,7 @@ use crate::io_processing::StreamCacheProcessor;
 /// ```
 /// // Create a rolling average with window size of 5
 /// use feagi_core_data_structures_and_processing::io_processing::processors::LinearAverageRollingWindowProcessor;
-/// let mut processor = LinearAverageRollingWindowProcessor::new(5, 0.0)?;
+/// let mut processor = LinearAverageRollingWindowProcessor::new(5, 0.0).unwrap();
 /// // Each new input will be averaged with the previous 4 values
 /// ```
 #[derive(Debug, Clone)]
