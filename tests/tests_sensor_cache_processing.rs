@@ -46,7 +46,7 @@ fn test_chained_encoders() -> Result<(), Box<dyn std::error::Error>> {
 
 
         assert_eq!(f32::try_from(scaled_result)?, 0.1);
-        
+
         Ok(())
     }
 }
@@ -55,7 +55,7 @@ fn test_chained_encoders() -> Result<(), Box<dyn std::error::Error>> {
 fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn std::error::Error>> {
     // Create Sensor Cache
     let mut sensor_cache = SensorCache::new();
-    
+
     // Register proximity cortical area (group 1)
     _ = sensor_cache.register_single_cortical_area(
         SensorCorticalType::Proximity,
@@ -63,7 +63,7 @@ fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn
         3,
         SingleChannelDimensions::new(1, 1, 10)?
     )?;
-    
+
     // register channel 2 on cortical area with chained cache processors
     _ = sensor_cache.register_single_channel(
         SensorCorticalType::Proximity,
@@ -75,18 +75,18 @@ fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn
         ],
         true
     )?;
-    
+
     // Update the value on that channel
-    _ = sensor_cache.update_value_by_channel(IOTypeData::new_f32(25.0)?, 
+    _ = sensor_cache.update_value_by_channel(IOTypeData::new_f32(25.0)?,
                                              SensorCorticalType::Proximity, 1.into(), 2.into())?;
-    
+
     // Neuron write target
     let mut cortical_neuron_data = CorticalMappedXYZPNeuronData::new();
     _ = sensor_cache.encode_to_neurons(Instant::now(), &mut cortical_neuron_data)?;
-    
+
     // Verify the neural data was created
     assert!(cortical_neuron_data.get_number_contained_areas() == 1, "Cortical neuron data should not be empty after encoding");
-    
+
     // Encode to FEAGI byte structure
     let byte_structure = cortical_neuron_data.as_new_feagi_byte_structure()?;
     
@@ -96,7 +96,6 @@ fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn
     // Verify we got some bytes
     assert!(!raw_bytes.is_empty(), "Should have non-empty byte representation");
     println!("Encoded to {} bytes", raw_bytes.len());
-    
     
     Ok(())
 }
