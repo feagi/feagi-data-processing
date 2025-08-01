@@ -1,11 +1,69 @@
+//! Efficient array-based neuron data storage and processing.
+//!
+//! This module provides the `NeuronXYZPArrays` structure, which stores neuron data
+//! as parallel arrays for efficient batch processing, serialization, and memory usage.
+//! The array-based approach enables vectorized operations and optimal memory layouts
+//! for high-performance neural network simulation.
+
 use std::ops::RangeInclusive;
 use ndarray::Array1;
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::{NeuronError, FeagiBytesError, FeagiDataProcessingError};
 use crate::neuron_data::xyzp::NeuronXYZP;
 
-/// Represents neuron data as four parallel arrays for X, Y, channel, and potential values.
-/// This structure provides an efficient memory layout for serialization and processing of neuron data.
+/// Efficient parallel array storage for neuron XYZP data.
+///
+/// `NeuronXYZPArrays` stores neuron data as four separate parallel arrays (X, Y, Z, P)
+/// rather than an array of XYZP structures. This layout provides several advantages:
+///
+/// # Performance Benefits
+/// - **Cache efficiency**: Better memory locality for operations on single coordinates
+/// - **Vectorization**: SIMD operations can process multiple values simultaneously
+/// - **Serialization**: Efficient binary encoding for network transmission
+/// - **Memory usage**: Reduced overhead compared to structure-of-arrays
+///
+/// # Memory Layout
+/// ```text
+/// X: [x₀, x₁, x₂, ..., xₙ]
+/// Y: [y₀, y₁, y₂, ..., yₙ]
+/// Z: [z₀, z₁, z₂, ..., zₙ]
+/// P: [p₀, p₁, p₂, ..., pₙ]
+/// ```
+///
+/// Each neuron's complete coordinate is at the same index across all arrays.
+///
+/// # Capacity Management
+/// The structure pre-allocates capacity to avoid frequent reallocations during
+/// neural network simulation. Use `new()` with an estimated maximum neuron count
+/// for optimal performance.
+///
+/// # Usage Examples
+///
+/// ## Basic Operations
+/// ```rust
+/// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+///
+/// // Create with capacity for 1000 neurons
+/// let mut arrays = NeuronXYZPArrays::new(1000).unwrap();
+///
+/// // Add individual neurons
+/// arrays.add_neuron(&NeuronXYZP::new(10, 5, 2, 0.8));
+/// arrays.add_neuron(&NeuronXYZP::new(11, 6, 3, 0.6));
+///
+/// // Access neuron count and data
+/// assert_eq!(arrays.get_number_of_neurons_used(), 2);
+/// ```
+///
+///
+/// # Thread Safety
+/// `NeuronXYZPArrays` is not inherently thread-safe. Use external synchronization
+/// (e.g., `Mutex`, `RwLock`) when accessing from multiple threads.
+///
+/// # Binary Serialization
+/// The structure supports efficient binary serialization with a fixed format:
+/// - Each neuron uses exactly 16 bytes (4 bytes each for X, Y, Z, P)
+/// - Little-endian byte order for cross-platform compatibility
+/// - Compact format optimized for network transmission
 #[derive(Clone)]
 pub struct NeuronXYZPArrays {
     /// X coordinates of neurons (using Cartesian coordinate system)
