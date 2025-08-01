@@ -3,14 +3,15 @@ use crate::error::{FeagiDataProcessingError};
 use crate::genomic_structures::{CorticalIOChannelIndex};
 use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::io_processing::{StreamCacheProcessor};
+use crate::io_processing::stream_cache_processors::ProcessorRunner;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
-use crate::neuron_data::xyzp::NeuronXYZPEncoder;
+use crate::neuron_data::xyzp::{NeuronXYZPEncoder};
 
 // Per channel cache
 
 #[derive(Debug)]
-pub struct SensoryChannelStreamCache {
-    stream_cache_processor: Box<dyn StreamCacheProcessor>,
+pub(crate) struct SensoryChannelStreamCache { 
+    processor_runner: ProcessorRunner,
     channel: CorticalIOChannelIndex,
     last_updated: Instant,
     should_allow_sending_stale_data: bool,
@@ -18,13 +19,14 @@ pub struct SensoryChannelStreamCache {
 
 impl SensoryChannelStreamCache {
     
-    pub fn new(stream_cache_processor: Box<dyn StreamCacheProcessor>,
+    pub fn new(cache_processors: Vec<Box<dyn StreamCacheProcessor + Sync + Send>>,
                channel: CorticalIOChannelIndex,
                should_allow_sending_stale_data: bool
                 ) -> Result<Self, FeagiDataProcessingError> {
         
+        let processor_runner = ProcessorRunner::new(cache_processors)?;
         Ok(SensoryChannelStreamCache {
-            stream_cache_processor,
+            processor_runner,
             channel,
             last_updated: Instant::now(),
             should_allow_sending_stale_data: should_allow_sending_stale_data
@@ -32,8 +34,8 @@ impl SensoryChannelStreamCache {
     }
     
     pub fn update_sensor_value(&mut self, value: IOTypeData) -> Result<(), FeagiDataProcessingError> {
-        _ = self.stream_cache_processor.process_new_input(value)?;
         self.last_updated = Instant::now();
+        _ = self.processor_runner.update_value(&value, Instant::now())?;
         Ok(())
     }
     
@@ -43,23 +45,23 @@ impl SensoryChannelStreamCache {
     }
     
     pub fn get_most_recent_sensor_value(&self) -> &IOTypeData {
-        self.stream_cache_processor.get_most_recent_output()
+        self.processor_runner.get_most_recent_output()
     }
     
     pub fn encode_to_neurons(&self, cortical_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData, encoder: &Box<dyn NeuronXYZPEncoder + Sync + Send>) -> Result<(), FeagiDataProcessingError> {
-        encoder.write_neuron_data_single_channel(self.stream_cache_processor.get_most_recent_output(), self.channel, cortical_mapped_neuron_data)
+        encoder.write_neuron_data_single_channel(self.get_most_recent_sensor_value(), self.channel, cortical_mapped_neuron_data)
     }
     
-    pub fn get_cortical_IO_channel_index(&self) -> CorticalIOChannelIndex {
+    pub fn get_cortical_io_channel_index(&self) -> CorticalIOChannelIndex {
         self.channel
     }
 
     pub fn get_input_data_type(&self) -> IOTypeVariant {
-        self.stream_cache_processor.get_input_data_type()
+        self.processor_runner.get_input_data_type()
     }
 
     pub fn get_output_data_type(&self) -> IOTypeVariant {
-        self.stream_cache_processor.get_output_data_type()
+        self.processor_runner.get_output_data_type()
     }
 }
 

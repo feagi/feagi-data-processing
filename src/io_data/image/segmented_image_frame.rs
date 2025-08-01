@@ -36,7 +36,7 @@ use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 /// This design allows FEAGI to process visual information with varying levels of detail,
 /// concentrating computational resources in the center of attention while maintaining
 /// awareness of the broader visual field.
-#[derive(Clone, Debug)]  // TODO Shouldnt this be called Segmented Image Frame?
+#[derive(Clone, Debug)]
 pub struct SegmentedImageFrame {
     /// Lower-left segment of the vision frame
     lower_left: ImageFrame,
@@ -62,6 +62,12 @@ pub struct SegmentedImageFrame {
     previous_cropping_points_for_source_from_segment: Option<SegmentedVisionFrameSourceCroppingPointGrouping>
 }
 
+impl std::fmt::Display for SegmentedImageFrame {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "SegmentedImageFrame()")
+    }
+}
+
 impl SegmentedImageFrame {
 
     //region common constructors
@@ -84,7 +90,7 @@ impl SegmentedImageFrame {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrame) if all segments were created successfully
     /// - Err(DataProcessingError) if any segment creation fails
-    pub fn new(segment_resolutions: &SegmentedFrameTargetResolutions, segment_color_channels: &ChannelFormat,
+    pub fn new(segment_resolutions: &SegmentedFrameTargetResolutions, segment_color_channels: &ChannelLayout,
                segment_color_space: &ColorSpace, input_frames_source_width_height: (usize, usize)) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
         Ok(SegmentedImageFrame {
             lower_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_left),
@@ -116,18 +122,15 @@ impl SegmentedImageFrame {
     pub fn get_color_space(&self) -> &ColorSpace {
         self.upper_left.get_color_space()
     }
-
-    /// Returns the color channel format used by all segments in this frame.
-    /// 
-    /// Since all segments share the same channel format, this method returns
-    /// a reference to the channel format from any segment (using upper_left as representative).
-    /// 
-    /// # Returns
-    /// 
-    /// A reference to the ChannelFormat enum value.
-    pub fn get_color_channels(&self) -> &ChannelFormat {
-        self.upper_left.get_channel_format()
+    
+    pub fn get_center_channel_layout(&self) -> &ChannelLayout {
+        self.center.get_channel_layout()
     }
+    
+    pub fn get_peripheral_channel_layout(&self) -> &ChannelLayout {
+        self.lower_left.get_channel_layout() // All peripherals should be the same
+    }
+    
     
     //endregion
     
@@ -163,9 +166,12 @@ impl SegmentedImageFrame {
     pub fn update_segments(&mut self, source_frame: &ImageFrame, 
                            center_properties: SegmentedFrameCenterProperties)
         -> Result<(), FeagiDataProcessingError> {
-        if source_frame.get_channel_format() != self.get_color_channels(){
-            return Err(IODataError::InvalidParameters("Input Image frame does not have matching color channel count!".into()).into());
+        
+        if source_frame.get_channel_layout() != self.get_center_channel_layout() {
+            return Err(IODataError::InvalidParameters("Input Image frame does not have a matching channel layout to the center of the peripheral!".into()).into());
         }
+        
+        // TODO add peripheral channel layout check!
         if source_frame.get_color_space() != self.get_color_space() {
             return Err(IODataError::InvalidParameters("Input Image frame does not have matching color space!".into()).into());
         }
@@ -178,7 +184,7 @@ impl SegmentedImageFrame {
             // We either have no corner points for the cropping sources defined, or they are no longer
             // valid, we need to update them
             self.previous_cropping_points_for_source_from_segment = Some(
-                center_properties.calculate_source_corner_points_for_segemented_video_frame(source_frame.get_cartesian_width_height())?);
+                center_properties.calculate_source_corner_points_for_segmented_video_frame(source_frame.get_cartesian_width_height())?);
         }
         
         let cropping_points= self.previous_cropping_points_for_source_from_segment.unwrap(); // We know this exists by now

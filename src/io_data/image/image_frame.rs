@@ -6,7 +6,7 @@
 //! and conversion to neuron data for FEAGI processing.
 
 use ndarray::{s, Array3, ArrayView3};
-use crate::io_data::image::descriptors::{ChannelFormat, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
+use crate::io_data::image::descriptors::{ChannelLayout, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::CorticalIOChannelIndex;
 use crate::neuron_data::xyzp::NeuronXYZPArrays;
@@ -21,9 +21,19 @@ pub struct ImageFrame {
     /// The pixel data stored as a 3D array with dimensions (height, width, channels)
     pixels: Array3<f32>,
     /// The color channel format (GrayScale, RG, RGB, or RGBA)
-    channel_format: ChannelFormat,
+    channel_layout: ChannelLayout,
     /// The color space (Linear or Gamma)
     color_space: ColorSpace,
+}
+
+impl std::fmt::Display for ImageFrame {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "ImageFrame(Width={}, Height={}, ColorChannelFormat={}, ColorSpace={}",
+               self.get_cartesian_width_height().0,
+               self.get_cartesian_width_height().1,
+               self.channel_layout.to_string(),
+               self.color_space.to_string())
+    }
 }
 
 impl ImageFrame {
@@ -43,9 +53,9 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A new ImageFrame instance with all pixels initialized to zero.
-    pub fn new(channel_format: &ChannelFormat, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> ImageFrame {
+    pub fn new(channel_format: &ChannelLayout, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> ImageFrame {
         ImageFrame {
-            channel_format: *channel_format,
+            channel_layout: *channel_format,
             color_space: *color_space,
             pixels: Array3::<f32>::zeros((xy_resolution.1, xy_resolution.0, *channel_format as usize)),
         }
@@ -69,7 +79,7 @@ impl ImageFrame {
         Ok(ImageFrame {
             pixels: ImageFrame::change_memory_order_to_row_major(input, source_memory_order),
             color_space,
-            channel_format: ChannelFormat::from_usize(number_color_channels)?
+            channel_layout: ChannelLayout::try_from(number_color_channels)?
         })
     }
 
@@ -183,13 +193,13 @@ impl ImageFrame {
         true
     }
 
-    /// Returns a reference to the channel format of this image.
+    /// Returns a reference to the channel layout of this image.
     ///
     /// # Returns
     ///
-    /// A reference to the ChannelFormat enum value representing the image's color channel format.
-    pub fn get_channel_format(&self) -> &ChannelFormat {
-        &self.channel_format
+    /// A reference to the ChannelLayout enum value representing the image's color channel format.
+    pub fn get_channel_layout(&self) -> &ChannelLayout {
+        &self.channel_layout
     }
 
     /// Returns a reference to the color space of this image.
@@ -211,7 +221,7 @@ impl ImageFrame {
     /// - 3 for RGB
     /// - 4 for RGBA
     pub fn get_color_channel_count(&self) -> usize {
-        self.channel_format as usize
+        self.channel_layout as usize
     }
 
     /// Returns a read-only view of the pixel data.
@@ -557,7 +567,7 @@ impl ImageFrame {
     /// - Ok(()) if the crop operation was successful
     /// - Err(DataProcessingError) if the frames are incompatible or crop region is invalid
     pub fn in_place_crop_image(&mut self, source_cropping_points: &CornerPoints, source: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
-        if source.get_channel_format() != self.get_channel_format() {
+        if source.get_channel_layout() != self.get_channel_layout() {
             return Err(IODataError::InvalidParameters("The given image does not have the same color channel count as this ImageFrame!".into()).into())
         }
 
@@ -598,7 +608,7 @@ impl ImageFrame {
     /// - Err(DataProcessingError) if the frames are incompatible
     pub fn in_place_nearest_neighbor_resize(&mut self, source: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
         // We don't need to specify size, as we are just using this size
-        if source.get_channel_format() != self.get_channel_format() {
+        if source.get_channel_layout() != self.get_channel_layout() {
             return Err(IODataError::InvalidParameters("The given image does not have the same color channel count as this ImageFrame!".into()).into())
         }
 
@@ -651,8 +661,8 @@ impl ImageFrame {
         let crop_resolution_f: (f32, f32) = (crop_resolution.0 as f32, crop_resolution.1 as f32);
         
         let dist_factor_yx: (f32, f32) = (
-            (crop_resolution_f.1 / resolution_f.1),
-            (crop_resolution_f.0 / resolution_f.0));
+            crop_resolution_f.1 / resolution_f.1,
+            crop_resolution_f.0 / resolution_f.0);
         
         let upper_left_corner_offset_yx: (usize, usize) = (
             source_cropping_points.upper_left_row_major().0,
@@ -800,7 +810,7 @@ impl ImageFrame {
         };
         Ok(ImageFrame {
             pixels: writing_array,
-            channel_format: source_frame.channel_format,
+            channel_layout: source_frame.channel_layout,
             color_space: source_frame.color_space,
         })
     }
@@ -833,7 +843,7 @@ impl ImageFrame {
         );
         Ok(ImageFrame {
             pixels: sliced_array_view.into_owned(),
-            channel_format: source_frame.channel_format,
+            channel_layout: source_frame.channel_layout,
             color_space: source_frame.color_space,
         })
     }
@@ -910,7 +920,7 @@ impl ImageFrame {
         if self.color_space != incoming.color_space {
             return Err(IODataError::InvalidParameters("Incoming source array does not have matching color space!".into()).into())
         }
-        if self.channel_format == incoming.channel_format {
+        if self.channel_layout == incoming.channel_layout {
             return Err(IODataError::InvalidParameters("Incoming source array does not have matching color channel count!!".into()).into())
         }
         Ok(())
