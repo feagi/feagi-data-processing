@@ -22,14 +22,13 @@ use std::time::Instant;
 use std::collections::HashMap;
 
 #[test]
-fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn std::error::Error>> {
-    
+fn test_chained_encoders() -> Result<(), Box<dyn std::error::Error>> {
     // Create the rolling window processor (5-sample window, initial value 0.0)
     let mut rolling_window_processor = LinearAverageRollingWindowProcessor::new(5, 0.0)?;
-    
+
     // Create the range scaling processor (maps 0-50 to 0-1)
     let mut range_processor = LinearScaleTo0And1::new(0.0, 50.0, 25.0)?;
-    
+
     // In here, lets try manually running the data through without the help of higher level structures, just to ensure the math is fine in here
     {
         // Verify the processors handle the correct data types
@@ -44,11 +43,16 @@ fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn
 
         // Then process through the range scaling processor
         let scaled_result = range_processor.process_new_input(windowed_result, timestamp)?; // 0 <-> 5 <-> 50 -> 0.1
-        
-        
+
+
         assert_eq!(f32::try_from(scaled_result)?, 0.1);
+        
+        Ok(())
     }
-    
+}
+
+#[test]
+fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn std::error::Error>> {
     // Create Sensor Cache
     let mut sensor_cache = SensorCache::new();
     
