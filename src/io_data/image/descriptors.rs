@@ -13,7 +13,8 @@ use crate::error::{FeagiDataProcessingError, IODataError};
 /// Parameters for processing an image frame, including cropping, resizing, and color adjustments.
 ///
 /// This struct holds all the parameters needed to process an image frame, with each parameter
-/// being optional. The processing steps are applied in a specific order when used.
+/// being optional. The processing steps are applied in the most efficient order when used,
+/// including combining some steps into one to reduce processing time.
 #[derive(PartialEq, Clone, Copy)]
 pub struct FrameProcessingParameters {
     pub cropping_from: Option<CornerPoints>,
