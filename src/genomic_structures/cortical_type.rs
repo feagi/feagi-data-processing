@@ -1,21 +1,28 @@
+//! Cortical area type classification and properties.
+//!
+//! This module defines the type system for FEAGI cortical areas, providing classification,
+//! properties, and capabilities for different kinds of neural processing areas. The system
+//! supports five main categories of cortical areas, each with specific characteristics
+//! and constraints.
+
 use std::fmt;
 use crate::error::{FeagiBytesError, FeagiDataProcessingError, GenomeError, IODataError};
 use crate::genomic_structures::cortical_id::{CorticalID};
-use crate::genomic_structures::{SingleChannelDimensionsRequirements};
+use crate::genomic_structures::{SingleChannelDimensionRange};
 use crate::genomic_structures::index_types::CorticalGroupingIndex;
 use crate::neuron_data::xyzp::NeuronCoderVariantType;
 use crate::io_data::IOTypeVariant;
+use crate::sensor_definition;
 
 macro_rules! define_io_cortical_types {
     (
         $cortical_io_type_enum_name:ident {
             $(
                 $cortical_type_key_name:ident => {
-                    friendly_name::: $display_name:expr,
+                    friendly_name: $display_name:expr,
                     base_ascii: $base_ascii:expr,
-                    channel_dimensions: $channel_dimensions:expr,
-                    io_variants: $io_variants:expr,
-                    encoder_type: $encoder_type:expr,
+                    channel_dimension_range: $channel_dimension_range:expr,
+                    default_coder_type: $default_coder_type:expr,
                 }
             ),* $(,)?
         }
@@ -44,12 +51,11 @@ macro_rules! define_io_cortical_types {
 
             // Does no cortical ID checking
             pub(crate) fn get_type_from_bytes(id: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
-                return Err(FeagiDataProcessingError::InternalError("Failed to map cortical ID to type!".into()));
-                
                 let mut id_0: [u8; CorticalID::CORTICAL_ID_LENGTH] = id.clone();
                 //id_0.clone_from_slice(id);
-                id_0[4] = 0;
-                id_0[5] = 0;
+                const ZERO_AS_ASCII_BYTE: u8 = 48;
+                id_0[4] = ZERO_AS_ASCII_BYTE;
+                id_0[5] = ZERO_AS_ASCII_BYTE;
 
                 match &id_0 {
                     $(
@@ -73,33 +79,18 @@ macro_rules! define_io_cortical_types {
                 CorticalID {bytes: output} // skip safety checks, we know this is fine
             }
 
-            pub fn get_channel_size_boundaries(&self) -> SingleChannelDimensionsRequirements {
+            pub fn get_channel_dimension_range(&self) -> SingleChannelDimensionRange {
                 match self {
                     $(
-                        Self::$cortical_type_key_name => $channel_dimensions.unwrap()
+                        Self::$cortical_type_key_name => $channel_dimension_range.unwrap()
                     ),*
                 }
-            }
-
-            pub fn get_possible_io_variants(&self) -> &[IOTypeVariant] {
-                match self {
-                    $(
-                        Self::$cortical_type_key_name => &$io_variants
-                    ),*
-                }
-            }
-            
-            pub fn verify_valid_io_variant(&self, checking: &IOTypeVariant) -> Result<(), FeagiDataProcessingError> {
-                if !self.get_possible_io_variants().contains(checking){
-                    return Err(IODataError::InvalidParameters(format!("IO Type Variant {} is invalid for Cortical IO Type {}!", checking, self.to_string())).into());
-                }
-                Ok(())
             }
             
             pub fn get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
                 match self {
                     $(
-                        Self::$cortical_type_key_name => Ok($encoder_type)
+                        Self::$cortical_type_key_name => Ok($default_coder_type)
                     ),*
                 }
             }
@@ -108,6 +99,63 @@ macro_rules! define_io_cortical_types {
     }
 }
 
+/// Main classification enum for all types of cortical areas in FEAGI.
+///
+/// `CorticalType` provides a unified type system for classifying and managing
+/// different kinds of cortical areas within the FEAGI neural system. Each variant
+/// represents a different category of neural processing with specific properties,
+/// constraints, and capabilities.
+///
+/// # Type Categories
+///
+/// ## Core Areas
+/// Universal cortical areas found in every FEAGI Genomes:
+/// - **Death**: Triggers brain death
+/// - **Power**: Is always powered
+///
+/// ## Sensory Areas (Input)
+/// Process incoming data from various inputs
+///
+/// ## Motor Areas (Output)
+/// Control outgoing signals to actuators
+///
+/// ## Custom Areas
+/// User-defined processing areas where main neural computation occurs
+///
+/// ## Memory Areas
+/// Persistent storage and retrieval
+///
+/// # Properties and Capabilities
+///
+/// # Sensor and Motor types define the following:
+/// - **Channel dimensions**: Spatial constraints for neural organization
+/// - **Coder types**: Neural encoding/decoding methods (for I/O areas)
+///
+/// # Usage Examples
+///
+/// ```rust
+/// use feagi_core_data_structures_and_processing::genomic_structures::*;
+///
+/// // Check cortical type properties
+/// let cortical_type = CorticalType::Sensory(SensorCorticalType::VisionCenterColor);
+/// 
+/// // Get dimensional constraints
+/// let channel_range = cortical_type.try_get_channel_size_boundaries().unwrap();
+/// 
+/// // Get encoding information
+/// let coder_type = cortical_type.try_get_coder_type().unwrap();
+/// 
+/// // Type classification checks
+/// assert!(cortical_type.is_type_sensor());
+/// assert!(!cortical_type.is_type_core());
+/// ```
+///
+/// # Design Principles
+///
+/// - **Type Safety**: Prevents mixing incompatible cortical area types
+/// - **Extensibility**: New sensor and motor types can be added via macros
+/// - **Validation**: Ensures cortical areas conform to type-specific rules
+/// - **Properties**: Each type provides relevant configuration constraints
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CorticalType {
     Custom,
@@ -130,6 +178,25 @@ impl fmt::Display for CorticalType {
 }
 
 impl CorticalType {
+    /// Determines the cortical type from a cortical ID's byte representation.
+    ///
+    /// Analyzes the first byte of a cortical ID to determine which type category
+    /// it belongs to, then delegates to the appropriate sub-type parser for
+    /// detailed classification.
+    ///
+    /// # Arguments
+    /// * `bytes` - 6-byte array representing a cortical ID
+    ///
+    /// # Returns
+    /// * `Ok(CorticalType)` - Successfully identified cortical type
+    /// * `Err(FeagiDataProcessingError)` - Invalid or unrecognized format
+    ///
+    /// # Format Detection
+    /// - `c` → Custom cortical area
+    /// - `m` → Memory cortical area  
+    /// - `_` → Core cortical area (delegates to CoreCorticalType)
+    /// - `i` → Sensory cortical area (delegates to SensorCorticalType)
+    /// - `o` → Motor cortical area (delegates to MotorCorticalType)
     pub fn get_type_from_bytes(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
         let start: u8 = bytes[0];
         match start { 
@@ -140,12 +207,13 @@ impl CorticalType {
             b'o' => MotorCorticalType::get_type_from_bytes(bytes),
             _ => Err(handle_byte_id_mapping_fail(bytes))
         }
+        
     }
     
     pub fn try_as_cortical_id(&self, io_cortical_index: CorticalGroupingIndex) -> Result<CorticalID, FeagiDataProcessingError> {
         match self {
-            Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas can have arbritary Cortical IDs and thus cannot be convert to from type!".into()).into()),
-            Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas can have arbritary Cortical IDs and thus cannot be convert to from type!".into()).into()),
+            Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas can have arbitrary Cortical IDs and thus cannot be convert to from type!".into()).into()),
+            Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas can have arbitrary Cortical IDs and thus cannot be convert to from type!".into()).into()),
             Self::Core(c) => {
                 return Ok(CorticalID::new_core_cortical_area_id(*c)?)
             }
@@ -159,36 +227,75 @@ impl CorticalType {
         
     }
     
-    pub fn get_possible_io_variants(&self) -> &[IOTypeVariant] {
-        match self {
-            Self::Custom => &[],
-            Self::Memory => &[],
-            Self::Core(c) => &[],
-            Self::Sensory(s) => s.get_possible_io_variants(),
-            Self::Motor(m) => m.get_possible_io_variants(),
-        }
-    }
-    
-    pub fn verify_valid_io_variant(&self, checking: &IOTypeVariant) -> Result<(), FeagiDataProcessingError> {
-        match self {
-            Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas cannot have any valid IO Type Variant!".into()).into()),
-            Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas cannot have any valid IO Type Variant!".into()).into()),
-            Self::Core(c) => Err(IODataError::InvalidParameters("Core Cortical Areas cannot have any valid IO Type Variant!".into()).into()),
-            Self::Sensory(s) => {s.verify_valid_io_variant(checking)},
-            Self::Motor(m) => {m.verify_valid_io_variant(checking)},
-        }
-    }
 
-    pub fn try_get_channel_size_boundaries(&self) -> Result<SingleChannelDimensionsRequirements, FeagiDataProcessingError> {
+
+    /// Returns the dimensional constraints for channels of this cortical type.
+    ///
+    /// Different cortical types have different dimensional requirements for their
+    /// internal channels. This method returns the valid range for X, Y, and Z
+    /// dimensions that channels of this type must conform to.
+    ///
+    /// # Returns
+    /// * `Ok(SingleChannelDimensionRange)` - Valid dimensional constraints for this type
+    /// * `Err(FeagiDataProcessingError)` - For Custom and Memory types (no channels)
+    ///
+    /// # Channel Dimensions by Type
+    /// - **Core**: Fixed small dimensions (typically 1x1x1)
+    /// - **Sensory**: Variable, often large (e.g., vision: up to 4096x4096x4)
+    /// - **Motor**: Usually small and specific (e.g., 1x1x8 for multi-axis)
+    /// - **Custom/Memory**: No channels (return error)
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, SensorCorticalType, SingleChannelDimensions};
+    /// let vision_type = CorticalType::Sensory(SensorCorticalType::Proximity);
+    /// let constraints = vision_type.try_get_channel_size_boundaries().unwrap();
+    ///
+    /// // Validate proposed dimensions against constraints
+    /// let proposed = SingleChannelDimensions::new(1, 1, 3).unwrap();
+    /// constraints.verify_within_range(&proposed).unwrap();
+    /// ```
+    pub fn try_get_channel_size_boundaries(&self) -> Result<SingleChannelDimensionRange, FeagiDataProcessingError> {
         match self {
             Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas do not have channels!".into()).into()),
             Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas do not have channels!".into()).into()),
-            Self::Core(c) => Ok(c.get_channel_size_boundaries()),
-            Self::Sensory(s) => Ok(s.get_channel_size_boundaries()),
-            Self::Motor(m) => Ok(m.get_channel_size_boundaries()),
+            Self::Core(c) => Ok(c.get_channel_dimension_range()),
+            Self::Sensory(s) => Ok(s.get_channel_dimension_range()),
+            Self::Motor(m) => Ok(m.get_channel_dimension_range()),
         }
     }
     
+    /// Returns the neural coder type used for data encoding/decoding.
+    ///
+    /// I/O cortical areas (Sensory and Motor) use specific neural coding schemes
+    /// to convert between external data formats and internal neural representations.
+    /// This method returns the appropriate coder for the cortical type.
+    ///
+    /// # Returns
+    /// * `Ok(NeuronCoderVariantType)` - Neural coder used by this I/O type
+    /// * `Err(FeagiDataProcessingError)` - For non-I/O types (Custom, Memory, Core)
+    ///
+    /// # Coder Types by Application
+    /// - **Vision sensors**: Often use normalized float coders for pixel values
+    /// - **Motor outputs**: May use signed normalized coders for bidirectional control
+    /// - **Audio sensors**: Frequency domain or time domain coders
+    /// - **Other I/O**: Type-specific encoding optimized for the data characteristics
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, MotorCorticalType};
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::NeuronCoderVariantType;
+    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotoryMotor);
+    /// let coder = motor_type.try_get_coder_type().unwrap();
+    ///
+    /// // Use coder for data conversion
+    /// match coder {
+    ///     NeuronCoderVariantType::F32NormalizedM1To1_SplitSignDivided => {
+    ///         // Handle bidirectional motor control encoding
+    ///     }
+    ///     _ => { /* Other coder types */ }
+    /// }
+    /// ```
     pub fn try_get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
         match self {
             Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas do not have coders!".into()).into()),
@@ -276,6 +383,31 @@ impl CorticalType {
 
 //region Core
 
+/// Core system cortical areas for essential FEAGI operations.
+///
+/// Core cortical areas handle fundamental system operations that are required
+/// for proper FEAGI functioning. These areas have fixed identifiers and
+/// predetermined characteristics.
+///
+/// # Core Area Types
+///
+/// ## Death
+/// Handles system termination and cleanup operations:
+/// - Processes shutdown signals
+/// - Coordinates graceful system termination  
+/// - Manages cleanup of resources
+///
+/// ## Power
+/// Manages system power and operational state:
+/// - Controls system power modes
+/// - Handles power management decisions
+/// - Monitors system operational status
+///
+/// # Characteristics
+/// - **Fixed IDs**: Core areas have predetermined cortical identifiers
+/// - **System Critical**: Required for proper FEAGI operation  
+/// - **No Indexing**: Only one instance of each core type per system
+/// - **Minimal Dimensions**: Typically 1x1x1 spatial structure
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CoreCorticalType {
     Death,
@@ -306,6 +438,25 @@ impl From<&CoreCorticalType> for CorticalType {
 
 impl CoreCorticalType {
 
+    /// Converts this core type to its corresponding cortical identifier.
+    ///
+    /// Core cortical areas have fixed, predefined identifiers that start with
+    /// an underscore prefix. These identifiers are system-reserved and cannot
+    /// be used for other cortical area types.
+    ///
+    /// # Returns
+    /// The fixed `CorticalID` for this core type
+    ///
+    /// # Core Identifiers
+    /// - `Death` → `"_death"`
+    /// - `Power` → `"_power"`
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::CoreCorticalType;
+    /// let death_id = CoreCorticalType::Death.to_cortical_id();
+    /// assert_eq!(death_id.to_identifier_ascii_string(), "_death");
+    /// ```
     pub fn to_cortical_id(&self) -> CorticalID {
         match self {
             Self::Death => CorticalID{bytes: *b"_death"},
@@ -321,185 +472,37 @@ impl CoreCorticalType {
         }
     }
     
-    pub fn get_channel_size_boundaries(&self)  -> SingleChannelDimensionsRequirements {
+    /// Returns the dimensional constraints for channels of this core type.
+    ///
+    /// Core cortical areas have minimal, fixed spatial dimensions since they
+    /// handle discrete system operations rather than complex data processing.
+    /// All core types currently use 1x1x1 dimensions.
+    ///
+    /// # Returns
+    /// `SingleChannelDimensionRange` with fixed 1x1x1 dimensions
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::CoreCorticalType;
+    /// let death_range = CoreCorticalType::Death.get_channel_dimension_range();
+    /// // All core types have fixed 1x1x1 dimensions
+    /// ```
+    pub fn get_channel_dimension_range(&self)  -> SingleChannelDimensionRange {
         match self {
-            CoreCorticalType::Death => SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)).unwrap(),
-            CoreCorticalType::Power => SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)).unwrap()
+            CoreCorticalType::Death => SingleChannelDimensionRange::new(1..2, 1..2, 1..2).unwrap(),
+            CoreCorticalType::Power =>SingleChannelDimensionRange::new(1..2, 1..2, 1..2).unwrap()
         }
     }
 }
 
 //endregion
 
+
+
 //region Sensor Cortical Area types
 
-define_io_cortical_types!{
-    SensorCorticalType {
-        Infrared => {
-            friendly_name::: "Infrared Sensor",
-            base_ascii: b"iinf00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)),
-            io_variants: [IOTypeVariant::NormalizedM1to1F32],
-            encoder_type: NeuronCoderVariantType::Normalized0To1F32,
-        },
-        ReverseInfrared => {
-            friendly_name::: "Reverse Infrared Sensor",
-            base_ascii: b"iiif00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)),
-            io_variants: [IOTypeVariant::NormalizedM1to1F32],
-            encoder_type: NeuronCoderVariantType::Normalized0To1F32,
-        },
-
-        VisionCenterGray => {
-            friendly_name::: "Center Vision Input (Grayscale)",
-            base_ascii: b"ivcc00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionTopLeftGray => {
-            friendly_name::: "Top Left Vision Input (Grayscale)",
-            base_ascii: b"ivtl00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionTopMiddleGray => {
-            friendly_name::: "Top Middle Vision Input (Grayscale)",
-            base_ascii: b"ivtm00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionTopRightGray => {
-            friendly_name::: "Top Right Vision Input (Grayscale)",
-            base_ascii: b"ivtr00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionMiddleLeftGray => {
-            friendly_name::: "Middle Left Vision Input (Grayscale)",
-            base_ascii: b"ivml00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionMiddleRightGray => {
-            friendly_name::: "Middle Right Vision Input (Grayscale)",
-            base_ascii: b"ivmr00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionBottomLeftGray => {
-            friendly_name::: "Bottom Left Vision Input (Grayscale)",
-            base_ascii: b"ivbl00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionBottomMiddleGray => {
-            friendly_name::: "Bottom Middle Vision Input (Grayscale)",
-            base_ascii: b"ivbm00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionBottomRightGray => {
-            friendly_name::: "Bottom Right Vision Input (Grayscale)",
-            base_ascii: b"ivbr00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionCenterColor => {
-            friendly_name::: "Center Vision Input (Color)",
-            base_ascii: b"iVcc00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionTopLeftColor => {
-            friendly_name::: "Top Left Vision Input (Color)",
-            base_ascii: b"iVtl00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionTopMiddleColor => {
-            friendly_name::: "Top Middle Vision Input (Color)",
-            base_ascii: b"iVtm00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionTopRightColor => {
-            friendly_name::: "Top Right Vision Input (Color)",
-            base_ascii: b"iVtr00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionMiddleLeftColor => {
-            friendly_name::: "Middle Left Vision Input (Color)",
-            base_ascii: b"iVml00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionMiddleRightColor => {
-            friendly_name::: "Middle Right Vision Input (Color)",
-            base_ascii: b"iVmr00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionBottomLeftColor => {
-            friendly_name::: "Bottom Left Vision Input (Color)",
-            base_ascii: b"iVbl00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionBottomMiddleColor => {
-            friendly_name::: "Bottom Middle Vision Input (Color)",
-            base_ascii: b"iVbm00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        VisionBottomRightColor => {
-            friendly_name::: "Bottom Right Vision Input (Color)",
-            base_ascii: b"iVbr00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::ImageFrame, IOTypeVariant::SegmentedImageFrame],
-            encoder_type: NeuronCoderVariantType::ImageFrame,
-        },
-        DigitalGPIOInput => {
-            friendly_name::: "GPIO Digital Input",
-            base_ascii: b"idgp00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), Some(1)),
-            io_variants: [IOTypeVariant::NormalizedM1to1F32],
-            encoder_type: NeuronCoderVariantType::Normalized0To1F32,
-        },
-        Proximity => {
-            friendly_name::: "Proximity",
-            base_ascii: b"ipro00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), None),
-            io_variants: [IOTypeVariant::NormalizedM1to1F32],
-            encoder_type: NeuronCoderVariantType::Normalized0To1F32,
-        },
-        Miscellaneous => {
-            friendly_name::: "Miscellaneous",
-            base_ascii: b"imis00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(None, None, None),
-            io_variants: [IOTypeVariant::NormalizedM1to1F32],
-            encoder_type: NeuronCoderVariantType::Normalized0To1F32,
-        }
-
-    }    
-}
+// Use sensor_definition directly with callback pattern
+sensor_definition!(define_io_cortical_types);
 
 impl From<SensorCorticalType> for CorticalType {
     fn from(input: SensorCorticalType) -> Self {
@@ -514,11 +517,10 @@ impl From<SensorCorticalType> for CorticalType {
 define_io_cortical_types!{
     MotorCorticalType {
         RotoryMotor => {
-            friendly_name::: "Rotory Motor",
+            friendly_name: "Rotory Motor",
             base_ascii: b"omot00",
-            channel_dimensions: SingleChannelDimensionsRequirements::new(Some(1), Some(1), None),
-            io_variants: [IOTypeVariant::NormalizedM1to1F32],
-            encoder_type: NeuronCoderVariantType::NormalizedM1To1F32_PSPBirdirectionalDivided,
+            channel_dimension_range: SingleChannelDimensionRange::new(1..2, 1..2, 1..u32::MAX),
+            default_coder_type: NeuronCoderVariantType::F32NormalizedM1To1_SplitSignDivided,
         },
     }    
 }

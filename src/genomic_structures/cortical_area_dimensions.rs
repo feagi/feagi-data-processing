@@ -3,9 +3,9 @@ use crate::error::{GenomeError, FeagiDataProcessingError};
 /// Represents the dimensions of a cortical area. All dimension directions must be non-zero
 #[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct CorticalAreaDimensions {
-    pub x: u32,
-    pub y: u32,
-    pub z: u32,
+    pub(crate) x: u32,
+    pub(crate) y: u32,
+    pub(crate) z: u32,
 }
 
 impl CorticalAreaDimensions {

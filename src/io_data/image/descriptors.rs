@@ -13,7 +13,8 @@ use crate::error::{FeagiDataProcessingError, IODataError};
 /// Parameters for processing an image frame, including cropping, resizing, and color adjustments.
 ///
 /// This struct holds all the parameters needed to process an image frame, with each parameter
-/// being optional. The processing steps are applied in a specific order when used.
+/// being optional. The processing steps are applied in the most efficient order when used,
+/// including combining some steps into one to reduce processing time.
 #[derive(PartialEq, Clone, Copy)]
 pub struct FrameProcessingParameters {
     pub cropping_from: Option<CornerPoints>,
@@ -345,6 +346,15 @@ pub enum ColorSpace {
     Gamma
 }
 
+impl std::fmt::Display for ColorSpace {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ColorSpace::Linear => write!(f, "Linear"),
+            ColorSpace::Gamma => write!(f, "Gamma"),
+        }
+    }
+}
+
 /// Represents the color channel format of an image.
 ///
 /// This enum defines the possible color channel configurations for an image:
@@ -353,38 +363,37 @@ pub enum ColorSpace {
 /// - RGB: Three channels (red, green, blue)
 /// - RGBA: Four channels (red, green, blue, alpha)
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub enum ChannelFormat {
+pub enum ChannelLayout {
     GrayScale = 1, // R
     RG = 2,
     RGB = 3,
     RGBA = 4,
 }
 
-impl ChannelFormat {
-    /// Creates a ChannelFormat from a usize value.
-    /// 
-    /// This method converts a numeric channel count into the corresponding
-    /// ChannelFormat enum variant.
-    /// 
-    /// # Arguments
-    /// 
-    /// * `val` - The number of color channels (1-4)
-    /// 
-    /// # Returns
-    /// 
-    /// A Result containing either:
-    /// - Ok(ChannelFormat) if the value is valid (1-4)
-    /// - Err(DataProcessingError) if the value is outside the valid range
-    pub fn from_usize(val: usize) -> Result<ChannelFormat, FeagiDataProcessingError> {
-        match val {
-            1 => Ok(ChannelFormat::GrayScale),
-            2 => Ok(ChannelFormat::RG),
-            3 => Ok(ChannelFormat::RGB),
-            4 => Ok(ChannelFormat::RGBA),
-            _ => Err(IODataError::InvalidParameters("The number of color channels must be at least 1 and not exceed the 4!".into()).into())
+impl std::fmt::Display for ChannelLayout {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ChannelLayout::GrayScale => write!(f, "GrayScale"),
+            ChannelLayout::RG => write!(f, "RedGreen"),
+            ChannelLayout::RGB => write!(f, "RedGreenBlue"),
+            ChannelLayout::RGBA => write!(f, "RedGreenBlueAlpha"),
         }
     }
 }
+
+impl TryFrom<usize> for ChannelLayout {
+    type Error = FeagiDataProcessingError;
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(ChannelLayout::GrayScale),
+            2 => Ok(ChannelLayout::RG),
+            3 => Ok(ChannelLayout::RGB),
+            4 => Ok(ChannelLayout::RGBA),
+            _ => Err(IODataError::InvalidParameters(format!("No Channel Layout has {} channels! Acceptable values are 1,2,3,4!", value)).into())
+        }
+    }
+}
+
 
 /// Represents the memory layout of an image array.
 ///
@@ -421,7 +430,7 @@ impl SegmentedFrameCenterProperties {
     /// Creates a new SegmentedVisionCenterProperties with row-major coordinates.
     /// 
     /// This constructor creates center properties using normalized coordinates where
-    /// the origin (0,0) is at the top-left corner of the image. This is typical of many toolboxes such as Numpy
+    /// the origin (0,0) is in the top-left corner of the image. This is typical of many toolboxes such as Numpy
     /// 
     /// # Arguments
     /// 
@@ -458,7 +467,7 @@ impl SegmentedFrameCenterProperties {
     /// Creates a new SegmentedVisionCenterProperties with Cartesian coordinates.
     /// 
     /// This constructor creates center properties using normalized Cartesian coordinates
-    /// where the origin (0,0) is at the bottom-left corner of the image. This is typical in graphics pipelines.
+    /// where the origin (0,0) is in the bottom-left corner of the image. This is typical in graphics pipelines.
     /// 
     /// # Arguments
     /// 
@@ -502,7 +511,7 @@ impl SegmentedFrameCenterProperties {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrameSourceCroppingPointGrouping) with corner points for all segments
     /// - Err(DataProcessingError) if the calculations fail
-    pub fn calculate_source_corner_points_for_segemented_video_frame(&self, source_frame_width_height: (usize, usize))  -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, FeagiDataProcessingError> {
+    pub fn calculate_source_corner_points_for_segmented_video_frame(&self, source_frame_width_height: (usize, usize)) -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, FeagiDataProcessingError> {
         let center_corner_points = self.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
         Ok(SegmentedVisionFrameSourceCroppingPointGrouping{
             lower_left: CornerPoints::new_from_row_major((source_frame_width_height.1, 0), center_corner_points.lower_left_row_major())?,
@@ -604,7 +613,7 @@ impl SegmentedFrameTargetResolutions {
         lower_middle: (usize, usize),
         center: (usize, usize),
     ) -> Result<SegmentedFrameTargetResolutions, FeagiDataProcessingError> {
-        if lower_left.0 == 0 || lower_left.1 == 0 || middle_left.0 == 0 || middle_left.1 == 0 || upper_left.0 == 0 || upper_left.1 == 0 || upper_middle.0 == 0 || upper_middle.1 == 0 || // Yandre-dev moment
+        if lower_left.0 == 0 || lower_left.1 == 0 || middle_left.0 == 0 || middle_left.1 == 0 || upper_left.0 == 0 || upper_left.1 == 0 || upper_middle.0 == 0 || upper_middle.1 == 0 || // Yandredev moment
             upper_right.0 == 0 || upper_right.1 == 0 || middle_right.0 == 0 || middle_right.1 == 0 || lower_right.0 == 0 || lower_right.1 == 0 || lower_middle.0 == 0 || lower_middle.1 == 0 ||
             center.0 == 0 || center.1 == 0 {
             return Err(IODataError::InvalidParameters("Dimensions must exceed 0 for all segments on all axis!".into()).into());

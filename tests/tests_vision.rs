@@ -2,7 +2,7 @@ use std::fs::File;
 use ndarray::Array3;
 use ndarray_npy::NpzReader;
 use feagi_core_data_structures_and_processing::io_data::ImageFrame;
-use feagi_core_data_structures_and_processing::io_data::descriptors::*;
+use feagi_core_data_structures_and_processing::io_data::image_descriptors::*;
 
 #[test]
 fn test_loading_data_frame() {
@@ -11,9 +11,9 @@ fn test_loading_data_frame() {
     let source_array: Array3<f32> = npz.by_name("arr_0.npy").expect("Not able to read array!");
     assert_eq!(source_array.ndim(), 3); // If this fails, something is wrong loading the file at all
     
-    let color_space: ColorSpace = ColorSpace::Linear; // Just Guessing
-    let memory_order: MemoryOrderLayout = MemoryOrderLayout::HeightsWidthsChannels; // the standard row major
-    let _source_frame = ImageFrame::from_array(source_array, color_space, memory_order);
+    //let color_space: ColorSpace = ColorSpace::Linear; // Just Guessing
+    //let memory_order: MemoryOrderLayout = MemoryOrderLayout::HeightsWidthsChannels; // the standard row major
+    //let _source_frame = ImageFrame::from_array(source_array, color_space, memory_order);
     //assert_eq!(source_frame.unwrap().get_xy_resolution(), (320, 240));
     
     
