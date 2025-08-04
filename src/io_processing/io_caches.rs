@@ -39,7 +39,7 @@ impl SensorCache {
         
         
         let cortical_metadata_key = CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index);
-        let cortical_id = cortical_type.try_as_cortical_id(cortical_grouping_index)?;
+        let cortical_id = cortical_type.to_cortical_id(cortical_grouping_index)?;
         let neuron_encoder_type = cortical_type.try_get_coder_type()?;
         let neuron_encoder = neuron_encoder_type.instantiate_single_ipu_encoder(&cortical_id, &channel_dimensions)?;
         

@@ -178,6 +178,9 @@ impl fmt::Display for CorticalType {
 }
 
 impl CorticalType {
+    
+    pub fn 
+    
     /// Determines the cortical type from a cortical ID's byte representation.
     ///
     /// Analyzes the first byte of a cortical ID to determine which type category
@@ -210,7 +213,7 @@ impl CorticalType {
         
     }
     
-    pub fn try_as_cortical_id(&self, io_cortical_index: CorticalGroupingIndex) -> Result<CorticalID, FeagiDataProcessingError> {
+    pub fn to_cortical_id(&self, io_cortical_index: CorticalGroupingIndex) -> Result<CorticalID, FeagiDataProcessingError> {
         match self {
             Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas can have arbitrary Cortical IDs and thus cannot be convert to from type!".into()).into()),
             Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas can have arbitrary Cortical IDs and thus cannot be convert to from type!".into()).into()),
@@ -375,9 +378,6 @@ impl CorticalType {
         }
         Ok(())
     }
-    
-    
-
 }
 
 
@@ -496,7 +496,6 @@ impl CoreCorticalType {
 }
 
 //endregion
-
 
 
 //region Sensor Cortical Area types

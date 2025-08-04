@@ -6,7 +6,7 @@
 //! neural processing requirements.
 
 use crate::error::{FeagiDataProcessingError};
-use crate::genomic_structures::{CorticalGroupingIndex, CorticalID, SingleChannelDimensions};
+use crate::genomic_structures::{CorticalID, SingleChannelDimensions};
 use crate::neuron_data::xyzp::coders::{NeuronXYZPEncoder};
 use crate::neuron_data::xyzp::coders::encoders::{ImageFrameNeuronXYZPEncoder, F32PSPBidirectionalNeuronXYZPEncoder, F32SplitSignDividedNeuronXYZPEncoder, F32LinearNeuronXYZPEncoder};
 
