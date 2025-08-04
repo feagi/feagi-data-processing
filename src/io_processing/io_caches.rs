@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SensorCorticalType, SingleChannelDimensions};
+use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalIOChannelIndex, CorticalType, SensorCorticalType, SingleChannelDimensions};
 use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::io_processing::{StreamCacheProcessor};
 use crate::io_processing::channel_stream_caches::SensoryChannelStreamCache;
-use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder, NeuronCoderVariantType};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
 
 pub struct SensorCache {
     channel_caches: HashMap<FullChannelCacheKey, SensoryChannelStreamCache>,

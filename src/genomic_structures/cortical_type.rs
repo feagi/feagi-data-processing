@@ -179,8 +179,6 @@ impl fmt::Display for CorticalType {
 
 impl CorticalType {
     
-    pub fn 
-    
     /// Determines the cortical type from a cortical ID's byte representation.
     ///
     /// Analyzes the first byte of a cortical ID to determine which type category
@@ -229,8 +227,6 @@ impl CorticalType {
         }
         
     }
-    
-
 
     /// Returns the dimensional constraints for channels of this cortical type.
     ///
