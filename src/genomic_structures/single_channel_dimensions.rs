@@ -45,6 +45,17 @@ pub struct SingleChannelDimensions {
     z: u32,
 }
 
+impl TryFrom<(u32, u32, u32)> for SingleChannelDimensions {
+    type Error = FeagiDataProcessingError;
+    fn try_from(value: (u32, u32, u32)) -> Result<Self, Self::Error> {
+        let result = SingleChannelDimensions::new(value.0, value.1, value.2);
+        match result {
+            Ok(r) => Ok(r),
+            Err(e) => Err(e.into()),
+        }
+    }
+}
+
 impl SingleChannelDimensions {
     /// Creates new single channel dimensions with validation.
     ///
