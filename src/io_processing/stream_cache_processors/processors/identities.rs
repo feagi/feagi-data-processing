@@ -10,6 +10,7 @@ use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{IOTypeData, IOTypeVariant, ImageFrame, SegmentedImageFrame};
 use crate::io_processing::StreamCacheProcessor;
 
+//region Identity Float
 /// A stream processor that passes float values through unchanged.
 #[derive(Debug, Clone)]
 pub struct IdentityFloatProcessor {
@@ -60,7 +61,9 @@ impl IdentityFloatProcessor {
         })
     }
 }
+//endregion
 
+//region Identity Image Frame
 /// A stream processor that passes image frames through unchanged.
 #[derive(Debug, Clone)]
 pub struct IdentityImageFrameProcessor {
@@ -106,8 +109,9 @@ impl IdentityImageFrameProcessor {
         })
     }
 }
+//endregion
 
-
+//region Identity Segmented Image Frame
 /// A stream processor that passes segmented image frames through unchanged.
 #[derive(Debug, Clone)]
 pub struct IdentitySegmentedImageFrameProcessor {
@@ -153,4 +157,5 @@ impl IdentitySegmentedImageFrameProcessor {
         })
     }
 }
+//endregion
 

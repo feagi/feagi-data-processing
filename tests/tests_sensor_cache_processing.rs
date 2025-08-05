@@ -4,8 +4,7 @@
 //! processors, processing sensor data, and encoding to FEAGI byte structures.
 
 use feagi_core_data_structures_and_processing::genomic_structures::{
-    CorticalID, SensorCorticalType, CorticalGroupingIndex, SingleChannelDimensions,
-    CorticalIOChannelIndex
+    SensorCorticalType, SingleChannelDimensions
 };
 use feagi_core_data_structures_and_processing::io_data::IOTypeData;
 use feagi_core_data_structures_and_processing::io_processing::processors::{
@@ -13,13 +12,12 @@ use feagi_core_data_structures_and_processing::io_processing::processors::{
 };
 use feagi_core_data_structures_and_processing::io_processing::{SensorCache, StreamCacheProcessor};
 use feagi_core_data_structures_and_processing::neuron_data::xyzp::{
-    CorticalMappedXYZPNeuronData, NeuronCoderVariantType
+    CorticalMappedXYZPNeuronData
 };
 use feagi_core_data_structures_and_processing::io_processing::byte_structures::{
-    FeagiByteStructure, FeagiByteStructureCompatible
+    FeagiByteStructureCompatible
 };
 use std::time::Instant;
-use std::collections::HashMap;
 
 #[test]
 fn test_chained_encoders() -> Result<(), Box<dyn std::error::Error>> {

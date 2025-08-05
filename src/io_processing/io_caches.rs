@@ -1,12 +1,47 @@
+//! High-level sensor data caching and management for FEAGI neural processing.
+//!
+//! This module provides the main sensor cache system that manages multiple cortical
+//! areas, channels, and agent device mappings. It serves as the primary interface
+//! for registering sensory inputs and converting them to neural representations.
+
 use std::collections::HashMap;
 use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SensorCorticalType, SingleChannelDimensions};
+use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalIOChannelIndex, CorticalType, SensorCorticalType, SingleChannelDimensions};
 use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::io_processing::{StreamCacheProcessor};
 use crate::io_processing::channel_stream_caches::SensoryChannelStreamCache;
-use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder, NeuronCoderVariantType};
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
 
+/// High-level sensor data cache managing multiple cortical areas and channels.
+///
+/// `SensorCache` is the main coordination point for all sensory input processing
+/// in FEAGI. It manages the registration of cortical areas, individual channels,
+/// and agent device mappings, while providing unified access to cached sensor
+/// data and neural encoding capabilities.
+///
+/// # Architecture
+///
+/// The cache operates at three organizational levels:
+/// - **Cortical Areas**: Groups of related channels with shared properties
+/// - **Individual Channels**: Specific sensor streams within areas
+/// - **Agent Devices**: External device interfaces mapped to channels
+///
+/// # Key Features
+///
+/// - **Multi-level Registration**: Register areas, channels, and device mappings
+/// - **Type Safety**: Validates data types throughout the processing chain
+/// - **Flexible Access**: Update and retrieve data by channel or device index
+/// - **Neural Integration**: Direct encoding to neural representations
+/// - **Metadata Management**: Tracks area properties and encoder configurations
+///
+/// # Usage Workflow
+///
+/// ## 1. Register Cortical Areas
+/// ## 2. Register Individual Channels
+/// ## 3. Map Agent Devices (Optional)
+/// ## 4. Update data on Channels as it come in
+/// ## 5. Neural Encoding
 pub struct SensorCache {
     channel_caches: HashMap<FullChannelCacheKey, SensoryChannelStreamCache>,
     cortical_area_metadata: HashMap<CorticalAreaMetadataKey, CorticalAreaCacheDetails>,
@@ -15,6 +50,24 @@ pub struct SensorCache {
 
 impl SensorCache {
 
+    /// Creates a new empty sensor cache.
+    ///
+    /// Initializes all internal data structures for managing cortical areas,
+    /// channels, and agent device mappings. The cache starts empty and requires
+    /// explicit registration of cortical areas before use.
+    ///
+    /// # Returns
+    ///
+    /// A new `SensorCache` instance ready for registration and data processing.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::io_processing::SensorCache;
+    ///
+    /// let mut cache = SensorCache::new();
+    /// // Cache is now ready for cortical area registration
+    /// ```
     pub fn new() -> SensorCache {
         SensorCache {
             channel_caches: HashMap::new(),
@@ -23,6 +76,31 @@ impl SensorCache {
         }
     }
 
+    /// Registers a single cortical area with specified characteristics.
+    ///
+    /// Creates a new cortical area that can contain multiple sensor channels.
+    /// This is the first step in setting up sensor processing - the area must
+    /// be registered before individual channels can be added.
+    ///
+    /// # Arguments
+    ///
+    /// * `cortical_sensor_type` - The type of sensory processing (vision, audio, etc.)
+    /// * `cortical_grouping_index` - Unique identifier for this area instance
+    /// * `number_supported_channels` - Maximum number of channels this area can contain
+    /// * `channel_dimensions` - 3D dimensions for each channel in this area
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Area successfully registered
+    /// * `Err(FeagiDataProcessingError)` - Registration failed
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The area type and grouping index combination is already registered
+    /// - `number_supported_channels` is zero
+    /// - `channel_dimensions` are outside the valid range for this sensor type
+    /// - Neural encoder instantiation fails
     pub fn register_single_cortical_area(&mut self, cortical_sensor_type: SensorCorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32, channel_dimensions: SingleChannelDimensions)
         -> Result<(), FeagiDataProcessingError> {
         
@@ -39,7 +117,7 @@ impl SensorCache {
         
         
         let cortical_metadata_key = CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index);
-        let cortical_id = cortical_type.try_as_cortical_id(cortical_grouping_index)?;
+        let cortical_id = cortical_type.to_cortical_id(cortical_grouping_index)?;
         let neuron_encoder_type = cortical_type.try_get_coder_type()?;
         let neuron_encoder = neuron_encoder_type.instantiate_single_ipu_encoder(&cortical_id, &channel_dimensions)?;
         
@@ -50,6 +128,27 @@ impl SensorCache {
         Ok(())
     }
     
+    /// Registers segmented vision cortical areas for advanced visual processing.
+    ///
+    /// **Note: This function is not yet implemented.**
+    ///
+    /// This method is intended for registering specialized vision processing
+    /// areas that handle segmented visual input, typically for complex
+    /// visual processing scenarios.
+    ///
+    /// # Arguments
+    ///
+    /// * `cortical_grouping_index` - Grouping identifier for the vision areas
+    /// * `number_supported_channels` - Number of channels per segmented area
+    ///
+    /// # Returns
+    ///
+    /// Currently, always returns `Err(FeagiDataProcessingError::NotImplemented)`
+    ///
+    /// # Future Implementation
+    ///
+    /// Will register multiple related cortical areas for segmented vision
+    /// processing, with specialized encoders for handling visual segments.
     pub fn register_segmented_vision_cortical_areas(&mut self, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32)  -> Result<(), FeagiDataProcessingError> {
 
         // Unique case (TODO: add check for segmented encoder type)
@@ -60,6 +159,32 @@ impl SensorCache {
     }
     
 
+    /// Registers a single sensor channel within a cortical area.
+    ///
+    /// Creates an individual sensor channel with its own processing pipeline
+    /// within a previously registered cortical area. Each channel handles
+    /// a specific sensor data stream and applies its own processing chain.
+    ///
+    /// # Arguments
+    ///
+    /// * `cortical_sensor_type` - Type of the parent cortical area
+    /// * `cortical_grouping_index` - Grouping index of the parent cortical area
+    /// * `channel` - Channel index within the cortical area (must be < number_supported_channels)
+    /// * `sensory_processors` - Chain of processors to apply to incoming data
+    /// * `should_sensor_allow_sending_stale_data` - Whether to allow cached data when no fresh updates
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Channel successfully registered
+    /// * `Err(FeagiDataProcessingError)` - Registration failed
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - The parent cortical area is not registered
+    /// - Channel index exceeds the area's channel capacity
+    /// - Channel is already registered
+    /// - Stream cache processor setup fails
     pub fn register_single_channel(&mut self, cortical_sensor_type: SensorCorticalType, cortical_grouping_index: CorticalGroupingIndex,
                             channel: CorticalIOChannelIndex, sensory_processors: Vec<Box<dyn StreamCacheProcessor + Sync + Send>>, should_sensor_allow_sending_stale_data: bool) ->
     Result<(), FeagiDataProcessingError> {
@@ -87,6 +212,36 @@ impl SensorCache {
         Ok(())
     }
 
+    /// Maps an agent device index to a specific sensor channel.
+    ///
+    /// Creates a mapping that allows external devices to send data using
+    /// agent device indices rather than explicit cortical coordinates.
+    /// Multiple channels can be mapped to the same device index if they
+    /// accept the same data type.
+    ///
+    /// # Arguments
+    ///
+    /// * `agent_device_index` - External device identifier
+    /// * `cortical_sensor_type` - Target cortical area type
+    /// * `cortical_grouping_index` - Target cortical area grouping
+    /// * `channel` - Target channel within the cortical area
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Device mapping successfully registered
+    /// * `Err(FeagiDataProcessingError)` - Mapping failed
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Target channel is not registered
+    /// - Device index already maps to channels with incompatible data types
+    ///
+    /// # Data Type Validation
+    ///
+    /// When mapping multiple channels to the same device index, all channels
+    /// must accept the same input data type. This ensures consistent behavior
+    /// when broadcasting data from the device.
     pub fn register_agent_device_index(&mut self, agent_device_index: AgentDeviceIndex, cortical_sensor_type: SensorCorticalType,
                                        cortical_grouping_index: CorticalGroupingIndex, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
 
@@ -119,6 +274,30 @@ impl SensorCache {
         Ok(())
     }
 
+    /// Updates sensor data for a specific channel using explicit coordinates.
+    ///
+    /// Directly updates a sensor channel with new data using the full cortical
+    /// coordinate specification. The data is validated against the channel's
+    /// expected input type before processing.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - New sensor data to process and cache
+    /// * `cortical_sensor_type` - Type of the target cortical area
+    /// * `cortical_grouping_index` - Grouping index of the target cortical area
+    /// * `channel` - Specific channel within the cortical area
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Data successfully updated and processed
+    /// * `Err(FeagiDataProcessingError)` - Update failed
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Target channel is not registered
+    /// - Data type doesn't match channel's expected input type
+    /// - Processing chain fails
     pub fn update_value_by_channel(&mut self, value: IOTypeData, cortical_sensor_type: SensorCorticalType, cortical_grouping_index: CorticalGroupingIndex, channel: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
 
         let cortical_type = cortical_sensor_type.into();
@@ -135,6 +314,35 @@ impl SensorCache {
         Ok(())
     }
     
+    /// Updates sensor data using an agent device index.
+    ///
+    /// Updates all channels mapped to the specified agent device index with
+    /// the provided data. If multiple channels are mapped to the same device,
+    /// the data is efficiently broadcast to all of them.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - New sensor data to process and cache
+    /// * `cortical_sensor_type` - Type of cortical area for the device mapping
+    /// * `agent_device_index` - External device identifier
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Data successfully updated for all mapped channels
+    /// * `Err(FeagiDataProcessingError)` - Update failed
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - No channels are mapped to the specified device index
+    /// - Internal mapping data is corrupted (zero elements)
+    ///
+    /// # Efficiency Notes
+    ///
+    /// When multiple channels are mapped to the same device:
+    /// - The last channel receives the original data (no clone)
+    /// - All other channels receive cloned copies
+    /// - This minimizes memory allocation overhead
     pub fn update_value_by_agent_device_index(&mut self, value: IOTypeData, cortical_sensor_type: SensorCorticalType, agent_device_index: AgentDeviceIndex) -> Result<(), FeagiDataProcessingError> {
 
         let cortical_type = cortical_sensor_type.into();
@@ -151,7 +359,7 @@ impl SensorCache {
                 // Most common case, only one mapping
                 let channel_key = &channel_keys[0];
                 let stream_cache = self.channel_caches.get_mut(&channel_key).unwrap();
-                stream_cache.update_sensor_value(value);
+                _ = stream_cache.update_sensor_value(value);
                 Ok(())
             }
             number_keys => {
@@ -160,17 +368,76 @@ impl SensorCache {
                 for i in 0..second_last_index {
                     let channel_key = &channel_keys[i];
                     let stream_cache = self.channel_caches.get_mut(&channel_key).unwrap();
-                    stream_cache.update_sensor_value(value.clone());
+                    _ = stream_cache.update_sensor_value(value.clone());
                 }
                 // The last one
                 let channel_key = &channel_keys[second_last_index];
                 let stream_cache = self.channel_caches.get_mut(&channel_key).unwrap();
-                stream_cache.update_sensor_value(value);
+                _ = stream_cache.update_sensor_value(value);
                 Ok(())
             }
         }
     }
+    
+    /// Retrieves the latest processed value from a specific channel.
+    ///
+    /// Returns the most recent sensor data that has been processed through
+    /// the channel's processing pipeline. This provides access to the current
+    /// state of a sensor without triggering any updates.
+    ///
+    /// # Arguments
+    ///
+    /// * `cortical_sensor_type` - Type of the target cortical area
+    /// * `cortical_grouping_index` - Grouping index of the target cortical area
+    /// * `channel` - Specific channel within the cortical area
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(&IOTypeData)` - Reference to the latest processed sensor data
+    /// * `Err(FeagiDataProcessingError)` - Channel not found
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the specified channel is not registered.
+    pub fn get_latest_value_by_channel(&mut self, cortical_sensor_type: SensorCorticalType, cortical_grouping_index: CorticalGroupingIndex, channel: CorticalIOChannelIndex) -> Result<&IOTypeData, FeagiDataProcessingError> {
+        let cortical_type = cortical_sensor_type.into();
+        let channel_cache = match self.channel_caches.get(&FullChannelCacheKey::new(cortical_type, cortical_grouping_index, channel)) {
+            Some(channel_stream_cache) => channel_stream_cache,
+            None => return Err(IODataError::InvalidParameters(format!("Unable to find Cortical Type {:?}, Group Index {:?}, Channel {:?}!", cortical_type, cortical_grouping_index, channel)).into())
+        };
+        Ok(channel_cache.get_most_recent_sensor_value())
+    }
 
+    /// Encodes all cached sensor data into neural representations.
+    ///
+    /// Converts the current state of all registered sensor channels into
+    /// neural activity patterns suitable for FEAGI's neural processing system.
+    /// This is typically called during each processing cycle to provide
+    /// sensory input to the neural brain.
+    ///
+    /// # Arguments
+    ///
+    /// * `past_send_time` - Timestamp reference for staleness checking (currently unused)
+    /// * `neurons_to_encode_to` - Target neural data structure to populate
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - All sensor data successfully encoded
+    /// * `Err(FeagiDataProcessingError)` - Encoding failed for one or more channels
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any channel's neural encoding fails, typically due to:
+    /// - Incompatible data types between cache and encoder
+    /// - Neural data structure capacity limits
+    /// - Encoder-specific processing failures
+    ///
+    /// # Processing Details
+    ///
+    /// The method iterates through all registered cortical areas and their
+    /// associated channels, applying the appropriate neural encoder for each
+    /// area type. Each encoder converts the processed sensor data into the
+    /// neural representation format expected by FEAGI.
     pub fn encode_to_neurons(&self, past_send_time: Instant, neurons_to_encode_to: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         // TODO move to using iter(), I'm using for loops now cause im still a rust scrub
         for cortical_area_details in self.cortical_area_metadata.values() {

@@ -5,7 +5,7 @@
 //! cortical area. These dimensions define the spatial structure and capacity
 //! of neural processing within each channel.
 
-use crate::error::{GenomeError, FeagiDataProcessingError, IODataError};
+use crate::error::{GenomeError, FeagiDataProcessingError};
 
 /// Represents the 3D spatial dimensions of a single channel within a cortical area.
 ///
@@ -43,6 +43,17 @@ pub struct SingleChannelDimensions {
     x: u32,
     y: u32,
     z: u32,
+}
+
+impl TryFrom<(u32, u32, u32)> for SingleChannelDimensions {
+    type Error = FeagiDataProcessingError;
+    fn try_from(value: (u32, u32, u32)) -> Result<Self, Self::Error> {
+        let result = SingleChannelDimensions::new(value.0, value.1, value.2);
+        match result {
+            Ok(r) => Ok(r),
+            Err(e) => Err(e.into()),
+        }
+    }
 }
 
 impl SingleChannelDimensions {

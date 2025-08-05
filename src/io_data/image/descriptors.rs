@@ -511,7 +511,7 @@ impl SegmentedFrameCenterProperties {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrameSourceCroppingPointGrouping) with corner points for all segments
     /// - Err(DataProcessingError) if the calculations fail
-    pub fn calculate_source_corner_points_for_segmented_video_frame(&self, source_frame_width_height: (usize, usize)) -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, FeagiDataProcessingError> {
+    pub(crate) fn calculate_source_corner_points_for_segmented_video_frame(&self, source_frame_width_height: (usize, usize)) -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, FeagiDataProcessingError> {
         let center_corner_points = self.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
         Ok(SegmentedVisionFrameSourceCroppingPointGrouping{
             lower_left: CornerPoints::new_from_row_major((source_frame_width_height.1, 0), center_corner_points.lower_left_row_major())?,

@@ -47,7 +47,6 @@ macro_rules! create_type_1d {
     };
 }
 
-
 /// Index for grouping cortical areas of the same type within a genome.
 ///
 /// This index distinguishes between multiple instances of the same cortical type.

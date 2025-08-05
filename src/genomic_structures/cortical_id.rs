@@ -6,7 +6,7 @@
 //! of cortical areas.
 
 use crate::error::{FeagiDataProcessingError, GenomeError};
-use super::{CorticalType, SensorCorticalType, MotorCorticalType, CoreCorticalType, CorticalIOChannelIndex};
+use super::{CorticalType, SensorCorticalType, MotorCorticalType, CoreCorticalType};
 use super::index_types::CorticalGroupingIndex;
 
 
@@ -348,7 +348,7 @@ impl CorticalID {
     }
     
     pub fn try_from_cortical_type(cortical_type: &CorticalType, io_cortical_index: CorticalGroupingIndex) -> Result<Self, FeagiDataProcessingError> {
-        CorticalType::try_as_cortical_id(cortical_type, io_cortical_index)
+        CorticalType::to_cortical_id(cortical_type, io_cortical_index)
     }
     
     
