@@ -257,7 +257,7 @@ impl CorticalType {
         match self {
             Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas do not have channels!".into()).into()),
             Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas do not have channels!".into()).into()),
-            Self::Core(c) => Ok(c.get_channel_dimension_range()),
+            Self::Core(_) => Err(IODataError::InvalidParameters("Core Cortical Areas do not have channels!".into()).into()),
             Self::Sensory(s) => Ok(s.get_channel_dimension_range()),
             Self::Motor(m) => Ok(m.get_channel_dimension_range()),
         }
@@ -305,6 +305,21 @@ impl CorticalType {
     }
     
     
+    /// Checks if this cortical type is a core system area.
+    ///
+    /// # Returns
+    /// `true` if this is a `CorticalType::Core` variant, `false` otherwise.
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, CoreCorticalType};
+    /// 
+    /// let core_type = CorticalType::Core(CoreCorticalType::Power);
+    /// assert!(core_type.is_type_core());
+    /// 
+    /// let custom_type = CorticalType::Custom;
+    /// assert!(!custom_type.is_type_core());
+    /// ```
     pub fn is_type_core(&self) -> bool {
         match self {
             Self::Core(_) => true,
@@ -312,6 +327,21 @@ impl CorticalType {
         }
     }
 
+    /// Checks if this cortical type is a sensory input area.
+    ///
+    /// # Returns
+    /// `true` if this is a `CorticalType::Sensory` variant, `false` otherwise.
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, MotorCorticalType, SensorCorticalType};
+    ///
+    /// let sensor_type = CorticalType::Sensory(SensorCorticalType::VisionCenterColor);
+    /// assert!(sensor_type.is_type_sensor());
+    ///
+    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotoryMotor);
+    /// assert!(!motor_type.is_type_sensor());
+    /// ```
     pub fn is_type_sensor(&self) -> bool {
         match self {
             Self::Sensory(_) => true,
@@ -319,6 +349,21 @@ impl CorticalType {
         }
     }
 
+    /// Checks if this cortical type is a motor output area.
+    ///
+    /// # Returns
+    /// `true` if this is a `CorticalType::Motor` variant, `false` otherwise.
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, MotorCorticalType};
+    /// 
+    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotoryMotor);
+    /// assert!(motor_type.is_type_motor());
+    /// 
+    /// let custom_type = CorticalType::Custom;
+    /// assert!(!custom_type.is_type_motor());
+    /// ```
     pub fn is_type_motor(&self) -> bool {
         match self {
             Self::Motor(_) => true,
@@ -326,6 +371,21 @@ impl CorticalType {
         }
     }
 
+    /// Checks if this cortical type is a custom processing area.
+    ///
+    /// # Returns
+    /// `true` if this is a `CorticalType::Custom` variant, `false` otherwise.
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalType;
+    /// 
+    /// let custom_type = CorticalType::Custom;
+    /// assert!(custom_type.is_type_custom());
+    /// 
+    /// let memory_type = CorticalType::Memory;
+    /// assert!(!memory_type.is_type_custom());
+    /// ```
     pub fn is_type_custom(&self) -> bool {
         match self {
             Self::Custom => true,
@@ -333,6 +393,21 @@ impl CorticalType {
         }
     }
 
+    /// Checks if this cortical type is a memory storage area.
+    ///
+    /// # Returns
+    /// `true` if this is a `CorticalType::Memory` variant, `false` otherwise.
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalType;
+    /// 
+    /// let memory_type = CorticalType::Memory;
+    /// assert!(memory_type.is_type_memory());
+    /// 
+    /// let custom_type = CorticalType::Custom;
+    /// assert!(!custom_type.is_type_memory());
+    /// ```
     pub fn is_type_memory(&self) -> bool {
         match self {
             Self::Memory => true,
@@ -340,12 +415,51 @@ impl CorticalType {
         }
     }
     
+    /// Verifies that this cortical type is a core system area, returning an error if not.
+    ///
+    /// # Returns
+    /// * `Ok(())` - If this is a `CorticalType::Core` variant
+    /// * `Err(FeagiDataProcessingError)` - If this is any other type
+    ///
+    /// # Errors
+    /// Returns `IODataError::InvalidParameters` if the cortical type is not core.
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, CoreCorticalType};
+    /// 
+    /// let core_type = CorticalType::Core(CoreCorticalType::Death);
+    /// assert!(core_type.verify_is_core().is_ok());
+    /// 
+    /// let custom_type = CorticalType::Custom;
+    /// assert!(custom_type.verify_is_core().is_err());
+    /// ```
     pub fn verify_is_core(&self) -> Result<(), FeagiDataProcessingError> {
         if !self.is_type_core() {
             return Err(IODataError::InvalidParameters("Expected cortical type to be type Core!".into()).into())
         }
         Ok(())
     }
+
+    /// Verifies that this cortical type is a sensory input area, returning an error if not.
+    ///
+    /// # Returns
+    /// * `Ok(())` - If this is a `CorticalType::Sensory` variant
+    /// * `Err(FeagiDataProcessingError)` - If this is any other type
+    ///
+    /// # Errors
+    /// Returns `IODataError::InvalidParameters` if the cortical type is not sensory.
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, MotorCorticalType, SensorCorticalType};
+    ///
+    /// let sensor_type = CorticalType::Sensory(SensorCorticalType::Proximity);
+    /// assert!(sensor_type.verify_is_sensor().is_ok());
+    ///
+    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotoryMotor);
+    /// assert!(motor_type.verify_is_sensor().is_err());
+    /// ```
     pub fn verify_is_sensor(&self) -> Result<(), FeagiDataProcessingError> {
         if !self.is_type_sensor() {
             return Err(IODataError::InvalidParameters("Expected cortical type to be type Sensor!".into()).into())
@@ -353,6 +467,25 @@ impl CorticalType {
         Ok(())
     }
     
+    /// Verifies that this cortical type is a motor output area, returning an error if not.
+    ///
+    /// # Returns
+    /// * `Ok(())` - If this is a `CorticalType::Motor` variant
+    /// * `Err(FeagiDataProcessingError)` - If this is any other type
+    ///
+    /// # Errors
+    /// Returns `IODataError::InvalidParameters` if the cortical type is not motor.
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, MotorCorticalType};
+    /// 
+    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotoryMotor);
+    /// assert!(motor_type.verify_is_motor().is_ok());
+    /// 
+    /// let custom_type = CorticalType::Custom;
+    /// assert!(custom_type.verify_is_motor().is_err());
+    /// ```
     pub fn verify_is_motor(&self) -> Result<(), FeagiDataProcessingError> {
         if !self.is_type_motor() {
             return Err(IODataError::InvalidParameters("Expected cortical type to be type Motor!".into()).into())
@@ -360,6 +493,25 @@ impl CorticalType {
         Ok(())
     }
 
+    /// Verifies that this cortical type is a custom processing area, returning an error if not.
+    ///
+    /// # Returns
+    /// * `Ok(())` - If this is a `CorticalType::Custom` variant
+    /// * `Err(FeagiDataProcessingError)` - If this is any other type
+    ///
+    /// # Errors
+    /// Returns `IODataError::InvalidParameters` if the cortical type is not custom.
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalType;
+    /// 
+    /// let custom_type = CorticalType::Custom;
+    /// assert!(custom_type.verify_is_custom().is_ok());
+    /// 
+    /// let memory_type = CorticalType::Memory;
+    /// assert!(memory_type.verify_is_custom().is_err());
+    /// ```
     pub fn verify_is_custom(&self) -> Result<(), FeagiDataProcessingError> {
         if !self.is_type_custom() {
             return Err(IODataError::InvalidParameters("Expected cortical type to be type Custom!".into()).into())
@@ -367,6 +519,25 @@ impl CorticalType {
         Ok(())
     }
 
+    /// Verifies that this cortical type is a memory storage area, returning an error if not.
+    ///
+    /// # Returns
+    /// * `Ok(())` - If this is a `CorticalType::Memory` variant
+    /// * `Err(FeagiDataProcessingError)` - If this is any other type
+    ///
+    /// # Errors
+    /// Returns `IODataError::InvalidParameters` if the cortical type is not memory.
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalType;
+    /// 
+    /// let memory_type = CorticalType::Memory;
+    /// assert!(memory_type.verify_is_memory().is_ok());
+    /// 
+    /// let custom_type = CorticalType::Custom;
+    /// assert!(custom_type.verify_is_memory().is_err());
+    /// ```
     pub fn verify_is_memory(&self) -> Result<(), FeagiDataProcessingError> {
         if !self.is_type_memory() {
             return Err(IODataError::InvalidParameters("Expected cortical type to be type Memory!".into()).into())
@@ -380,29 +551,21 @@ impl CorticalType {
 
 /// Core system cortical areas for essential FEAGI operations.
 ///
-/// Core cortical areas handle fundamental system operations that are required
-/// for proper FEAGI functioning. These areas have fixed identifiers and
-/// predetermined characteristics.
+/// Core cortical areas are in all genomes and can always be expected to exist
 ///
 /// # Core Area Types
 ///
 /// ## Death
-/// Handles system termination and cleanup operations:
-/// - Processes shutdown signals
-/// - Coordinates graceful system termination  
-/// - Manages cleanup of resources
+/// When activated, causes Brain Death
 ///
 /// ## Power
-/// Manages system power and operational state:
-/// - Controls system power modes
-/// - Handles power management decisions
-/// - Monitors system operational status
+/// Is always on
 ///
 /// # Characteristics
 /// - **Fixed IDs**: Core areas have predetermined cortical identifiers
-/// - **System Critical**: Required for proper FEAGI operation  
+/// - **Universal**: Required for proper FEAGI operation  
 /// - **No Indexing**: Only one instance of each core type per system
-/// - **Minimal Dimensions**: Typically 1x1x1 spatial structure
+/// - **Minimal Dimensions**: 1x1x1 spatial structure
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum CoreCorticalType {
     Death,
@@ -466,28 +629,7 @@ impl CoreCorticalType {
             _ => Err(handle_byte_id_mapping_fail(bytes)),
         }
     }
-    
-    /// Returns the dimensional constraints for channels of this core type.
-    ///
-    /// Core cortical areas have minimal, fixed spatial dimensions since they
-    /// handle discrete system operations rather than complex data processing.
-    /// All core types currently use 1x1x1 dimensions.
-    ///
-    /// # Returns
-    /// `SingleChannelDimensionRange` with fixed 1x1x1 dimensions
-    ///
-    /// # Example
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::genomic_structures::CoreCorticalType;
-    /// let death_range = CoreCorticalType::Death.get_channel_dimension_range();
-    /// // All core types have fixed 1x1x1 dimensions
-    /// ```
-    pub fn get_channel_dimension_range(&self)  -> SingleChannelDimensionRange {
-        match self {
-            CoreCorticalType::Death => SingleChannelDimensionRange::new(1..2, 1..2, 1..2).unwrap(),
-            CoreCorticalType::Power =>SingleChannelDimensionRange::new(1..2, 1..2, 1..2).unwrap()
-        }
-    }
+
 }
 
 //endregion
