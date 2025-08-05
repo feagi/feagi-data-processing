@@ -64,7 +64,7 @@ use crate::neuron_data::xyzp::NeuronXYZP;
 /// - Each neuron uses exactly 16 bytes (4 bytes each for X, Y, Z, P)
 /// - Little-endian byte order for cross-platform compatibility
 /// - Compact format optimized for network transmission
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct NeuronXYZPArrays {
     /// X coordinates of neurons (using Cartesian coordinate system)
     x: Vec<u32>, // Remember, FEAGI is cartesian!
@@ -74,6 +74,13 @@ pub struct NeuronXYZPArrays {
     z: Vec<u32>,
     /// Potential/activation values of neurons
     p: Vec<f32>,
+}
+
+impl std::fmt::Display for NeuronXYZPArrays {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let s = format!("NeuronXYZPArrays(X: {:?}, Y: {:?}, Z: {:?}, P: {:?})", self.x, self.y, self.z, self.p);
+        write!(f, "{}", s)
+    }
 }
 
 impl NeuronXYZPArrays {

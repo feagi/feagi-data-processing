@@ -82,6 +82,13 @@ pub struct NeuronXYZP {
     pub p: f32
 }
 
+impl std::fmt::Display for NeuronXYZP {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let s = format!("NeuronXYZP({}, {}, {}, {})", self.x, self.y, self.z, self.p);
+        write!(f, "{}", s)
+    }
+}
+
 impl NeuronXYZP {
     /// Creates a new neuron with the specified coordinates and potential.
     ///
