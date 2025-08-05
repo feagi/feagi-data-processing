@@ -49,9 +49,9 @@ use crate::neuron_data::xyzp::coders::encoders::{ImageFrameNeuronXYZPEncoder, F3
 /// - **Visual encoders**: Higher computational cost but maintains spatial relationships
 /// - **Segmented encoders**: Most complex, handles multiple spatial regions
 pub enum NeuronCoderVariantType { // Enum itself must be exposed (methods don't)
-    F32Normalized0To1_Linear,
-    F32NormalizedM1To1_PSPBidirectional,
-    F32NormalizedM1To1_SplitSignDivided,
+    #[allow(non_camel_case_types)] F32Normalized0To1_Linear, // Due to the segmented nature, do this
+    #[allow(non_camel_case_types)] F32NormalizedM1To1_PSPBidirectional,
+    #[allow(non_camel_case_types)] F32NormalizedM1To1_SplitSignDivided,
     ImageFrame,
     SegmentedImageFrame,
 }
@@ -83,7 +83,7 @@ impl NeuronCoderVariantType {
     /// - **Split Sign Divided**: For [-1,1] values using separate positive/negative populations
     /// - **Image Frame**: For spatial 2D image data encoding
     /// # Thread Safety
-    /// The returned encoder implements `Sync + Send` for safe use in multi-threaded environments.
+    /// The returned encoder implements `Sync + Send` for safe use in multithreaded environments.
     pub(crate) fn instantiate_single_ipu_encoder(&self, cortical_id: &CorticalID, validated_channel_dimensions: &SingleChannelDimensions) // Doesn't need to be exposed out of crate
         -> Result<Box<dyn NeuronXYZPEncoder + Sync + Send>, FeagiDataProcessingError> {
 

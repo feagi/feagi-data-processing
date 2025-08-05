@@ -11,7 +11,6 @@ use crate::genomic_structures::cortical_id::{CorticalID};
 use crate::genomic_structures::{SingleChannelDimensionRange};
 use crate::genomic_structures::index_types::CorticalGroupingIndex;
 use crate::neuron_data::xyzp::NeuronCoderVariantType;
-use crate::io_data::IOTypeVariant;
 use crate::sensor_definition;
 
 macro_rules! define_io_cortical_types {

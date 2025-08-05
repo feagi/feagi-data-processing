@@ -6,7 +6,7 @@
 //! of cortical areas.
 
 use crate::error::{FeagiDataProcessingError, GenomeError};
-use super::{CorticalType, SensorCorticalType, MotorCorticalType, CoreCorticalType, CorticalIOChannelIndex};
+use super::{CorticalType, SensorCorticalType, MotorCorticalType, CoreCorticalType};
 use super::index_types::CorticalGroupingIndex;
 
 

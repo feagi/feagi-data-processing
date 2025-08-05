@@ -18,7 +18,7 @@ impl NeuronXYZPEncoder for ImageFrameNeuronXYZPEncoder {
     fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         // We are not doing any sort of verification checks here, other than ensuring data types
 
-        let mut image: &ImageFrame = wrapped_value.try_into()?;
+        let image: &ImageFrame = wrapped_value.try_into()?;
         let cortical_id: &CorticalID = &self.cortical_write_target[0];
         
         // TODO image size check

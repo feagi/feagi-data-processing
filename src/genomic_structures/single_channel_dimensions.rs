@@ -5,7 +5,7 @@
 //! cortical area. These dimensions define the spatial structure and capacity
 //! of neural processing within each channel.
 
-use crate::error::{GenomeError, FeagiDataProcessingError, IODataError};
+use crate::error::{GenomeError, FeagiDataProcessingError};
 
 /// Represents the 3D spatial dimensions of a single channel within a cortical area.
 ///

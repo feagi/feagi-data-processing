@@ -79,4 +79,4 @@ mod encoders;
 // encoders themselves, just their trait (which is spawned by the methods of NeuronEncoderVariantType)
 
 pub use coder_types::{NeuronCoderVariantType};
-pub(crate) use coder_traits::{NeuronXYZPEncoder, NeuronXYZPDecoder};
+pub(crate) use coder_traits::{NeuronXYZPEncoder};

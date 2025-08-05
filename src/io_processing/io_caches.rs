@@ -151,7 +151,7 @@ impl SensorCache {
                 // Most common case, only one mapping
                 let channel_key = &channel_keys[0];
                 let stream_cache = self.channel_caches.get_mut(&channel_key).unwrap();
-                stream_cache.update_sensor_value(value);
+                _ = stream_cache.update_sensor_value(value);
                 Ok(())
             }
             number_keys => {
@@ -160,12 +160,12 @@ impl SensorCache {
                 for i in 0..second_last_index {
                     let channel_key = &channel_keys[i];
                     let stream_cache = self.channel_caches.get_mut(&channel_key).unwrap();
-                    stream_cache.update_sensor_value(value.clone());
+                    _ = stream_cache.update_sensor_value(value.clone());
                 }
                 // The last one
                 let channel_key = &channel_keys[second_last_index];
                 let stream_cache = self.channel_caches.get_mut(&channel_key).unwrap();
-                stream_cache.update_sensor_value(value);
+                _ = stream_cache.update_sensor_value(value);
                 Ok(())
             }
         }

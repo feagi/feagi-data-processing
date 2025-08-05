@@ -220,7 +220,7 @@ impl FeagiByteStructure {
     pub(crate) fn verify_matching_structure_type_and_version(feagi_byte_structure: &FeagiByteStructure, expected_type: FeagiByteStructureType, expected_version: u8) -> Result<(), FeagiDataProcessingError> {
         if feagi_byte_structure.try_get_structure_type()? != expected_type {
             return Err(FeagiBytesError::UnableToValidateBytes(format!(
-                "Given structure of type {} cannot be instantiated for entity corresponding to type {}!", feagi_byte_structure.try_get_structure_type().unwrap() as u8, expected_type as u8)).into());
+                "Given structure of type {} cannot be instantiated for entity corresponding to type {}!", feagi_byte_structure.try_get_structure_type()? as u8, expected_type as u8)).into());
         }
         if feagi_byte_structure.try_get_version()? != expected_version {
             return Err(FeagiBytesError::UnableToValidateBytes(format!(
@@ -358,9 +358,9 @@ impl FeagiByteStructure {
                 // This case is already handled above, but included for completeness
                 Err(FeagiBytesError::IncompatibleByteUse("Cannot return a multistruct holding multiple structs as a single object!".into()).into())
             }
-            _ => {
-                Err(FeagiDataProcessingError::InternalError(format!("Missing export definition for FBS object type {}!", this_struct_type)))
-            }
+            //_ => {
+            //    Err(FeagiDataProcessingError::InternalError(format!("Missing export definition for FBS object type {}!", this_struct_type)))
+            //}
         }
     }
     
