@@ -170,6 +170,15 @@ impl SensorCache {
             }
         }
     }
+    
+    pub fn get_latest_value_by_channel(&mut self, cortical_sensor_type: SensorCorticalType, cortical_grouping_index: CorticalGroupingIndex, channel: CorticalIOChannelIndex) -> Result<&IOTypeData, FeagiDataProcessingError> {
+        let cortical_type = cortical_sensor_type.into();
+        let channel_cache = match self.channel_caches.get(&FullChannelCacheKey::new(cortical_type, cortical_grouping_index, channel)) {
+            Some(channel_stream_cache) => channel_stream_cache,
+            None => return Err(IODataError::InvalidParameters(format!("Unable to find Cortical Type {:?}, Group Index {:?}, Channel {:?}!", cortical_type, cortical_grouping_index, channel)).into())
+        };
+        Ok(channel_cache.get_most_recent_sensor_value())
+    }
 
     pub fn encode_to_neurons(&self, past_send_time: Instant, neurons_to_encode_to: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
         // TODO move to using iter(), I'm using for loops now cause im still a rust scrub
