@@ -83,7 +83,7 @@ fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn
     _ = sensor_cache.encode_to_neurons(Instant::now(), &mut cortical_neuron_data)?;
 
     // Verify the neural data was created
-    assert!(cortical_neuron_data.get_number_contained_areas() == 1, "Cortical neuron data should not be empty after encoding");
+    assert!(cortical_neuron_data.len() == 1, "Cortical neuron data should not be empty after encoding");
 
     // Encode to FEAGI byte structure
     let byte_structure = cortical_neuron_data.as_new_feagi_byte_structure()?;

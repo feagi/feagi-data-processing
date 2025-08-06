@@ -225,7 +225,7 @@ impl SegmentedImageFrame {
         
         for index in 0..9 {
             let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
-            let mut data: NeuronXYZPArrays = NeuronXYZPArrays::new(max_neurons)?;
+            let mut data: NeuronXYZPArrays = NeuronXYZPArrays::with_capacity(max_neurons);
             ordered_refs[index].write_xyzp_neuron_arrays(&mut data, channel_index)?;
             output.insert(cortical_ids[index].clone(), data);
         }
@@ -255,7 +255,7 @@ impl SegmentedImageFrame {
         
         for index in 0..9 {
             let cortical_id = &ordered_cortical_ids[index];
-            let mapped_neuron_data = all_mapped_neuron_data.borrow_mut(cortical_id);
+            let mapped_neuron_data = all_mapped_neuron_data.get_neurons_of_mut(cortical_id);
             match mapped_neuron_data { 
                 None => {
                     return Err(FeagiDataProcessingError::InternalError("Unable to find cortical area to unwrap!".into())); // TODO specific error?

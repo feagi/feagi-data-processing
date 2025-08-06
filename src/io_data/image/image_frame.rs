@@ -748,8 +748,8 @@ impl ImageFrame {
         const EPSILON: f32 = 0.0001; // avoid writing near zero vals
         
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
-        write_target.expand_to_new_max_count_if_required(self.get_max_capacity_neuron_count()); // make sure there's enough capacity
-        write_target.reset_indexes(); // Ensure we push from the start
+        write_target.ensure_capacity(self.get_max_capacity_neuron_count());
+        write_target.clear(); // Ensure we push from the start
         let x_offset: u32 = *x_channel_offset * self.get_cartesian_width_height().0 as u32;
         
         // write to the vectors

@@ -32,7 +32,7 @@ impl NeuronXYZPEncoder for F32LinearNeuronXYZPEncoder {
 
         const NUMBER_NEURONS_IN_STRUCTURE: usize = 1;
         let generated_neuron_data: &mut NeuronXYZPArrays = write_target.ensure_clear_and_borrow_mut(&self.cortical_write_target, NUMBER_NEURONS_IN_STRUCTURE);
-        generated_neuron_data.add_neuron(&neuron);
+        generated_neuron_data.push(&neuron);
         Ok(())
     }
 }

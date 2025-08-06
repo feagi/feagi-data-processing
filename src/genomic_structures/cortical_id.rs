@@ -102,6 +102,8 @@ impl CorticalID {
     /// The fixed length of all cortical identifiers in bytes.
     pub const CORTICAL_ID_LENGTH: usize = 6;
     
+    pub const NUMBER_OF_BYTES: usize = Self::CORTICAL_ID_LENGTH;
+    
     /// Creates a new custom cortical area identifier.
     ///
     /// Custom cortical areas are user-defined processing areas that start with 'c'.

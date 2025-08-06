@@ -30,7 +30,7 @@ impl NeuronXYZPEncoder for F32PSPBidirectionalNeuronXYZPEncoder {
             0,
             p_value.abs()
         );
-        generated_neuron_data.add_neuron(&neuron);
+        generated_neuron_data.push(&neuron);
         Ok(())
     }
 }

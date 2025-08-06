@@ -9,8 +9,8 @@ fn test_minimal_memory_corruption_debug() {
     // Create a simple test case
     let cortical_id = CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap();
     let neuron = NeuronXYZP::new(1, 2, 3, 0.5);
-    let mut neurons = NeuronXYZPArrays::new(1).unwrap();
-    neurons.add_neuron(&neuron);
+    let mut neurons = NeuronXYZPArrays::with_capacity(1);
+    neurons.push(&neuron);
 
     let mut cortical_mappings = CorticalMappedXYZPNeuronData::new();
     cortical_mappings.insert(cortical_id, neurons);
@@ -54,22 +54,22 @@ fn test_serialize_deserialize_neuron_mapped_areas() {
     let cortical_id_a = CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap();
     let neuron_a_1 = NeuronXYZP::new(1, 2, 3, 0.5);
     let neuron_a_2 = NeuronXYZP::new(4, 5, 7, 0.2);
-    let mut neurons_a = NeuronXYZPArrays::new(2).unwrap(); // lets preallocate
-    neurons_a.add_neuron(&neuron_a_1);
-    neurons_a.add_neuron(&neuron_a_2);
+    let mut neurons_a = NeuronXYZPArrays::with_capacity(2); // lets preallocate
+    neurons_a.push(&neuron_a_1);
+    neurons_a.push(&neuron_a_2);
 
 
     // cortical area b
     let cortical_id_b = CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap();
     let neuron_b_1 = NeuronXYZP::new(8, 9, 10, 0.5);
     let neuron_b_2 = NeuronXYZP::new(11, 12, 13, 0.2);
-    let mut neurons_b = NeuronXYZPArrays::new(1).unwrap(); // incorrect preallocation (system should grow)
-    neurons_b.add_neuron(&neuron_b_1);
-    neurons_b.add_neuron(&neuron_b_2);
+    let mut neurons_b = NeuronXYZPArrays::with_capacity(1); // incorrect preallocation (system should grow)
+    neurons_b.push(&neuron_b_1);
+    neurons_b.push(&neuron_b_2);
 
     assert_eq!(
-        neurons_a.get_number_of_neurons_used(),
-        neurons_b.get_number_of_neurons_used()
+        neurons_a.len(),
+        neurons_b.len()
     );
 
     // lets add cortical are C using arrays
@@ -96,12 +96,12 @@ fn test_serialize_deserialize_neuron_mapped_areas() {
     let received_byte_structure = FeagiByteStructure::create_from_bytes(bytes).unwrap();
     let received_cortical_mappings = CorticalMappedXYZPNeuronData::new_from_feagi_byte_structure(&received_byte_structure).unwrap();
 
-    assert_eq!(received_cortical_mappings.get_number_contained_areas(), 3);
-    assert!(received_cortical_mappings.contains(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()));
-    assert!(received_cortical_mappings.contains(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()));
+    assert_eq!(received_cortical_mappings.len(), 3);
+    assert!(received_cortical_mappings.contains_cortical_id(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()));
+    assert!(received_cortical_mappings.contains_cortical_id(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()));
 
-    let rec_neurons_a = received_cortical_mappings.borrow(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()).unwrap();
-    let rec_neurons_b = received_cortical_mappings.borrow(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()).unwrap();
+    let rec_neurons_a = received_cortical_mappings.get_neurons_of(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()).unwrap();
+    let rec_neurons_b = received_cortical_mappings.get_neurons_of(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()).unwrap();
 
     let rec_neuron_1_a = rec_neurons_a.copy_as_neuron_xyzp_vec()[0].clone();
     let rec_neuron_2_b = rec_neurons_b.copy_as_neuron_xyzp_vec()[1].clone();

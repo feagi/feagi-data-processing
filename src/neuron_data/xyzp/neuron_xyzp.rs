@@ -82,7 +82,18 @@ pub struct NeuronXYZP {
     pub p: f32
 }
 
+impl std::fmt::Display for NeuronXYZP {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let s = format!("NeuronXYZP({}, {}, {}, {})", self.x, self.y, self.z, self.p);
+        write!(f, "{}", s)
+    }
+}
+
 impl NeuronXYZP {
+
+    /// Number of bytes used to represent a single neuron in memory (going across x y z p elements)
+    pub const NUMBER_BYTES_PER_NEURON: usize = (size_of::<u32>() *  3) + size_of::<f32>(); // 16 bytes per neuron
+    
     /// Creates a new neuron with the specified coordinates and potential.
     ///
     /// # Arguments
