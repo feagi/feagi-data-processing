@@ -77,6 +77,19 @@ impl std::fmt::Display for NeuronXYZPArrays {
 }
 
 impl NeuronXYZPArrays {
+    /// Creates a new empty NeuronXYZPArrays instance.
+    ///
+    /// # Returns
+    /// * `Self` - A new empty instance with no allocated capacity
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::NeuronXYZPArrays;
+    ///
+    /// let arrays = NeuronXYZPArrays::new();
+    /// assert_eq!(arrays.len(), 0);
+    /// assert!(arrays.is_empty());
+    /// ```
     pub fn new() -> Self {
         NeuronXYZPArrays {
             x: Vec::new(),
@@ -183,10 +196,35 @@ impl NeuronXYZPArrays {
         }
     }
     
+    /// Returns the current capacity of the internal vectors.
+    ///
+    /// # Returns
+    /// * `usize` - The maximum number of neurons that can be stored without reallocation
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::NeuronXYZPArrays;
+    ///
+    /// let arrays = NeuronXYZPArrays::with_capacity(100);
+    /// assert_eq!(arrays.capacity(), 100);
+    /// ```
     pub fn capacity(&self) -> usize {
         self.x.capacity() // all are the same
     }
     
+    /// Returns the number of additional neurons that can be stored without reallocation.
+    ///
+    /// # Returns
+    /// * `usize` - The difference between capacity and current length
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    ///
+    /// let mut arrays = NeuronXYZPArrays::with_capacity(10);
+    /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// assert_eq!(arrays.spare_capacity(), 9);
+    /// ```
     pub fn spare_capacity(&self) -> usize {
         self.x.capacity() - self.x.len()
     }
@@ -194,11 +232,34 @@ impl NeuronXYZPArrays {
     /// Returns the current number of neurons stored in this structure.
     ///
     /// # Returns
-    /// * `u32` - The number of neurons currently stored
+    /// * `usize` - The number of neurons currently stored
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    ///
+    /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
+    /// assert_eq!(arrays.len(), 0);
+    /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// assert_eq!(arrays.len(), 1);
+    /// ```
     pub fn len(&self) -> usize {
         self.p.len() // all of these are of equal length
     }
     
+    /// Shrinks the capacity of all internal vectors to match their current length.
+    ///
+    /// This reduces memory usage by deallocating unused capacity.
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    ///
+    /// let mut arrays = NeuronXYZPArrays::with_capacity(100);
+    /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// arrays.shrink_to_fit();
+    /// assert_eq!(arrays.capacity(), 1);
+    /// ```
     pub fn shrink_to_fit(&mut self) {
         self.x.shrink_to_fit();
         self.y.shrink_to_fit();
@@ -206,6 +267,22 @@ impl NeuronXYZPArrays {
         self.p.shrink_to_fit();
     }
     
+    /// Ensures the vectors have at least the specified total capacity.
+    ///
+    /// If the current capacity is already sufficient, this function does nothing.
+    /// Otherwise, it reserves additional space to reach the target capacity.
+    ///
+    /// # Arguments
+    /// * `number_of_neurons_total` - The minimum total capacity required
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::NeuronXYZPArrays;
+    ///
+    /// let mut arrays = NeuronXYZPArrays::with_capacity(10);
+    /// arrays.ensure_capacity(50);
+    /// assert!(arrays.capacity() >= 50);
+    /// ```
     pub fn ensure_capacity(&mut self, number_of_neurons_total: usize) {
         if self.capacity() >= number_of_neurons_total {
             return;
@@ -213,6 +290,22 @@ impl NeuronXYZPArrays {
         self.reserve(number_of_neurons_total - self.capacity());
     }
     
+    /// Reserves capacity for at least the specified number of additional neurons.
+    ///
+    /// The actual capacity reserved may be greater than requested to optimize
+    /// for future insertions. This operation affects all four internal vectors.
+    ///
+    /// # Arguments
+    /// * `additional_neuron_count` - The number of additional neurons to reserve space for
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::NeuronXYZPArrays;
+    ///
+    /// let mut arrays = NeuronXYZPArrays::new();
+    /// arrays.reserve(100);
+    /// assert!(arrays.capacity() >= 100);
+    /// ```
     pub fn reserve(&mut self, additional_neuron_count: usize) {
         self.x.reserve(additional_neuron_count);
         self.y.reserve(additional_neuron_count);
@@ -241,6 +334,23 @@ impl NeuronXYZPArrays {
         self.p.push(neuron.p);
     }
 
+    /// Gets a neuron at the specified index.
+    ///
+    /// # Arguments
+    /// * `index` - The index of the neuron to retrieve
+    ///
+    /// # Returns
+    /// * `Result<NeuronXYZP, FeagiDataProcessingError>` - The neuron at the index or an error if out of bounds
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    ///
+    /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
+    /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// let neuron = arrays.get(0).unwrap();
+    /// assert_eq!(neuron.x, 1);
+    /// ```
     pub fn get(&mut self, index: usize) -> Result<NeuronXYZP, FeagiDataProcessingError> {
         if index >= self.len()  {
             return Err(IODataError::InvalidParameters(format!("Given index {} is exceeds NeuronXYZPArray length of {}!", index, self.len())).into())
@@ -252,6 +362,21 @@ impl NeuronXYZPArrays {
         Ok(NeuronXYZP{x, y, z, p})
     }
     
+    /// Removes and returns the last neuron from the arrays.
+    ///
+    /// # Returns
+    /// * `Option<NeuronXYZP>` - The last neuron if the arrays are not empty, `None` otherwise
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    ///
+    /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
+    /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// let neuron = arrays.pop().unwrap();
+    /// assert_eq!(neuron.x, 1);
+    /// assert!(arrays.is_empty());
+    /// ```
     pub fn pop(&mut self) -> Option<NeuronXYZP> {
         let x = self.x.pop();
         let y = self.y.pop();
@@ -333,6 +458,23 @@ impl NeuronXYZPArrays {
             })
     }
     
+    /// Returns an iterator over all neurons with their indices.
+    ///
+    /// # Returns
+    /// * `impl Iterator<Item=(usize, NeuronXYZP)> + '_` - An iterator yielding (index, neuron) pairs
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    ///
+    /// let mut arrays = NeuronXYZPArrays::with_capacity(2);
+    /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// arrays.push(&NeuronXYZP::new(4, 5, 6, 0.7));
+    ///
+    /// for (index, neuron) in arrays.enumerate() {
+    ///     println!("Neuron {} at position {}", neuron.x, index);
+    /// }
+    /// ```
     pub fn enumerate(&self) -> impl Iterator<Item=(usize, NeuronXYZP)> + '_ {
         self.x.iter().enumerate()
             .zip(&self.y)
@@ -420,6 +562,23 @@ impl NeuronXYZPArrays {
         )
     }
     
+    /// Returns the total size in bytes required to store all neurons.
+    ///
+    /// This calculates the number of bytes needed for binary serialization
+    /// of the current neuron data.
+    ///
+    /// # Returns
+    /// * `usize` - Total bytes required (number of neurons × 16 bytes per neuron)
+    ///
+    /// # Examples
+    /// ```
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    ///
+    /// let mut arrays = NeuronXYZPArrays::with_capacity(2);
+    /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
+    /// arrays.push(&NeuronXYZP::new(4, 5, 6, 0.7));
+    /// assert_eq!(arrays.get_size_in_number_of_bytes(), 32); // 2 neurons × 16 bytes
+    /// ```
     pub fn get_size_in_number_of_bytes(&self) -> usize {
         self.len() * NeuronXYZP::NUMBER_BYTES_PER_NEURON
     }
