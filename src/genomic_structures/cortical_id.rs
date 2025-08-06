@@ -1,4 +1,4 @@
-//! Cortical area identifiers for FEAGI genomic structures.
+//! Cortical area identifiers for FEAGI Cortical Areas.
 //!
 //! This module provides the `CorticalID` type, which represents unique identifiers
 //! for cortical areas within the FEAGI neural system. These identifiers follow a
@@ -75,11 +75,11 @@ use std::fmt;
 ///     SensorCorticalType::VisionCenterColor,
 ///     CorticalGroupingIndex::from(0)
 /// ).unwrap();
-/// assert_eq!(vision_id.to_identifier_ascii_string(), "iVcc00");
+/// assert_eq!(vision_id.as_ascii_string(), "iVcc00");
 ///
 /// // Create from string
 /// let custom_id = CorticalID::from_string("custom".to_string()).unwrap();
-/// 
+///
 /// // Get the cortical type
 /// let cortical_type = vision_id.get_cortical_type();
 /// ```
@@ -93,15 +93,19 @@ pub struct CorticalID {
 
 impl fmt::Display for CorticalID {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let ch = safe_bytes_to_string(&self.bytes);
-        write!(f, "{}", ch)
+        let ch = unsafe_bytes_to_string(&self.bytes);
+        write!(f, "CorticalID({})", ch)
     }
 }
 
 impl CorticalID {
     /// The fixed length of all cortical identifiers in bytes.
     pub const CORTICAL_ID_LENGTH: usize = 6;
-    
+
+    /// Alias for `CORTICAL_ID_LENGTH` for consistency with other byte-oriented APIs.
+    ///
+    /// This constant provides the same value as `CORTICAL_ID_LENGTH` but with
+    /// naming that's consistent with other structures that expose byte sizes.
     pub const NUMBER_OF_BYTES: usize = Self::CORTICAL_ID_LENGTH;
     
     /// Creates a new custom cortical area identifier.
@@ -127,7 +131,7 @@ impl CorticalID {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
     /// let custom_id = CorticalID::new_custom_cortical_area_id("custom".to_string()).unwrap();
-    /// assert_eq!(custom_id.to_identifier_ascii_string(), "custom");
+    /// assert_eq!(custom_id.as_ascii_string(), "custom");
     /// ```
     pub fn new_custom_cortical_area_id(desired_id_string: String) -> Result<Self, FeagiDataProcessingError> {
         Self::verify_input_length(&desired_id_string)?;
@@ -165,7 +169,7 @@ impl CorticalID {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
     /// let memory_id = CorticalID::new_memory_cortical_area_id("memory".to_string()).unwrap();
-    /// assert_eq!(memory_id.to_identifier_ascii_string(), "memory");
+    /// assert_eq!(memory_id.as_ascii_string(), "memory");
     /// ```
     pub fn new_memory_cortical_area_id(desired_id_string: String) -> Result<Self, FeagiDataProcessingError> {
 
@@ -197,9 +201,9 @@ impl CorticalID {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CoreCorticalType, CorticalID};
     /// let death_id = CorticalID::new_core_cortical_area_id(CoreCorticalType::Death).unwrap();
-    /// assert_eq!(death_id.to_identifier_ascii_string(), "_death");
+    /// assert_eq!(death_id.as_ascii_string(), "_death");
     /// ```
-    pub fn new_core_cortical_area_id(core_type: CoreCorticalType) -> Result<Self, GenomeError> {
+    pub fn new_core_cortical_area_id(core_type: CoreCorticalType) -> Result<Self, FeagiDataProcessingError> {
         Ok(core_type.to_cortical_id())
     }
 
@@ -226,7 +230,7 @@ impl CorticalID {
     /// ).unwrap();
     /// // Results in something like "ivisc0"
     /// ```
-    pub fn new_sensor_cortical_area_id(input_type: SensorCorticalType, input_index: CorticalGroupingIndex) -> Result<Self, GenomeError> {
+    pub fn new_sensor_cortical_area_id(input_type: SensorCorticalType, input_index: CorticalGroupingIndex) -> Result<Self, FeagiDataProcessingError> {
         Ok(input_type.to_cortical_id(input_index))
     }
 
@@ -253,7 +257,7 @@ impl CorticalID {
     /// ).unwrap();
     /// // Results in something like "omot01"
     /// ```
-    pub fn new_motor_cortical_area_id(output_type: MotorCorticalType, output_index: CorticalGroupingIndex) -> Result<Self, GenomeError> {
+    pub fn new_motor_cortical_area_id(output_type: MotorCorticalType, output_index: CorticalGroupingIndex) -> Result<Self, FeagiDataProcessingError> {
         Ok(output_type.to_cortical_id(output_index))
     }
 
@@ -324,6 +328,32 @@ impl CorticalID {
         }
     }
     
+    /// Creates a cortical ID from a 6-byte array.
+    ///
+    /// This method constructs a `CorticalID` from raw bytes, validating that they
+    /// represent a valid ASCII cortical identifier. The bytes must form a valid
+    /// cortical type and follow the format constraints.
+    ///
+    /// # Arguments
+    /// * `bytes` - Reference to a 6-byte array containing ASCII characters
+    ///
+    /// # Returns
+    /// * `Ok(CorticalID)` - Valid cortical identifier
+    /// * `Err(FeagiDataProcessingError)` - If bytes are invalid or don't form a valid cortical type
+    ///
+    /// # Validation
+    /// - Bytes must be valid UTF-8/ASCII
+    /// - Must follow cortical ID character rules (alphanumeric + underscore only)
+    /// - Must represent a valid cortical type (sensor, motor, core, custom, or memory)
+    ///
+    /// # Example
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
+    /// 
+    /// let bytes: [u8; 6] = *b"_death";
+    /// let cortical_id = CorticalID::from_bytes(&bytes).unwrap();
+    /// assert_eq!(cortical_id.as_ascii_string(), "_death");
+    /// ```
     pub fn from_bytes(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<Self, FeagiDataProcessingError> {
         let as_string = String::from_utf8(bytes.to_vec());
         if as_string.is_err() {
@@ -338,6 +368,38 @@ impl CorticalID {
         Ok(CorticalID {bytes: *bytes})
     }
 
+    /// Creates a cortical ID from a string.
+    ///
+    /// This is the primary method for creating cortical IDs from string representations.
+    /// It performs comprehensive validation to ensure the string forms a valid cortical
+    /// identifier according to FEAGI standards.
+    ///
+    /// # Arguments
+    /// * `string` - A 6-character string representing the cortical identifier
+    ///
+    /// # Returns
+    /// * `Ok(CorticalID)` - Valid cortical identifier
+    /// * `Err(FeagiDataProcessingError)` - If the string is invalid
+    ///
+    /// # Validation Rules
+    /// - Must be exactly 6 characters long
+    /// - Must be valid ASCII
+    /// - Only alphanumeric characters and underscores allowed
+    /// - Must represent a valid cortical type (sensor, motor, core, custom, or memory)
+    ///
+    /// # Examples
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
+    ///
+    /// // Core cortical area
+    /// let death_id = CorticalID::from_string("_death".to_string()).unwrap();
+    ///
+    /// // Custom cortical area
+    /// let custom_id = CorticalID::from_string("custom".to_string()).unwrap();
+    ///
+    /// // Memory cortical area
+    /// let memory_id = CorticalID::from_string("memory".to_string()).unwrap();
+    /// ```
     pub fn from_string(string: String) -> Result<Self, FeagiDataProcessingError> {
         
         Self::verify_input_length(&string)?;
@@ -349,6 +411,35 @@ impl CorticalID {
         Ok(CorticalID {bytes })
     }
     
+    /// Attempts to create a cortical ID from a cortical type and index.
+    ///
+    /// This method provides a unified interface for creating cortical IDs from any
+    /// cortical type (sensor, motor, core, etc.) along with an optional index for
+    /// IO-based types. It's particularly useful when working with dynamic cortical
+    /// type determination.
+    ///
+    /// # Arguments
+    /// * `cortical_type` - The specific cortical type to create an ID for
+    /// * `io_cortical_index` - The grouping index (used for sensor/motor types, ignored for others)
+    ///
+    /// # Returns
+    /// * `Ok(CorticalID)` - Successfully created cortical identifier
+    /// * `Err(FeagiDataProcessingError)` - If the cortical type cannot be converted to a valid ID
+    ///
+    /// # Usage
+    /// This method handles the complexity of different cortical type ID generation:
+    /// - **Sensor/Motor types**: Use the index for multiple instances
+    /// - **Core types**: Index is ignored, uses predefined identifiers
+    /// - **Custom/Memory types**: Requires specific handling through other methods
+    ///
+    /// # Examples
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalID, CorticalType, CorticalGroupingIndex};
+    ///
+    /// // This example assumes CorticalType variants exist
+    /// // let sensor_type = CorticalType::Sensor(SensorCorticalType::VisionCenterColor);
+    /// // let cortical_id = CorticalID::try_from_cortical_type(&sensor_type, CorticalGroupingIndex::from(0)).unwrap();
+    /// ```
     pub fn try_from_cortical_type(cortical_type: &CorticalType, io_cortical_index: CorticalGroupingIndex) -> Result<Self, FeagiDataProcessingError> {
         CorticalType::to_cortical_id(cortical_type, io_cortical_index)
     }
@@ -394,11 +485,11 @@ impl CorticalID {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CoreCorticalType, CorticalID};
     /// let cortical_id = CorticalID::new_core_cortical_area_id(CoreCorticalType::Death).unwrap();
-    /// let id_string = cortical_id.to_identifier_ascii_string();
+    /// let id_string = cortical_id.as_ascii_string();
     /// println!("Cortical Area: {}", id_string); // "_death"
     /// ```
-    pub fn to_identifier_ascii_string(&self) -> String {
-        safe_bytes_to_string(&self.bytes)
+    pub fn as_ascii_string(&self) -> String {
+        unsafe_bytes_to_string(&self.bytes)
     }
     
     /// Returns the cortical type classification for this identifier.
@@ -417,21 +508,57 @@ impl CorticalID {
         CorticalType::get_type_from_bytes(&self.bytes).unwrap() // will never error
     }
     
-    fn verify_input_length(string: &String) -> Result<(), GenomeError> {
+    /// Validates that the input string has the correct length for a cortical ID.
+    ///
+    /// # Arguments
+    /// * `string` - The string to validate
+    ///
+    /// # Returns
+    /// * `Ok(())` - String has the correct length
+    /// * `Err(FeagiDataProcessingError)` - String length is incorrect
+    fn verify_input_length(string: &String) -> Result<(), FeagiDataProcessingError> {
         if string.len() != CorticalID::CORTICAL_ID_LENGTH {
             return Err(GenomeError::InvalidCorticalID(format!("A cortical ID must have a length of {}! Given cortical ID '{}' is not!", CorticalID::CORTICAL_ID_LENGTH, string)).into());
         }
         Ok(())
     }
 
-    fn verify_input_ascii(string: &String) -> Result<(), GenomeError> {
+    /// Validates that the input string contains only ASCII characters.
+    ///
+    /// Cortical IDs must be pure ASCII for compatibility across different systems
+    /// and to ensure proper serialization/deserialization.
+    ///
+    /// # Arguments
+    /// * `string` - The string to validate
+    ///
+    /// # Returns
+    /// * `Ok(())` - String contains only ASCII characters
+    /// * `Err(FeagiDataProcessingError)` - String contains non-ASCII characters
+    fn verify_input_ascii(string: &String) -> Result<(), FeagiDataProcessingError> {
         if !string.is_ascii() {
             return Err(GenomeError::InvalidCorticalID(format!("A cortical ID must be entirely ASCII! Given cortical ID '{}' is not!", string)).into());
         }
         Ok(())
     }
 
-    fn verify_allowed_characters(string: &String) -> Result<(), GenomeError> {
+    /// Validates that the input string contains only allowed characters.
+    ///
+    /// Cortical IDs have strict character restrictions to ensure they can be safely
+    /// used in various contexts (file names, network protocols, databases, etc.).
+    /// Only alphanumeric characters (a-z, A-Z, 0-9) and underscores (_) are permitted.
+    ///
+    /// # Arguments
+    /// * `string` - The string to validate
+    ///
+    /// # Returns
+    /// * `Ok(())` - String contains only allowed characters
+    /// * `Err(FeagiDataProcessingError)` - String contains invalid characters
+    ///
+    /// # Allowed Characters
+    /// - Letters: a-z, A-Z
+    /// - Numbers: 0-9
+    /// - Underscore: _
+    fn verify_allowed_characters(string: &String) -> Result<(), FeagiDataProcessingError> {
         if !string.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
             return Err(GenomeError::InvalidCorticalID(format!("A cortical ID must be made only of alphanumeric characters and underscores! Given cortical ID '{}' is not!", string)).into());
         }
@@ -442,8 +569,23 @@ impl CorticalID {
 }
 
 
-// This function assumes that we know the bytes are valid ASCII
-fn safe_bytes_to_string(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> String {
+/// Converts a 6-byte array to a UTF-8 string without validation.
+///
+/// # Safety
+/// This function assumes that the bytes represent valid UTF-8/ASCII characters.
+/// It should only be called on bytes that have already been validated through
+/// the CorticalID creation process, which ensures ASCII compliance.
+///
+/// # Arguments
+/// * `bytes` - Reference to a 6-byte array containing valid ASCII characters
+///
+/// # Returns
+/// A String containing the UTF-8 representation of the bytes
+///
+/// # Panics
+/// Will panic if the bytes are not valid UTF-8, but this should never happen
+/// when called on validated CorticalID bytes.
+fn unsafe_bytes_to_string(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> String {
     String::from_utf8(bytes.to_vec()).unwrap()
 }
 

@@ -613,7 +613,7 @@ impl CoreCorticalType {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::CoreCorticalType;
     /// let death_id = CoreCorticalType::Death.to_cortical_id();
-    /// assert_eq!(death_id.to_identifier_ascii_string(), "_death");
+    /// assert_eq!(death_id.as_ascii_string(), "_death");
     /// ```
     pub fn to_cortical_id(&self) -> CorticalID {
         match self {
