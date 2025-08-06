@@ -71,7 +71,7 @@
 //! use feagi_core_data_structures_and_processing::neuron_data::xyzp::{NeuronXYZP, NeuronXYZPArrays};
 //!
 //! // Efficient batch operations
-//! let mut arrays = NeuronXYZPArrays::with_capacity(1000).unwrap();
+//! let mut arrays = NeuronXYZPArrays::with_capacity(1000);
 //! arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
 //! arrays.push(&NeuronXYZP::new(4, 5, 6, 0.7));
 //! ```
@@ -83,7 +83,7 @@
 //!
 //!
 //! // Efficient batch operations
-//! let mut arrays = NeuronXYZPArrays::with_capacity(1000).unwrap();
+//! let mut arrays = NeuronXYZPArrays::with_capacity(1000);
 //! arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
 //! arrays.push(&NeuronXYZP::new(4, 5, 6, 0.7));
 //!

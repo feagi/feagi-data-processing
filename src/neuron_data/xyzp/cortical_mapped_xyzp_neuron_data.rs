@@ -110,7 +110,7 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
     }
 
     fn max_number_bytes_needed(&self) -> usize {
-        let mut number_neurons: usize = 0;
+        let mut number_neurons: usize = 0; 
         for neuron_set in self.mappings.values() {
             number_neurons += neuron_set.len();
         }
@@ -205,9 +205,9 @@ impl CorticalMappedXYZPNeuronData {
     /// Binary structure version for compatibility checking.
     const BYTE_STRUCT_VERSION: u8 = 1;
     /// Size in bytes of each cortical area header in binary format.
-    const BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = 14;
+    const BYTE_PER_CORTICAL_HEADER_DESCRIPTOR_SIZE: usize = CorticalID::NUMBER_OF_BYTES + size_of::<u32>() + size_of::<u32>();
     /// Size in bytes of the cortical count field in binary format.
-    const CORTICAL_COUNT_HEADER_SIZE: usize = 2;
+    const CORTICAL_COUNT_HEADER_SIZE: usize = size_of::<u16>();
     
     /// Creates a new empty neuron data collection.
     ///
@@ -258,18 +258,77 @@ impl CorticalMappedXYZPNeuronData {
         self.mappings.len()
     }
     
+    /// Checks if the neuron data collection is empty.
+    ///
+    /// # Returns
+    ///
+    /// `true` if no cortical areas have neuron data, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// assert!(neuron_data.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.mappings.is_empty()
     }
     
+    /// Returns the current capacity of the internal hash map.
+    ///
+    /// # Returns
+    ///
+    /// The number of cortical areas that can be stored without reallocation.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let neuron_data = CorticalMappedXYZPNeuronData::new_with_capacity(100);
+    /// assert!(neuron_data.capacity() >= 100);
+    /// ```
     pub fn capacity(&self) -> usize {
         self.mappings.capacity()
     }
     
+    /// Reserves capacity for at least the specified number of additional cortical areas.
+    ///
+    /// The actual capacity reserved may be greater than requested to optimize
+    /// for future insertions.
+    ///
+    /// # Arguments
+    ///
+    /// * `additional_capacity` - The number of additional cortical areas to reserve space for
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// neuron_data.reserve(50);
+    /// assert!(neuron_data.capacity() >= 50);
+    /// ```
     pub fn reserve(&mut self, additional_capacity: usize) {
         self.mappings.reserve(additional_capacity);
     }
     
+    /// Shrinks the capacity of the hash map to match its current size.
+    ///
+    /// This reduces memory usage by deallocating unused capacity.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new_with_capacity(100);
+    /// // ... add some data
+    /// neuron_data.shrink_to_fit();
+    /// ```
     pub fn shrink_to_fit(&mut self) {
         self.mappings.shrink_to_fit();
     }
@@ -330,20 +389,142 @@ impl CorticalMappedXYZPNeuronData {
         self.mappings.insert(cortical_id, neuron_data)
     }
 
+    /// Removes neuron data for a cortical area.
+    ///
+    /// # Arguments
+    ///
+    /// * `cortical_id` - Cortical area identifier to remove
+    ///
+    /// # Returns
+    ///
+    /// `Some(NeuronXYZPArrays)` of the removed data if the cortical area existed,
+    /// `None` if the cortical area was not found.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
+    /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
+    ///
+    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// let cortical_id = CorticalID::from_string("iVcc00".into()).unwrap();
+    /// neuron_data.insert(cortical_id, NeuronXYZPArrays::new());
+    /// 
+    /// let removed = neuron_data.remove(cortical_id);
+    /// assert!(removed.is_some());
+    /// ```
     pub fn remove(&mut self, cortical_id: CorticalID) -> Option<NeuronXYZPArrays> {
         self.mappings.remove(&cortical_id)
     }
     
+    /// Removes all cortical areas and their neuron data.
+    ///
+    /// This operation clears the entire collection while maintaining the allocated capacity.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// // ... add some data
+    /// neuron_data.clear();
+    /// assert!(neuron_data.is_empty());
+    /// ```
     pub fn clear(&mut self) {
         self.mappings.clear();
     }
     
-    pub fn iter(&self) -> impl Iterator<Item=NeuronXYZPArrays> + '_ {
-        todo!()
+    /// Returns an iterator over the neuron data collections.
+    ///
+    /// This iterator yields references to the neuron arrays for each cortical area,
+    /// without the cortical IDs.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that yields `&NeuronXYZPArrays` for each cortical area.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// for neurons in neuron_data.iter() {
+    ///     println!("Cortical area has {} neurons", neurons.len());
+    /// }
+    /// ```
+    pub fn iter(&self) -> impl Iterator<Item=&NeuronXYZPArrays> + '_ {
+        self.mappings.values()
     }
     
-    pub fn enumerate(&self) -> impl Iterator<Item=(CorticalID, &NeuronXYZPArrays)> {
-        todo!()
+    /// Returns an iterator over cortical IDs and their corresponding neuron data.
+    ///
+    /// This iterator yields tuples containing the cortical area identifier and
+    /// a reference to its neuron data collection.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that yields `(CorticalID, &NeuronXYZPArrays)` pairs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// for (cortical_id, neurons) in neuron_data.enumerate() {
+    ///     println!("Cortical area {:?} has {} neurons", cortical_id, neurons.len());
+    /// }
+    /// ```
+    pub fn enumerate(&self) -> impl Iterator<Item=(CorticalID, &NeuronXYZPArrays)> + '_ {
+        self.mappings.iter().map(|(id, arrays)| (*id, arrays))
+    }
+    
+    /// Returns a mutable iterator over the neuron data collections.
+    ///
+    /// This iterator yields mutable references to the neuron arrays for each cortical area,
+    /// allowing modification of the neuron data.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that yields `&mut NeuronXYZPArrays` for each cortical area.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// for neurons in neuron_data.iter_mut() {
+    ///     neurons.clear(); // Clear all neuron arrays
+    /// }
+    /// ```
+    pub fn iter_mut(&mut self) -> impl Iterator<Item=&mut NeuronXYZPArrays> + '_ {
+        self.mappings.values_mut()
+    }
+    
+    /// Returns an iterator over the cortical area identifiers.
+    ///
+    /// This iterator yields references to the cortical IDs for each area that has neuron data,
+    /// without the neuron data itself.
+    ///
+    /// # Returns
+    ///
+    /// An iterator that yields `&CorticalID` for each cortical area.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// for cortical_id in neuron_data.keys() {
+    ///     println!("Found cortical area: {:?}", cortical_id);
+    /// }
+    /// ```
+    pub fn keys(&self) -> impl Iterator<Item=&CorticalID> + '_ {
+        self.mappings.keys()
     }
     
     //endregion

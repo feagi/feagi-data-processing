@@ -9,7 +9,7 @@ fn test_minimal_memory_corruption_debug() {
     // Create a simple test case
     let cortical_id = CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap();
     let neuron = NeuronXYZP::new(1, 2, 3, 0.5);
-    let mut neurons = NeuronXYZPArrays::with_capacity(1).unwrap();
+    let mut neurons = NeuronXYZPArrays::with_capacity(1);
     neurons.push(&neuron);
 
     let mut cortical_mappings = CorticalMappedXYZPNeuronData::new();
@@ -54,7 +54,7 @@ fn test_serialize_deserialize_neuron_mapped_areas() {
     let cortical_id_a = CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap();
     let neuron_a_1 = NeuronXYZP::new(1, 2, 3, 0.5);
     let neuron_a_2 = NeuronXYZP::new(4, 5, 7, 0.2);
-    let mut neurons_a = NeuronXYZPArrays::with_capacity(2).unwrap(); // lets preallocate
+    let mut neurons_a = NeuronXYZPArrays::with_capacity(2); // lets preallocate
     neurons_a.push(&neuron_a_1);
     neurons_a.push(&neuron_a_2);
 
@@ -63,13 +63,13 @@ fn test_serialize_deserialize_neuron_mapped_areas() {
     let cortical_id_b = CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap();
     let neuron_b_1 = NeuronXYZP::new(8, 9, 10, 0.5);
     let neuron_b_2 = NeuronXYZP::new(11, 12, 13, 0.2);
-    let mut neurons_b = NeuronXYZPArrays::with_capacity(1).unwrap(); // incorrect preallocation (system should grow)
+    let mut neurons_b = NeuronXYZPArrays::with_capacity(1); // incorrect preallocation (system should grow)
     neurons_b.push(&neuron_b_1);
     neurons_b.push(&neuron_b_2);
 
     assert_eq!(
-        neurons_a.get_number_of_neurons_used(),
-        neurons_b.get_number_of_neurons_used()
+        neurons_a.len(),
+        neurons_b.len()
     );
 
     // lets add cortical are C using arrays

@@ -28,13 +28,13 @@ fn test_combined_neuron_json_multistruct_serialize_deserialize() {
     
     let neuron_a_1 = NeuronXYZP::new(10, 20, 30, 0.75);
     let neuron_a_2 = NeuronXYZP::new(40, 50, 60, 0.25);
-    let mut neurons_a = NeuronXYZPArrays::with_capacity(2).unwrap();
+    let mut neurons_a = NeuronXYZPArrays::with_capacity(2);
     neurons_a.push(&neuron_a_1);
     neurons_a.push(&neuron_a_2);
 
     let cortical_id_b = CorticalID::from_bytes(b"cBBBBB").unwrap();
     let neuron_b_1 = NeuronXYZP::new(100, 200, 300, 0.8);
-    let mut neurons_b = NeuronXYZPArrays::with_capacity(1).unwrap();
+    let mut neurons_b = NeuronXYZPArrays::with_capacity(1);
     neurons_b.push(&neuron_b_1);
 
     let mut neuron_mappings = CorticalMappedXYZPNeuronData::new();
@@ -121,14 +121,14 @@ fn test_multistruct_with_multiple_json_and_neuron_structures() {
     // Create multiple neuron structures
     let cortical_id_1 = CorticalID::from_bytes(b"cAAAAA").unwrap();
     let neuron_1 = NeuronXYZP::new(1, 1, 1, 0.1);
-    let mut neurons_1 = NeuronXYZPArrays::with_capacity(1).unwrap();
+    let mut neurons_1 = NeuronXYZPArrays::with_capacity(1);
     neurons_1.push(&neuron_1);
     let mut neuron_mappings_1 = CorticalMappedXYZPNeuronData::new();
     neuron_mappings_1.insert(cortical_id_1, neurons_1);
 
     let cortical_id_2 = CorticalID::new_custom_cortical_area_id("cTES02".to_string()).unwrap();
     let neuron_2 = NeuronXYZP::new(2, 2, 2, 0.2);
-    let mut neurons_2 = NeuronXYZPArrays::with_capacity(1).unwrap();
+    let mut neurons_2 = NeuronXYZPArrays::with_capacity(1);
     neurons_2.push(&neuron_2);
     let mut neuron_mappings_2 = CorticalMappedXYZPNeuronData::new();
     neuron_mappings_2.insert(cortical_id_2, neurons_2);
