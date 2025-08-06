@@ -93,12 +93,12 @@ fn test_combined_neuron_json_multistruct_serialize_deserialize() {
     assert_eq!(recovered_json_value, &json_data);
 
     // Verify neuron data integrity
-    assert_eq!(recovered_neuron_mappings.get_number_contained_areas(), 2);
-    assert!(recovered_neuron_mappings.contains(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()));
-    assert!(recovered_neuron_mappings.contains(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()));
+    assert_eq!(recovered_neuron_mappings.len(), 2);
+    assert!(recovered_neuron_mappings.contains_cortical_id(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()));
+    assert!(recovered_neuron_mappings.contains_cortical_id(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()));
 
-    let recovered_neurons_a = recovered_neuron_mappings.borrow(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()).unwrap();
-    let recovered_neurons_b = recovered_neuron_mappings.borrow(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()).unwrap();
+    let recovered_neurons_a = recovered_neuron_mappings.get_neurons_of(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()).unwrap();
+    let recovered_neurons_b = recovered_neuron_mappings.get_neurons_of(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()).unwrap();
 
     let recovered_neuron_vec_a = recovered_neurons_a.copy_as_neuron_xyzp_vec();
     let recovered_neuron_vec_b = recovered_neurons_b.copy_as_neuron_xyzp_vec();

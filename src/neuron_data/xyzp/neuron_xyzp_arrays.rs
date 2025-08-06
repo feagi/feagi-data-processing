@@ -273,10 +273,10 @@ impl NeuronXYZPArrays {
     /// Clears all vectors by truncating them to zero length without deallocating its memory.
     /// This effectively resets the structure while maintaining capacity.
     pub fn clear(&mut self) {
-        self.x.truncate(0);
-        self.y.truncate(0);
-        self.z.truncate(0);
-        self.p.truncate(0);
+        self.x.clear();
+        self.y.clear();
+        self.z.clear();
+        self.p.clear();
     }
     
     /// Checks if no neurons are in this structure.

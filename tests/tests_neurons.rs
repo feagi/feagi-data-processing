@@ -96,12 +96,12 @@ fn test_serialize_deserialize_neuron_mapped_areas() {
     let received_byte_structure = FeagiByteStructure::create_from_bytes(bytes).unwrap();
     let received_cortical_mappings = CorticalMappedXYZPNeuronData::new_from_feagi_byte_structure(&received_byte_structure).unwrap();
 
-    assert_eq!(received_cortical_mappings.get_number_contained_areas(), 3);
-    assert!(received_cortical_mappings.contains(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()));
-    assert!(received_cortical_mappings.contains(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()));
+    assert_eq!(received_cortical_mappings.len(), 3);
+    assert!(received_cortical_mappings.contains_cortical_id(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()));
+    assert!(received_cortical_mappings.contains_cortical_id(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()));
 
-    let rec_neurons_a = received_cortical_mappings.borrow(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()).unwrap();
-    let rec_neurons_b = received_cortical_mappings.borrow(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()).unwrap();
+    let rec_neurons_a = received_cortical_mappings.get_neurons_of(&CorticalID::new_custom_cortical_area_id("cAAAAA".to_string()).unwrap()).unwrap();
+    let rec_neurons_b = received_cortical_mappings.get_neurons_of(&CorticalID::new_custom_cortical_area_id("cBBBBB".to_string()).unwrap()).unwrap();
 
     let rec_neuron_1_a = rec_neurons_a.copy_as_neuron_xyzp_vec()[0].clone();
     let rec_neuron_2_b = rec_neurons_b.copy_as_neuron_xyzp_vec()[1].clone();
