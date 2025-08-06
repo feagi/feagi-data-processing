@@ -31,6 +31,7 @@
 //! - The binary format is optimized for minimal network overhead
 
 use std::collections::HashMap;
+use std::mem::size_of;
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::{FeagiBytesError, FeagiDataProcessingError};
 use crate::io_processing::byte_structures::{FeagiByteStructureType, FeagiByteStructure, FeagiByteStructureCompatible};
@@ -193,6 +194,69 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
         };
         
         Ok(output)
+    }
+}
+
+impl IntoIterator for CorticalMappedXYZPNeuronData {
+    type Item = (CorticalID, NeuronXYZPArrays);
+    type IntoIter = std::collections::hash_map::IntoIter<CorticalID, NeuronXYZPArrays>;
+
+    /// Consumes the collection and returns an iterator over owned (CorticalID, NeuronXYZPArrays) pairs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// for (cortical_id, neurons) in neuron_data {
+    ///     println!("Area {:?} has {} neurons", cortical_id, neurons.len());
+    /// }
+    /// ```
+    fn into_iter(self) -> Self::IntoIter {
+        self.mappings.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a CorticalMappedXYZPNeuronData {
+    type Item = (&'a CorticalID, &'a NeuronXYZPArrays);
+    type IntoIter = std::collections::hash_map::Iter<'a, CorticalID, NeuronXYZPArrays>;
+
+    /// Returns an iterator over references to (CorticalID, NeuronXYZPArrays) pairs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// for (cortical_id, neurons) in &neuron_data {
+    ///     println!("Area {:?} has {} neurons", cortical_id, neurons.len());
+    /// }
+    /// ```
+    fn into_iter(self) -> Self::IntoIter {
+        self.mappings.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut CorticalMappedXYZPNeuronData {
+    type Item = (&'a CorticalID, &'a mut NeuronXYZPArrays);
+    type IntoIter = std::collections::hash_map::IterMut<'a, CorticalID, NeuronXYZPArrays>;
+
+    /// Returns a mutable iterator over (CorticalID, NeuronXYZPArrays) pairs.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
+    ///
+    /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
+    /// for (cortical_id, neurons) in &mut neuron_data {
+    ///     neurons.clear(); // Clear all neuron arrays
+    /// }
+    /// ```
+    fn into_iter(self) -> Self::IntoIter {
+        self.mappings.iter_mut()
     }
 }
 
@@ -455,29 +519,7 @@ impl CorticalMappedXYZPNeuronData {
         self.mappings.values()
     }
     
-    /// Returns an iterator over cortical IDs and their corresponding neuron data.
-    ///
-    /// This iterator yields tuples containing the cortical area identifier and
-    /// a reference to its neuron data collection.
-    ///
-    /// # Returns
-    ///
-    /// An iterator that yields `(CorticalID, &NeuronXYZPArrays)` pairs.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
-    ///
-    /// let neuron_data = CorticalMappedXYZPNeuronData::new();
-    /// for (cortical_id, neurons) in neuron_data.enumerate() {
-    ///     println!("Cortical area {:?} has {} neurons", cortical_id, neurons.len());
-    /// }
-    /// ```
-    pub fn enumerate(&self) -> impl Iterator<Item=(CorticalID, &NeuronXYZPArrays)> + '_ {
-        self.mappings.iter().map(|(id, arrays)| (*id, arrays))
-    }
-    
+
     /// Returns a mutable iterator over the neuron data collections.
     ///
     /// This iterator yields mutable references to the neuron arrays for each cortical area,
