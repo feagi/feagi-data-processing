@@ -71,9 +71,9 @@
 //! use feagi_core_data_structures_and_processing::neuron_data::xyzp::{NeuronXYZP, NeuronXYZPArrays};
 //!
 //! // Efficient batch operations
-//! let mut arrays = NeuronXYZPArrays::new(1000).unwrap();
-//! arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
-//! arrays.add_neuron(&NeuronXYZP::new(4, 5, 6, 0.7));
+//! let mut arrays = NeuronXYZPArrays::with_capacity(1000).unwrap();
+//! arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
+//! arrays.push(&NeuronXYZP::new(4, 5, 6, 0.7));
 //! ```
 //!
 //! ## Cortical Organization
@@ -83,10 +83,10 @@
 //!
 //!
 //! // Efficient batch operations
-//! let mut arrays = NeuronXYZPArrays::new(1000).unwrap();
-//! arrays.add_neuron(&NeuronXYZP::new(1, 2, 3, 0.5));
-//! arrays.add_neuron(&NeuronXYZP::new(4, 5, 6, 0.7));
-//! 
+//! let mut arrays = NeuronXYZPArrays::with_capacity(1000).unwrap();
+//! arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
+//! arrays.push(&NeuronXYZP::new(4, 5, 6, 0.7));
+//!
 //! // Organize neurons by cortical areas
 //! let mut cortical_data = CorticalMappedXYZPNeuronData::new();
 //! let id = CorticalID::from_string("iVcc00".to_string()).unwrap();

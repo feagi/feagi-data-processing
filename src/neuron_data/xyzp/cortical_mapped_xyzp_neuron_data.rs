@@ -333,7 +333,7 @@ impl CorticalMappedXYZPNeuronData {
             neurons.reset_indexes();
             return neurons;
         }
-        _ = self.mappings.insert(cortical_id.clone(), NeuronXYZPArrays::new(estimated_neuron_count).unwrap());
+        _ = self.mappings.insert(cortical_id.clone(), NeuronXYZPArrays::with_capacity(estimated_neuron_count).unwrap());
         self.mappings.get_mut(cortical_id).unwrap()
     }
 }

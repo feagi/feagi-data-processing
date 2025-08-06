@@ -90,6 +90,10 @@ impl std::fmt::Display for NeuronXYZP {
 }
 
 impl NeuronXYZP {
+
+    /// Number of bytes used to represent a single neuron in memory (going across x y z p elements)
+    pub const NUMBER_BYTES_PER_NEURON: usize = (size_of::<u32>() *  3) + size_of::<f32>(); // 16 bytes per neuron
+    
     /// Creates a new neuron with the specified coordinates and potential.
     ///
     /// # Arguments

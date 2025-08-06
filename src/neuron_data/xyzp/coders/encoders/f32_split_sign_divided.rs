@@ -31,7 +31,7 @@ impl NeuronXYZPEncoder for F32SplitSignDividedNeuronXYZPEncoder {
             0,
             p_val.abs()
         );
-        generated_neuron_data.add_neuron(&neuron);
+        generated_neuron_data.push(&neuron);
         Ok(())
     }
 }

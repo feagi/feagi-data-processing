@@ -225,7 +225,7 @@ impl SegmentedImageFrame {
         
         for index in 0..9 {
             let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
-            let mut data: NeuronXYZPArrays = NeuronXYZPArrays::new(max_neurons)?;
+            let mut data: NeuronXYZPArrays = NeuronXYZPArrays::with_capacity(max_neurons)?;
             ordered_refs[index].write_xyzp_neuron_arrays(&mut data, channel_index)?;
             output.insert(cortical_ids[index].clone(), data);
         }
