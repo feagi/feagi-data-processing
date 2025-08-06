@@ -1,4 +1,4 @@
-//! Cortical area mapped neuron data collections.
+//! Cortical area mapped neuron data collections. Essentially an extended HashMap<CorticalID, NeuronXYZPArrays>
 //!
 //! This module provides [`CorticalMappedXYZPNeuronData`], the primary data structure
 //! for managing collections of neurons organized by cortical areas in the FEAGI system.
@@ -257,6 +257,17 @@ impl<'a> IntoIterator for &'a mut CorticalMappedXYZPNeuronData {
     /// ```
     fn into_iter(self) -> Self::IntoIter {
         self.mappings.iter_mut()
+    }
+}
+
+impl std::fmt::Display for CorticalMappedXYZPNeuronData {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut inner :String = String::new();
+        for cortical_id_and_data in self {
+            inner.push_str(format!("[{}, {}],", cortical_id_and_data.0.to_string(), cortical_id_and_data.1.to_string()).as_str());
+        };
+        _ = inner.pop(); // Remove the last comma
+        write!(f, "CorticalMappedXYZPNeuronData({})", inner)
     }
 }
 
