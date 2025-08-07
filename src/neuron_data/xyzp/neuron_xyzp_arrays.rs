@@ -351,7 +351,7 @@ impl NeuronXYZPArrays {
     /// let neuron = arrays.get(0).unwrap();
     /// assert_eq!(neuron.x, 1);
     /// ```
-    pub fn get(&mut self, index: usize) -> Result<NeuronXYZP, FeagiDataProcessingError> {
+    pub fn get(&self, index: usize) -> Result<NeuronXYZP, FeagiDataProcessingError> {
         if index >= self.len()  {
             return Err(IODataError::InvalidParameters(format!("Given index {} is exceeds NeuronXYZPArray length of {}!", index, self.len())).into())
         }

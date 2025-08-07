@@ -1,5 +1,7 @@
 use crate::error::{GenomeError, FeagiDataProcessingError};
 
+// TODO actually use this that some point lol, but we dont for now
+
 /// Represents the three-dimensional size of a cortical area in FEAGI
 /// 
 /// # Examples
