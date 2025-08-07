@@ -34,19 +34,19 @@ use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
 ///
 /// ## Creating from JSON String
 /// ```rust
-/// use feagi_core_data_structures_and_processing::io_data::JsonStructure;
+/// use feagi_core_data_structures_and_processing::io_data::FeagiJSON;
 ///
 /// let json_str = r#"{"temperature": 23.5, "humidity": 60}"#;
-/// let json_struct = JsonStructure::from_json_string(json_str.to_string()).unwrap();
+/// let json_struct = FeagiJSON::from_json_string(json_str.to_string()).unwrap();
 /// ```
 ///
 /// ## Creating from serde_json::Value
 /// ```rust
 /// use serde_json::json;
-/// use feagi_core_data_structures_and_processing::io_data::JsonStructure;
+/// use feagi_core_data_structures_and_processing::io_data::FeagiJSON;
 ///
 /// let json_value = json!({"status": "active", "count": 42});
-/// let json_struct = JsonStructure::from_json_value(json_value);
+/// let json_struct = FeagiJSON::from_json_value(json_value);
 /// ```
 ///
 /// # Integration with FEAGI Systems
@@ -57,11 +57,11 @@ use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
 /// - **Stream Processing**: For metadata and control messages
 /// - **Multi-Structure Containers**: Combined with other FEAGI data types
 #[derive(Clone)]
-pub struct JsonStructure {
+pub struct FeagiJSON {
     json: serde_json::Value,
 }
 
-impl FeagiByteStructureCompatible for JsonStructure {
+impl FeagiByteStructureCompatible for FeagiJSON {
     fn get_type(&self) -> FeagiByteStructureType { Self::BYTE_STRUCTURE_TYPE }
 
     fn get_version(&self) -> u8 {Self:: BYTE_STRUCT_VERSION}
@@ -119,17 +119,17 @@ impl FeagiByteStructureCompatible for JsonStructure {
             Err(e) => return Err(FeagiBytesError::UnableToDeserializeBytes(format!("Invalid JSON data: {}", e)).into()),
         };
         
-        Ok(JsonStructure { json: json_value })
+        Ok(FeagiJSON { json: json_value })
     }
 }
 
-impl std::fmt::Display for JsonStructure {
+impl std::fmt::Display for FeagiJSON {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.json)
     }
 }
 
-impl JsonStructure {
+impl FeagiJSON {
     /// The FEAGI byte structure type identifier for JSON data.
     const BYTE_STRUCTURE_TYPE: FeagiByteStructureType = FeagiByteStructureType::JSON;
     
@@ -150,15 +150,15 @@ impl JsonStructure {
     ///
     /// # Example
     /// ```rust
-    /// use feagi_core_data_structures_and_processing::io_data::JsonStructure;
+    /// use feagi_core_data_structures_and_processing::io_data::FeagiJSON;
     ///
-    /// let valid_json = JsonStructure::from_json_string(r#"{"key": "value"}"#.to_string()).unwrap();
-    /// let invalid_json = JsonStructure::from_json_string("not json".to_string());
+    /// let valid_json = FeagiJSON::from_json_string(r#"{"key": "value"}"#.to_string()).unwrap();
+    /// let invalid_json = FeagiJSON::from_json_string("not json".to_string());
     /// assert!(invalid_json.is_err());
     /// ```
-    pub fn from_json_string(string: String) -> Result<JsonStructure, FeagiDataProcessingError> {
+    pub fn from_json_string(string: String) -> Result<FeagiJSON, FeagiDataProcessingError> {
         match serde_json::from_str(&string) {
-            Ok(json_value) => Ok(JsonStructure { json: json_value }),
+            Ok(json_value) => Ok(FeagiJSON { json: json_value }),
             Err(e) => Err(IODataError::InvalidParameters(
                 format!("Failed to parse JSON string: {}", e)
             ).into()),
@@ -179,13 +179,13 @@ impl JsonStructure {
     /// # Example
     /// ```rust
     /// use serde_json::json;
-    /// use feagi_core_data_structures_and_processing::io_data::JsonStructure;
+    /// use feagi_core_data_structures_and_processing::io_data::FeagiJSON;
     ///
     /// let json_value = json!({"sensor": "temperature", "value": 23.5});
-    /// let json_struct = JsonStructure::from_json_value(json_value);
+    /// let json_struct = FeagiJSON::from_json_value(json_value);
     /// ```
-    pub fn from_json_value(value: serde_json::Value) -> JsonStructure {
-        JsonStructure { json: value }
+    pub fn from_json_value(value: serde_json::Value) -> FeagiJSON {
+        FeagiJSON { json: value }
     }
     
     /// Returns a reference to the internal serde_json::Value.
@@ -200,9 +200,9 @@ impl JsonStructure {
     /// # Example
     /// ```rust
     /// use serde_json::json;
-    /// use feagi_core_data_structures_and_processing::io_data::JsonStructure;
+    /// use feagi_core_data_structures_and_processing::io_data::FeagiJSON;
     ///
-    /// let json_struct = JsonStructure::from_json_value(json!({"count": 42}));
+    /// let json_struct = FeagiJSON::from_json_value(json!({"count": 42}));
     /// let json_ref = json_struct.borrow_json_value();
     /// assert_eq!(json_ref["count"], 42);
     /// ```

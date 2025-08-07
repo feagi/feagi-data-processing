@@ -58,5 +58,5 @@ mod io_types;
 
 pub use image::{ImageFrame, SegmentedImageFrame};
 pub use image::descriptors as image_descriptors;
-pub use crate::json_structure::JsonStructure;
+pub use crate::feagi_json::FeagiJSON;
 pub use io_types::{IOTypeData, IOTypeVariant};

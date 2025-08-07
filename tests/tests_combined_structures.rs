@@ -1,5 +1,5 @@
 use serde_json::json;
-use feagi_core_data_structures_and_processing::io_data::JsonStructure;
+use feagi_core_data_structures_and_processing::io_data::FeagiJSON;
 use feagi_core_data_structures_and_processing::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPArrays};
 use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
 use feagi_core_data_structures_and_processing::io_processing::byte_structures::FeagiByteStructure;
@@ -21,7 +21,7 @@ fn test_combined_neuron_json_multistruct_serialize_deserialize() {
             "version": "1.0.0"
         }
     });
-    let json_structure = JsonStructure::from_json_value(json_data.clone());
+    let json_structure = FeagiJSON::from_json_value(json_data.clone());
 
     // Create neuron structure (similar to the neuron tests)
     let cortical_id_a = CorticalID::from_bytes(b"cAAAAA").unwrap();
@@ -85,7 +85,7 @@ fn test_combined_neuron_json_multistruct_serialize_deserialize() {
     assert_eq!(received_neuron_structure_bytes.try_get_structure_type().unwrap(), FeagiByteStructureType::NeuronCategoricalXYZP);
 
     // Convert back to original data types
-    let recovered_json_structure = JsonStructure::new_from_feagi_byte_structure(&received_json_structure_bytes).unwrap();
+    let recovered_json_structure = FeagiJSON::new_from_feagi_byte_structure(&received_json_structure_bytes).unwrap();
     let recovered_neuron_mappings = CorticalMappedXYZPNeuronData::new_from_feagi_byte_structure(&received_neuron_structure_bytes).unwrap();
 
     // Verify JSON data integrity
@@ -115,8 +115,8 @@ fn test_combined_neuron_json_multistruct_serialize_deserialize() {
 #[test]
 fn test_multistruct_with_multiple_json_and_neuron_structures() {
     // Create multiple JSON structures
-    let json1 = JsonStructure::from_json_value(json!({"type": "config", "value": 1}));
-    let json2 = JsonStructure::from_json_value(json!({"type": "metadata", "value": 2}));
+    let json1 = FeagiJSON::from_json_value(json!({"type": "config", "value": 1}));
+    let json2 = FeagiJSON::from_json_value(json!({"type": "metadata", "value": 2}));
 
     // Create multiple neuron structures
     let cortical_id_1 = CorticalID::from_bytes(b"cAAAAA").unwrap();
