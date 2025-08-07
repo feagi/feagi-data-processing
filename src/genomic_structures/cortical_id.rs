@@ -75,7 +75,7 @@ use std::fmt;
 ///     SensorCorticalType::VisionCenter,
 ///     CorticalGroupingIndex::from(0)
 /// ).unwrap();
-/// assert_eq!(vision_id.as_ascii_string(), "ivmm00");
+/// assert_eq!(vision_id.as_ascii_string(), "iic400");
 ///
 /// // Create from string
 /// let custom_id = CorticalID::from_string("custom".to_string()).unwrap();
@@ -228,7 +228,7 @@ impl CorticalID {
     ///     SensorCorticalType::VisionCenter,
     ///     CorticalGroupingIndex::from(0)
     /// ).unwrap();
-    /// // Results in ivmmc0"
+    /// // Results in iic4c0"
     /// ```
     pub fn new_sensor_cortical_area_id(input_type: SensorCorticalType, input_index: CorticalGroupingIndex) -> Result<Self, FeagiDataProcessingError> {
         Ok(input_type.to_cortical_id(input_index))

@@ -8,8 +8,6 @@ use std::cmp;
 use std::ops::RangeInclusive;
 use crate::error::{FeagiDataProcessingError, IODataError};
 
-
-
 /// Parameters for processing an image frame, including cropping, resizing, and color adjustments.
 ///
 /// This struct holds all the parameters needed to process an image frame, with each parameter

@@ -479,7 +479,7 @@ impl CorticalMappedXYZPNeuronData {
     /// use feagi_core_data_structures_and_processing::genomic_structures::CorticalID;
     ///
     /// let mut neuron_data = CorticalMappedXYZPNeuronData::new();
-    /// let cortical_id = CorticalID::from_string("ivmm00".into()).unwrap();
+    /// let cortical_id = CorticalID::from_string("iic400".into()).unwrap();
     /// neuron_data.insert(cortical_id, NeuronXYZPArrays::new());
     /// 
     /// let removed = neuron_data.remove(cortical_id);
