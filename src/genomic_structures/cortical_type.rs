@@ -167,11 +167,11 @@ pub enum CorticalType {
 impl fmt::Display for CorticalType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self { 
-            Self::Custom => write!(f, "Cortical Type: Custom"),
-            Self::Memory => write!(f, "Cortical Type:  Memory"),
-            Self::Core(c) => write!(f, "Cortical Type: Core ({})", c),
-            Self::Sensory(s) => write!(f, "Cortical Type: Sensory ({})", s),
-            Self::Motor(m) => write!(f, "Cortical Type: Motor ({})", m),
+            Self::Custom => write!(f, "CorticalType<Custom>"),
+            Self::Memory => write!(f, "CorticalType<Memory>"),
+            Self::Core(c) => write!(f, "CorticalType<Core>({})", c),
+            Self::Sensory(s) => write!(f, "CorticalType<Sensory>({})", s),
+            Self::Motor(m) => write!(f, "CorticalType<Motor>({})", m),
         }
     }
 }
@@ -181,7 +181,7 @@ impl CorticalType {
     /// Determines the cortical type from a cortical ID's byte representation.
     ///
     /// Analyzes the first byte of a cortical ID to determine which type category
-    /// it belongs to, then delegates to the appropriate sub-type parser for
+    /// it belongs to, then delegates to the appropriate subtype parser for
     /// detailed classification.
     ///
     /// # Arguments
@@ -210,18 +210,31 @@ impl CorticalType {
         
     }
     
+    /// Attempts to convert the cortical type to a CorticalID, using the io_cortical_index in the
+    /// case of input / output cortical areas as well
+    /// 
+    /// Uses internal enum table lookups to mainly accomplish this. Generally using this
+    /// method of generating Cortical IDs is preferred over memorizing the strings of each 
+    /// Cortical Type.
+    /// 
+    /// This function does not work with finding memory or custom types, as those cortical IDs are
+    /// largely arbitrary.
+    ///
+    /// # Returns
+    /// * `Ok(CorticalID)` - Successfully identified cortical id
+    /// * `Err(FeagiDataProcessingError)` - In the case of trying to convert custom or memory types
     pub fn to_cortical_id(&self, io_cortical_index: CorticalGroupingIndex) -> Result<CorticalID, FeagiDataProcessingError> {
         match self {
             Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas can have arbitrary Cortical IDs and thus cannot be convert to from type!".into()).into()),
             Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas can have arbitrary Cortical IDs and thus cannot be convert to from type!".into()).into()),
             Self::Core(c) => {
-                return Ok(CorticalID::new_core_cortical_area_id(*c)?)
+                Ok(CorticalID::new_core_cortical_area_id(*c)?)
             }
             Self::Sensory(s) => {
-                return Ok(CorticalID::new_sensor_cortical_area_id(*s, io_cortical_index)?);
+                Ok(CorticalID::new_sensor_cortical_area_id(*s, io_cortical_index)?)
             }
             Self::Motor(m) => {
-                return Ok(CorticalID::new_motor_cortical_area_id(*m, io_cortical_index)?);
+                Ok(CorticalID::new_motor_cortical_area_id(*m, io_cortical_index)?)
             }
         }
         
@@ -283,7 +296,7 @@ impl CorticalType {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, MotorCorticalType};
     /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::NeuronCoderVariantType;
-    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotoryMotor);
+    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotaryMotor);
     /// let coder = motor_type.try_get_coder_type().unwrap();
     ///
     /// // Use coder for data conversion
@@ -303,7 +316,6 @@ impl CorticalType {
             Self::Motor(m) => m.get_coder_type(),
         }
     }
-    
     
     /// Checks if this cortical type is a core system area.
     ///
@@ -339,7 +351,7 @@ impl CorticalType {
     /// let sensor_type = CorticalType::Sensory(SensorCorticalType::VisionCenterColor);
     /// assert!(sensor_type.is_type_sensor());
     ///
-    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotoryMotor);
+    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotaryMotor);
     /// assert!(!motor_type.is_type_sensor());
     /// ```
     pub fn is_type_sensor(&self) -> bool {
@@ -358,7 +370,7 @@ impl CorticalType {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, MotorCorticalType};
     /// 
-    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotoryMotor);
+    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotaryMotor);
     /// assert!(motor_type.is_type_motor());
     /// 
     /// let custom_type = CorticalType::Custom;
@@ -457,7 +469,7 @@ impl CorticalType {
     /// let sensor_type = CorticalType::Sensory(SensorCorticalType::Proximity);
     /// assert!(sensor_type.verify_is_sensor().is_ok());
     ///
-    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotoryMotor);
+    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotaryMotor);
     /// assert!(motor_type.verify_is_sensor().is_err());
     /// ```
     pub fn verify_is_sensor(&self) -> Result<(), FeagiDataProcessingError> {
@@ -480,7 +492,7 @@ impl CorticalType {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, MotorCorticalType};
     /// 
-    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotoryMotor);
+    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotaryMotor);
     /// assert!(motor_type.verify_is_motor().is_ok());
     /// 
     /// let custom_type = CorticalType::Custom;
@@ -546,7 +558,6 @@ impl CorticalType {
     }
 }
 
-
 //region Core
 
 /// Core system cortical areas for essential FEAGI operations.
@@ -578,7 +589,7 @@ impl fmt::Display for CoreCorticalType {
             CoreCorticalType::Death => "Death",
             CoreCorticalType::Power => "Power"
         };
-        write!(f, "{}", ch)
+        write!(f, "CoreCorticalType({})", ch)
     }
 }
 
@@ -634,7 +645,6 @@ impl CoreCorticalType {
 
 //endregion
 
-
 //region Sensor Cortical Area types
 
 // Use sensor_definition directly with callback pattern
@@ -652,8 +662,8 @@ impl From<SensorCorticalType> for CorticalType {
 
 define_io_cortical_types!{
     MotorCorticalType {
-        RotoryMotor => {
-            friendly_name: "Rotory Motor",
+        RotaryMotor => {
+            friendly_name: "Rotary Motor",
             base_ascii: b"omot00",
             channel_dimension_range: SingleChannelDimensionRange::new(1..2, 1..2, 1..u32::MAX),
             default_coder_type: NeuronCoderVariantType::F32NormalizedM1To1_SplitSignDivided,
