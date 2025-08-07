@@ -28,7 +28,7 @@ use std::fmt;
 /// - Characters 2-4: 3-character type code
 /// - Characters 5-6: 2-character hexadecimal index (00-FF)
 /// 
-/// Example: `ivis00` = Vision sensor, index 0
+/// Example: `iic400` = ImageCamera sensor, index 0
 ///
 /// ## Motor Areas (Output)  
 /// Format: `o[type][index]` where:
@@ -72,7 +72,7 @@ use std::fmt;
 ///
 /// // Create sensor cortical area ID
 /// let vision_id = CorticalID::new_sensor_cortical_area_id(
-///     SensorCorticalType::VisionCenter,
+///     SensorCorticalType::ImageCameraCenter,
 ///     CorticalGroupingIndex::from(0)
 /// ).unwrap();
 /// assert_eq!(vision_id.as_ascii_string(), "iic400");
@@ -225,7 +225,7 @@ impl CorticalID {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalGroupingIndex, CorticalID, SensorCorticalType};
     /// let vision_id = CorticalID::new_sensor_cortical_area_id(
-    ///     SensorCorticalType::VisionCenter,
+    ///     SensorCorticalType::ImageCameraCenter,
     ///     CorticalGroupingIndex::from(0)
     /// ).unwrap();
     /// // Results in iic4c0"
@@ -278,7 +278,7 @@ impl CorticalID {
     /// [6] Middle-Right [7] Bottom-Right  [8] Bottom-Middle
     /// ```
     ///
-    /// # Vision Segmentation
+    /// # ImageCamera Segmentation
     /// - **Center**: Primary focus area for detailed processing
     /// - **Surrounding segments**: Peripheral vision areas for context and motion detection
     ///
@@ -292,15 +292,15 @@ impl CorticalID {
 
     pub fn create_ordered_cortical_areas_for_segmented_vision(camera_index: CorticalGroupingIndex) -> [CorticalID; 9] { // TODO
         [
-            SensorCorticalType::VisionCenter.to_cortical_id(camera_index),
-            SensorCorticalType::VisionBottomLeft.to_cortical_id(camera_index),
-            SensorCorticalType::VisionMiddleLeft.to_cortical_id(camera_index),
-            SensorCorticalType::VisionTopLeft.to_cortical_id(camera_index),
-            SensorCorticalType::VisionTopMiddle.to_cortical_id(camera_index),
-            SensorCorticalType::VisionTopRight.to_cortical_id(camera_index),
-            SensorCorticalType::VisionMiddleRight.to_cortical_id(camera_index),
-            SensorCorticalType::VisionBottomRight.to_cortical_id(camera_index),
-            SensorCorticalType::VisionBottomMiddle.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraCenter.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraBottomLeft.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraMiddleLeft.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraTopLeft.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraTopMiddle.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraTopRight.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraMiddleRight.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraBottomRight.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraBottomMiddle.to_cortical_id(camera_index),
         ]
     }
     
@@ -413,7 +413,7 @@ impl CorticalID {
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalID, CorticalType, CorticalGroupingIndex};
     ///
     /// // This example assumes CorticalType variants exist
-    /// // let sensor_type = CorticalType::Sensor(SensorCorticalType::VisionCenterColor);
+    /// // let sensor_type = CorticalType::Sensor(SensorCorticalType::ImageCameraCenterColor);
     /// // let cortical_id = CorticalID::try_from_cortical_type(&sensor_type, CorticalGroupingIndex::from(0)).unwrap();
     /// ```
     pub fn try_from_cortical_type(cortical_type: &CorticalType, io_cortical_index: CorticalGroupingIndex) -> Result<Self, FeagiDataProcessingError> {

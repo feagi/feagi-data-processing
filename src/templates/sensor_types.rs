@@ -53,65 +53,65 @@ macro_rules! sensor_definition {
                     channel_dimension_range: SingleChannelDimensionRange::new(1..2, 1..2, 1..u32::MAX),
                     default_coder_type: NeuronCoderVariantType::F32NormalizedM1To1_SplitSignDivided,
                 },
-                #[doc = "Vision input. Either alone or in the center of segmented/peripheral vision setups"]
-                VisionCenter => {
-                    friendly_name: "Center Vision Input",
+                #[doc = "Image camera input. Either alone or in the center of segmented/peripheral image camera setups"]
+                ImageCameraCenter => {
+                    friendly_name: "Center Image Camera Input",
                     base_ascii: b"iic400",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                #[doc = "Top Left peripheral vision input."]
-                VisionTopLeft => {
-                    friendly_name: "Top Left Vision Input",
+                #[doc = "Top Left peripheral image camera input."]
+                ImageCameraTopLeft => {
+                    friendly_name: "Top Left Image Camera Input",
                     base_ascii: b"iic600",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                #[doc = "Top Middle peripheral vision input."]
-                VisionTopMiddle => {
-                    friendly_name: "Top Middle Vision Input",
+                #[doc = "Top Middle peripheral image camera input."]
+                ImageCameraTopMiddle => {
+                    friendly_name: "Top Middle Image Camera Input",
                     base_ascii: b"iic700",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                #[doc = "Top Right peripheral vision input."]
-                VisionTopRight => {
-                    friendly_name: "Top Right Vision Input",
+                #[doc = "Top Right peripheral image camera input."]
+                ImageCameraTopRight => {
+                    friendly_name: "Top Right Image Camera Input",
                     base_ascii: b"iic800",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                #[doc = "Middle Left peripheral vision input."]
-                VisionMiddleLeft => {
-                    friendly_name: "Middle Left Vision Input",
+                #[doc = "Middle Left peripheral image camera input."]
+                ImageCameraMiddleLeft => {
+                    friendly_name: "Middle Left Image Camera Input",
                     base_ascii: b"iic300",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                #[doc = "Middle Right peripheral vision input."]
-                VisionMiddleRight => {
-                    friendly_name: "Middle Right Vision Input",
+                #[doc = "Middle Right peripheral image camera input."]
+                ImageCameraMiddleRight => {
+                    friendly_name: "Middle Right Image Camera Input",
                     base_ascii: b"iic400",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                #[doc = "Bottom Left peripheral vision input."]
-                VisionBottomLeft => {
-                    friendly_name: "Bottom Left Vision Input",
+                #[doc = "Bottom Left peripheral image camera input."]
+                ImageCameraBottomLeft => {
+                    friendly_name: "Bottom Left Image Camera Input",
                     base_ascii: b"iic000",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                #[doc = "Bottom Middle peripheral vision input."]
-                VisionBottomMiddle => {
-                    friendly_name: "Bottom Middle Vision Input",
+                #[doc = "Bottom Middle peripheral image camera input."]
+                ImageCameraBottomMiddle => {
+                    friendly_name: "Bottom Middle Image Camera Input",
                     base_ascii: b"iic100",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                #[doc = "Bottom Right peripheral vision input."]
-                VisionBottomRight => {
-                    friendly_name: "Bottom Right Vision Input",
+                #[doc = "Bottom Right peripheral image camera input."]
+                ImageCameraBottomRight => {
+                    friendly_name: "Bottom Right Image Camera Input",
                     base_ascii: b"iic200",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
