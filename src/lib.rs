@@ -25,6 +25,7 @@ pub mod io_data;
 pub mod neuron_data;
 pub mod genomic_structures;
 pub mod templates;
+mod json_structure;
 
 #[cfg(test)]
 mod tests {

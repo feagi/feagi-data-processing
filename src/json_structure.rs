@@ -123,6 +123,12 @@ impl FeagiByteStructureCompatible for JsonStructure {
     }
 }
 
+impl std::fmt::Display for JsonStructure {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.json)
+    }
+}
+
 impl JsonStructure {
     /// The FEAGI byte structure type identifier for JSON data.
     const BYTE_STRUCTURE_TYPE: FeagiByteStructureType = FeagiByteStructureType::JSON;
@@ -180,28 +186,6 @@ impl JsonStructure {
     /// ```
     pub fn from_json_value(value: serde_json::Value) -> JsonStructure {
         JsonStructure { json: value }
-    }
-    
-    /// Returns a JSON string representation of the stored data.
-    ///
-    /// Converts the internal `serde_json::Value` back to a formatted JSON string.
-    /// The resulting string is guaranteed to be valid JSON that can be parsed
-    /// by any standard JSON parser.
-    ///
-    /// # Returns
-    /// * `Ok(String)` - JSON string representation of the data
-    /// * `Err(FeagiDataProcessingError)` - If JSON serialization fails (unlikely)
-    ///
-    /// # Example
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::io_data::JsonStructure;
-    ///
-    /// let json_struct = JsonStructure::from_json_string(r#"{"key": "value"}"#.to_string()).unwrap();
-    /// let json_string = json_struct.copy_as_json_string().unwrap();
-    /// assert!(json_string.contains("key"));
-    /// ```
-    pub fn copy_as_json_string(&self) -> Result<String, FeagiDataProcessingError> {
-        Ok(self.json.to_string())
     }
     
     /// Returns a reference to the internal serde_json::Value.
