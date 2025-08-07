@@ -10,6 +10,7 @@ use super::image_frame::ImageFrame;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use super::descriptors::*;
 use crate::genomic_structures::{CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex};
+use crate::io_data::io_types::ImageFrameProperties;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 
 
@@ -110,6 +111,21 @@ impl SegmentedImageFrame {
     //endregion
     
     //region get properties
+    
+    pub fn get_image_frame_properties(&self) -> [ImageFrameProperties; 9] {
+        // return in same order as cortical IDs
+        [
+            self.lower_left.get_image_frame_properties(),
+            self.lower_middle.get_image_frame_properties(),
+            self.lower_right.get_image_frame_properties(),
+            self.middle_left.get_image_frame_properties(),
+            self.center.get_image_frame_properties(),
+            self.middle_right.get_image_frame_properties(),
+            self.upper_left.get_image_frame_properties(),
+            self.upper_middle.get_image_frame_properties(),
+            self.upper_right.get_image_frame_properties(),
+        ]
+    }
     
     /// Returns the color space used by all segments in this frame.
     /// 

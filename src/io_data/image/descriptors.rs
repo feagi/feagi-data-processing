@@ -263,8 +263,12 @@ impl CornerPoints {
         left_lower_xy: (usize, usize), right_upper_xy: (usize, usize),
         total_source_resolution_width_height: (usize, usize))
         -> Result<CornerPoints,  FeagiDataProcessingError> {
-        if left_lower_xy.0 > total_source_resolution_width_height.0 || right_upper_xy.0 > total_source_resolution_width_height.0 ||
-            left_lower_xy.1 > total_source_resolution_width_height.1 || right_upper_xy.1 > total_source_resolution_width_height.1 {
+        
+        if left_lower_xy.0 >= right_upper_xy.0 || left_lower_xy.1 >= right_upper_xy.1 {
+            return Err(IODataError::InvalidParameters("Given corner points do not enclose a valid area!".into()).into());
+        }
+        
+        if right_upper_xy.0 > total_source_resolution_width_height.0 || right_upper_xy.1 > total_source_resolution_width_height.1 {
             return Err(IODataError::InvalidParameters("Corner bounds must be within the total resolution!".into()).into());
         }
         
@@ -338,7 +342,7 @@ impl CornerPoints {
 /// This enum defines the possible color spaces:
 /// - Linear: Linear color space
 /// - Gamma: Gamma-corrected color space
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum ColorSpace {
     Linear,
     Gamma
@@ -360,7 +364,7 @@ impl std::fmt::Display for ColorSpace {
 /// - RG: Two channels (red, green)
 /// - RGB: Three channels (red, green, blue)
 /// - RGBA: Four channels (red, green, blue, alpha)
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum ChannelLayout {
     GrayScale = 1, // R
     RG = 2,
@@ -371,10 +375,10 @@ pub enum ChannelLayout {
 impl std::fmt::Display for ChannelLayout {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ChannelLayout::GrayScale => write!(f, "GrayScale"),
-            ChannelLayout::RG => write!(f, "RedGreen"),
-            ChannelLayout::RGB => write!(f, "RedGreenBlue"),
-            ChannelLayout::RGBA => write!(f, "RedGreenBlueAlpha"),
+            ChannelLayout::GrayScale => write!(f, "ChannelLayout(GrayScale)"),
+            ChannelLayout::RG => write!(f, "ChannelLayout(RedGreen)"),
+            ChannelLayout::RGB => write!(f, "ChannelLayout(RedGreenBlue)"),
+            ChannelLayout::RGBA => write!(f, "ChannelLayout(RedGreenBlueAlpha)"),
         }
     }
 }

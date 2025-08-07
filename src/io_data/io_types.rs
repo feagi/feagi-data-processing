@@ -6,9 +6,11 @@
 //! allow functions to pass various data types while keeping Rust's type system happy
 
 use std::cmp::PartialEq;
+use std::fmt::write;
 use crate::error::{FeagiDataProcessingError, IODataError};
+use crate::error::FeagiDataProcessingError::IOData;
 use crate::io_data::{ImageFrame, SegmentedImageFrame};
-
+use crate::io_data::image_descriptors::{ChannelLayout, ColorSpace};
 //region IOTypeVariant
 
 /// Type identifiers for all supported I/O data types in FEAGI.
@@ -44,8 +46,8 @@ pub enum IOTypeVariant {
     F32,
     F32Normalized0To1,
     F32NormalizedM1To1,
-    ImageFrame,
-    SegmentedImageFrame,
+    ImageFrame(Option<ImageFrameProperties>),
+    SegmentedImageFrame(Option<[ImageFrameProperties; 9]>),
 }
 
 impl IOTypeVariant {
@@ -76,11 +78,26 @@ impl IOTypeVariant {
 impl std::fmt::Display for IOTypeVariant {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self { 
-            IOTypeVariant::F32 => write!(f, "F32"),
-            IOTypeVariant::F32Normalized0To1 => write!(f, "F32 [Normalized 0<->1]"),
-            IOTypeVariant::F32NormalizedM1To1 => write!(f, "F32 [Normalized -1<->1]"),
-            IOTypeVariant::ImageFrame => write!(f, "Image Frame"),
-            IOTypeVariant::SegmentedImageFrame => write!(f, "Segmented Image Frame"),
+            IOTypeVariant::F32 => write!(f, "IOTypeVariant(F32)"),
+            IOTypeVariant::F32Normalized0To1 => write!(f, "IOTypeVariant(F32 [Normalized 0<->1])"),
+            IOTypeVariant::F32NormalizedM1To1 => write!(f, "IOTypeVariant(F32 [Normalized -1<->1])"),
+            IOTypeVariant::ImageFrame(image_properties) => {
+                let s: String = match image_properties {
+                    Some(properties) => format!("ImageFrame({})", properties.to_string()),
+                    None => "ImageFrame(No Requirements)".to_string(),
+                };
+                write!(f, "{}", s)
+            } 
+            IOTypeVariant::SegmentedImageFrame(segment_properties) => {
+                let s: String = match segment_properties {
+                    None => "No Requirements".to_string(),
+                    Some(properties) => {
+                        format!("[Lower Left: {}, Lower Middle: {}, Lower Right: {}, Middle Left: {}, Middle Middle: {}, Middle Right: {}, Upper Left: {}, Upper Middle: {}, Upper Right: {}]", 
+                                properties[0].to_string(), properties[1].to_string(), properties[2].to_string(), properties[3].to_string(), properties[4].to_string(), properties[5].to_string(), properties[6].to_string(), properties[7].to_string(), properties[8].to_string())
+                    }
+                };
+                write!(f, "SegmentedImageFrame({})", s)
+            }
         }
     }
 }
@@ -91,8 +108,8 @@ impl From<IOTypeData> for IOTypeVariant {
             IOTypeData::F32(_) => IOTypeVariant::F32,
             IOTypeData::F32Normalized0To1(_) => IOTypeVariant::F32Normalized0To1,
             IOTypeData::F32NormalizedM1To1(_) => IOTypeVariant::F32NormalizedM1To1,
-            IOTypeData::ImageFrame(_) => IOTypeVariant::ImageFrame,
-            IOTypeData::SegmentedImageFrame(_) => IOTypeVariant::SegmentedImageFrame,
+            IOTypeData::ImageFrame(image) => IOTypeVariant::ImageFrame(Some(image.get_image_frame_properties())),
+            IOTypeData::SegmentedImageFrame(segments) => IOTypeVariant::SegmentedImageFrame(Some(segments.get_image_frame_properties())),
         }
     }
 }
@@ -103,13 +120,56 @@ impl From<&IOTypeData> for IOTypeVariant {
             IOTypeData::F32(_) => IOTypeVariant::F32,
             IOTypeData::F32Normalized0To1(_) => IOTypeVariant::F32Normalized0To1,
             IOTypeData::F32NormalizedM1To1(_) => IOTypeVariant::F32NormalizedM1To1,
-            IOTypeData::ImageFrame(_) => IOTypeVariant::ImageFrame,
-            IOTypeData::SegmentedImageFrame(_) => IOTypeVariant::SegmentedImageFrame,
+            IOTypeData::ImageFrame(image) => IOTypeVariant::ImageFrame(Some(image.get_image_frame_properties())),
+            IOTypeData::SegmentedImageFrame(segments) => IOTypeVariant::SegmentedImageFrame(Some(segments.get_image_frame_properties())),
         }
     }
 }
 
 //endregion
+
+//region Image Frame Properties
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ImageFrameProperties {
+    xy_resolution: (usize, usize),
+    color_space: ColorSpace,
+    color_channel_layout: ChannelLayout,
+}
+
+impl std::fmt::Display for ImageFrameProperties {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let s = format!("ImageFrameProperties(xy_resolution: <{}, {}>, {}, {})", self.xy_resolution.0, self.xy_resolution.1, self.color_space.to_string(), self.color_channel_layout.to_string());
+        write!(f, "{}", s)
+    }
+}
+
+impl ImageFrameProperties {
+    pub fn new(xy_resolution: (usize, usize), color_space: ColorSpace, color_channel_layout: ChannelLayout) -> Self {
+        ImageFrameProperties{
+            xy_resolution,
+            color_space,
+            color_channel_layout,
+        }
+    }
+
+    pub fn verify_image_frame_matches_properties(&self, image_frame: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
+        if image_frame.get_cartesian_width_height() != self.xy_resolution {
+            return Err(IODataError::InvalidParameters(format!{"Expected resolution of <{}, {}> but received an image with resolution of <{}, {}>!",
+                                                              self.xy_resolution.0, self.xy_resolution.1, image_frame.get_cartesian_width_height().0, image_frame.get_cartesian_width_height().1}).into())
+        }
+        if image_frame.get_color_space() != &self.color_space {
+            return Err(IODataError::InvalidParameters(format!("Expected color space of {}, but got image with color space of {}!", self.color_space.to_string(), self.color_space.to_string())).into())
+        }
+        if image_frame.get_channel_layout() != &self.color_channel_layout {
+            return Err(IODataError::InvalidParameters(format!("Expected color channel layout of {}, but got image with color channel layout of {}!", self.color_channel_layout.to_string(), self.color_channel_layout.to_string())).into())
+        }
+        Ok(())
+    }
+}
+
+//endregion
+
 
 //region IOTypeData
 

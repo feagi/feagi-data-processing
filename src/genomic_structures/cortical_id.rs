@@ -273,9 +273,9 @@ impl CorticalID {
     /// # Returns
     /// Array of 9 CorticalID values arranged as:
     /// ```text
-    /// [0] Center       [1] Bottom-Left   [2] Middle-Left
-    /// [3] Top-Left     [4] Top-Middle    [5] Top-Right
-    /// [6] Middle-Right [7] Bottom-Right  [8] Bottom-Middle
+    /// [6] Top-Left     [7] Top-Middle     [8] Top-Togjt
+    /// [3] Middle-Left  [4] Center         [5] Middle-Right
+    /// [0] Bottom-Left  [1] Bottom-Middle  [2] Bottom-Right
     /// ```
     ///
     /// # ImageCamera Segmentation
@@ -290,17 +290,17 @@ impl CorticalID {
     ///     CorticalGroupingIndex::from(0),
     /// );
 
-    pub fn create_ordered_cortical_areas_for_segmented_vision(camera_index: CorticalGroupingIndex) -> [CorticalID; 9] { // TODO
+    pub fn create_ordered_cortical_areas_for_segmented_vision(camera_index: CorticalGroupingIndex) -> [CorticalID; 9] {
         [
-            SensorCorticalType::ImageCameraCenter.to_cortical_id(camera_index),
             SensorCorticalType::ImageCameraBottomLeft.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraBottomMiddle.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraBottomRight.to_cortical_id(camera_index),
             SensorCorticalType::ImageCameraMiddleLeft.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraCenter.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraMiddleRight.to_cortical_id(camera_index),
             SensorCorticalType::ImageCameraTopLeft.to_cortical_id(camera_index),
             SensorCorticalType::ImageCameraTopMiddle.to_cortical_id(camera_index),
             SensorCorticalType::ImageCameraTopRight.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraMiddleRight.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraBottomRight.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraBottomMiddle.to_cortical_id(camera_index),
         ]
     }
     

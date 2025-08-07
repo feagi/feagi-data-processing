@@ -9,6 +9,7 @@ use ndarray::{s, Array3, ArrayView3};
 use crate::io_data::image::descriptors::{ChannelLayout, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::CorticalIOChannelIndex;
+use crate::io_data::io_types::ImageFrameProperties;
 use crate::neuron_data::xyzp::NeuronXYZPArrays;
 
 /// Represents an image frame with pixel data and metadata for FEAGI vision processing.
@@ -181,7 +182,6 @@ impl ImageFrame {
     /// # Returns
     ///
     /// True if the array dimensions are valid for an ImageFrame, false otherwise.
-
     pub fn is_array_valid_for_image_frame(array: &Array3<f32>) -> bool {
         let shape: &[usize] = array.shape();
         if shape[2] > 4 || shape[2] == 0 {
@@ -193,6 +193,14 @@ impl ImageFrame {
         true
     }
 
+    pub fn get_image_frame_properties(&self) -> ImageFrameProperties {
+        ImageFrameProperties::new(
+            self.get_cartesian_width_height(),
+            self.color_space,
+            self.channel_layout
+        )
+    }
+    
     /// Returns a reference to the channel layout of this image.
     ///
     /// # Returns
