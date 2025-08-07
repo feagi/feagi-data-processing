@@ -72,10 +72,10 @@ use std::fmt;
 ///
 /// // Create sensor cortical area ID
 /// let vision_id = CorticalID::new_sensor_cortical_area_id(
-///     SensorCorticalType::VisionCenterColor,
+///     SensorCorticalType::VisionCenter,
 ///     CorticalGroupingIndex::from(0)
 /// ).unwrap();
-/// assert_eq!(vision_id.as_ascii_string(), "iVcc00");
+/// assert_eq!(vision_id.as_ascii_string(), "ivmm00");
 ///
 /// // Create from string
 /// let custom_id = CorticalID::from_string("custom".to_string()).unwrap();
@@ -225,10 +225,10 @@ impl CorticalID {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalGroupingIndex, CorticalID, SensorCorticalType};
     /// let vision_id = CorticalID::new_sensor_cortical_area_id(
-    ///     SensorCorticalType::VisionCenterColor,
+    ///     SensorCorticalType::VisionCenter,
     ///     CorticalGroupingIndex::from(0)
     /// ).unwrap();
-    /// // Results in something like "ivisc0"
+    /// // Results in ivmmc0"
     /// ```
     pub fn new_sensor_cortical_area_id(input_type: SensorCorticalType, input_index: CorticalGroupingIndex) -> Result<Self, FeagiDataProcessingError> {
         Ok(input_type.to_cortical_id(input_index))
@@ -269,7 +269,6 @@ impl CorticalID {
     ///
     /// # Arguments
     /// * `camera_index` - The grouping index for this camera system (0-255)
-    /// * `is_grayscale` - Whether to create grayscale (true) or color (false) vision areas
     ///
     /// # Returns
     /// Array of 9 CorticalID values arranged as:
@@ -282,50 +281,27 @@ impl CorticalID {
     /// # Vision Segmentation
     /// - **Center**: Primary focus area for detailed processing
     /// - **Surrounding segments**: Peripheral vision areas for context and motion detection
-    /// - **Grayscale vs Color**: Determines whether segments process intensity or full color
     ///
     /// # Example
     /// ```rust
-    /// // Create color vision segments for camera 0
+    /// // Create vision segments for camera 0
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalGroupingIndex, CorticalID};
     /// let color_segments = CorticalID::create_ordered_cortical_areas_for_segmented_vision(
-    ///     CorticalGroupingIndex::from(0), 
-    ///     false
+    ///     CorticalGroupingIndex::from(0),
     /// );
-    ///
-    /// // Create grayscale vision segments for camera 1
-    /// let gray_segments = CorticalID::create_ordered_cortical_areas_for_segmented_vision(
-    ///     CorticalGroupingIndex::from(1), 
-    ///     true
-    /// );
-    /// ```
-    pub fn create_ordered_cortical_areas_for_segmented_vision(camera_index: CorticalGroupingIndex, is_grayscale: bool) -> [CorticalID; 9] { // TODO
-        if is_grayscale {
-            [
-                SensorCorticalType::VisionCenterGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionBottomLeftGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionMiddleLeftGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionTopLeftGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionTopMiddleGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionTopRightGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionMiddleRightGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionBottomRightGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionBottomMiddleGray.to_cortical_id(camera_index),
-            ]
-        }
-        else {
-            [
-                SensorCorticalType::VisionCenterColor.to_cortical_id(camera_index),
-                SensorCorticalType::VisionBottomLeftGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionMiddleLeftGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionTopLeftGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionTopMiddleGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionTopRightGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionMiddleRightGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionBottomRightGray.to_cortical_id(camera_index),
-                SensorCorticalType::VisionBottomMiddleGray.to_cortical_id(camera_index),
-            ]
-        }
+
+    pub fn create_ordered_cortical_areas_for_segmented_vision(camera_index: CorticalGroupingIndex) -> [CorticalID; 9] { // TODO
+        [
+            SensorCorticalType::VisionCenter.to_cortical_id(camera_index),
+            SensorCorticalType::VisionBottomLeft.to_cortical_id(camera_index),
+            SensorCorticalType::VisionMiddleLeft.to_cortical_id(camera_index),
+            SensorCorticalType::VisionTopLeft.to_cortical_id(camera_index),
+            SensorCorticalType::VisionTopMiddle.to_cortical_id(camera_index),
+            SensorCorticalType::VisionTopRight.to_cortical_id(camera_index),
+            SensorCorticalType::VisionMiddleRight.to_cortical_id(camera_index),
+            SensorCorticalType::VisionBottomRight.to_cortical_id(camera_index),
+            SensorCorticalType::VisionBottomMiddle.to_cortical_id(camera_index),
+        ]
     }
     
     /// Creates a cortical ID from a 6-byte array.

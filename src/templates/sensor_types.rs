@@ -53,114 +53,66 @@ macro_rules! sensor_definition {
                     channel_dimension_range: SingleChannelDimensionRange::new(1..2, 1..2, 1..u32::MAX),
                     default_coder_type: NeuronCoderVariantType::F32NormalizedM1To1_SplitSignDivided,
                 },
-                #[doc = "Grayscale vision sensor positioned at the center of the visual field for primary vision processing."]
-                VisionCenterGray => {
-                    friendly_name: "Center Vision Input (Grayscale)",
-                    base_ascii: b"ivcc00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..2),
+                #[doc = "Vision input. Either alone or in the center of segmented/peripheral vision setups"]
+                VisionCenter => {
+                    friendly_name: "Center Vision Input",
+                    base_ascii: b"ivmm00",
+                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                #[doc = "Grayscale vision sensor positioned at the top left of peripheral vision processing."]
-                VisionTopLeftGray => {
-                    friendly_name: "Top Left Vision Input (Grayscale)",
+                #[doc = "Top Left peripheral vision input."]
+                VisionTopLeft => {
+                    friendly_name: "Top Left Vision Input",
                     base_ascii: b"ivtl00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..2),
+                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                VisionTopMiddleGray => {
-                    friendly_name: "Top Middle Vision Input (Grayscale)",
+                #[doc = "Top Middle peripheral vision input."]
+                VisionTopMiddle => {
+                    friendly_name: "Top Middle Vision Input",
                     base_ascii: b"ivtm00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..2),
+                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                VisionTopRightGray => {
-                    friendly_name: "Top Right Vision Input (Grayscale)",
+                #[doc = "Top Right peripheral vision input."]
+                VisionTopRight => {
+                    friendly_name: "Top Right Vision Input",
                     base_ascii: b"ivtr00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..2),
+                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                VisionMiddleLeftGray => {
-                    friendly_name: "Middle Left Vision Input (Grayscale)",
+                #[doc = "Middle Left peripheral vision input."]
+                VisionMiddleLeft => {
+                    friendly_name: "Middle Left Vision Input",
                     base_ascii: b"ivml00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..2),
+                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                VisionMiddleRightGray => {
-                    friendly_name: "Middle Right Vision Input (Grayscale)",
+                #[doc = "Middle Right peripheral vision input."]
+                VisionMiddleRight => {
+                    friendly_name: "Middle Right Vision Input",
                     base_ascii: b"ivmr00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..2),
+                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                VisionBottomLeftGray => {
-                    friendly_name: "Bottom Left Vision Input (Grayscale)",
+                #[doc = "Bottom Left peripheral vision input."]
+                VisionBottomLeft => {
+                    friendly_name: "Bottom Left Vision Input",
                     base_ascii: b"ivbl00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..2),
+                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                VisionBottomMiddleGray => {
-                    friendly_name: "Bottom Middle Vision Input (Grayscale)",
+                #[doc = "Bottom Middle peripheral vision input."]
+                VisionBottomMiddle => {
+                    friendly_name: "Bottom Middle Vision Input",
                     base_ascii: b"ivbm00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..2),
+                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 },
-                VisionBottomRightGray => {
-                    friendly_name: "Bottom Right Vision Input (Grayscale)",
+                #[doc = "Bottom Right peripheral vision input."]
+                VisionBottomRight => {
+                    friendly_name: "Bottom Right Vision Input",
                     base_ascii: b"ivbr00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..2),
-                    default_coder_type: NeuronCoderVariantType::ImageFrame,
-                },
-                #[doc = "Color vision sensor positioned at the center of the visual field for full-spectrum image processing with RGB channels."]
-                VisionCenterColor => {
-                    friendly_name: "Center Vision Input (Color)",
-                    base_ascii: b"iVcc00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
-                    default_coder_type: NeuronCoderVariantType::ImageFrame,
-                },
-                VisionTopLeftColor => {
-                    friendly_name: "Top Left Vision Input (Color)",
-                    base_ascii: b"iVtl00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
-                    default_coder_type: NeuronCoderVariantType::ImageFrame,
-                },
-                VisionTopMiddleColor => {
-                    friendly_name: "Top Middle Vision Input (Color)",
-                    base_ascii: b"iVtm00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
-                    default_coder_type: NeuronCoderVariantType::ImageFrame,
-                },
-                VisionTopRightColor => {
-                    friendly_name: "Top Right Vision Input (Color)",
-                    base_ascii: b"iVtr00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
-                    default_coder_type: NeuronCoderVariantType::ImageFrame,
-                },
-                VisionMiddleLeftColor => {
-                    friendly_name: "Middle Left Vision Input (Color)",
-                    base_ascii: b"iVml00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
-                    default_coder_type: NeuronCoderVariantType::ImageFrame,
-                },
-                VisionMiddleRightColor => {
-                    friendly_name: "Middle Right Vision Input (Color)",
-                    base_ascii: b"iVmr00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
-                    default_coder_type: NeuronCoderVariantType::ImageFrame,
-                },
-                VisionBottomLeftColor => {
-                    friendly_name: "Bottom Left Vision Input (Color)",
-                    base_ascii: b"iVbl00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
-                    default_coder_type: NeuronCoderVariantType::ImageFrame,
-                },
-                VisionBottomMiddleColor => {
-                    friendly_name: "Bottom Middle Vision Input (Color)",
-                    base_ascii: b"iVbm00",
-                    channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
-                    default_coder_type: NeuronCoderVariantType::ImageFrame,
-                },
-                VisionBottomRightColor => {
-                    friendly_name: "Bottom Right Vision Input (Color)",
-                    base_ascii: b"iVbr00",
                     channel_dimension_range: SingleChannelDimensionRange::new(1..u32::MAX, 1..u32::MAX, 1..5),
                     default_coder_type: NeuronCoderVariantType::ImageFrame,
                 }

@@ -219,7 +219,7 @@ impl SegmentedImageFrame {
 
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
-        let cortical_ids: [CorticalID; 9] = CorticalID::create_ordered_cortical_areas_for_segmented_vision(camera_index, ordered_refs[0].get_color_channel_count() == 1);
+        let cortical_ids: [CorticalID; 9] = CorticalID::create_ordered_cortical_areas_for_segmented_vision(camera_index);
         
         let mut output: CorticalMappedXYZPNeuronData = CorticalMappedXYZPNeuronData::new();
         

@@ -138,7 +138,7 @@ macro_rules! define_io_cortical_types {
 /// use feagi_core_data_structures_and_processing::genomic_structures::*;
 ///
 /// // Check cortical type properties
-/// let cortical_type = CorticalType::Sensory(SensorCorticalType::VisionCenterColor);
+/// let cortical_type = CorticalType::Sensory(SensorCorticalType::VisionCenter);
 /// 
 /// // Get dimensional constraints
 /// let channel_range = cortical_type.try_get_channel_size_boundaries().unwrap();
@@ -350,7 +350,7 @@ impl CorticalType {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, MotorCorticalType, SensorCorticalType};
     ///
-    /// let sensor_type = CorticalType::Sensory(SensorCorticalType::VisionCenterColor);
+    /// let sensor_type = CorticalType::Sensory(SensorCorticalType::VisionCenter);
     /// assert!(sensor_type.is_type_sensor());
     ///
     /// let motor_type = CorticalType::Motor(MotorCorticalType::RotaryMotor);

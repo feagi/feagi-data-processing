@@ -51,7 +51,7 @@
 //!
 //! // Create a vision sensor cortical area
 //! let vision_id = CorticalID::new_sensor_cortical_area_id(
-//!     SensorCorticalType::VisionCenterColor,
+//!     SensorCorticalType::VisionCenter,
 //!     CorticalGroupingIndex::from(0)
 //! ).unwrap();
 //!
