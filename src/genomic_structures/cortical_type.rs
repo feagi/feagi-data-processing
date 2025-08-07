@@ -17,6 +17,7 @@ macro_rules! define_io_cortical_types {
     (
         $cortical_io_type_enum_name:ident {
             $(
+                $(#[doc = $doc:expr])?
                 $cortical_type_key_name:ident => {
                     friendly_name: $display_name:expr,
                     base_ascii: $base_ascii:expr,
@@ -31,6 +32,7 @@ macro_rules! define_io_cortical_types {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
         pub enum $cortical_io_type_enum_name {
             $(
+                $(#[doc = $doc])?
                 $cortical_type_key_name
             ),*
         }

@@ -35,7 +35,7 @@ use std::mem::size_of;
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::{FeagiBytesError, FeagiDataProcessingError};
 use crate::io_processing::byte_structures::{FeagiByteStructureType, FeagiByteStructure, FeagiByteStructureCompatible};
-use crate::genomic_structures::{CorticalID};
+use crate::genomic_structures::{CorticalID, SensorCorticalType};
 use crate::neuron_data::xyzp::{NeuronXYZP, NeuronXYZPArrays};
 
 /// Collection of neuron data organized by cortical areas.

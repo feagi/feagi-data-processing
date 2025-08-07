@@ -15,8 +15,14 @@
 /// - `Deref` for transparent access to the underlying value
 /// - `Display` for formatted output
 /// - Standard comparison and hashing traits
+///
+/// # Parameters
+/// - `$name`: The name of the new type to create
+/// - `$base`: The underlying primitive type to wrap
+/// - `$doc`: Documentation string for the generated type
 macro_rules! create_type_1d {
-    ($name:ident, $base:ty) => {
+    ($name:ident, $base:ty, $doc:expr) => {
+        #[doc = $doc]
         #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $name(pub $base);
 
@@ -47,40 +53,40 @@ macro_rules! create_type_1d {
     };
 }
 
-/// Index for grouping cortical areas of the same type within a genome.
-///
-/// This index distinguishes between multiple instances of the same cortical type.
-/// For example, multiple vision sensors would have different CorticalGroupingIndex
-/// values (0, 1, 2, etc.) while sharing the same base cortical type.
-///
-/// # Range
-/// Values are limited to 0-255 (u8) and are encoded in hexadecimal within cortical IDs.
-/// This provides support for up to 256 instances of each cortical type.
-///
-/// # Usage in Cortical IDs
-/// The index appears as the last two characters of a cortical ID:
-/// - "ivis00" = Vision sensor, grouping index 0
-/// - "ivis01" = Vision sensor, grouping index 1
-/// - "omot0A" = Motor output, grouping index 10 (hexadecimal A)
-create_type_1d!(CorticalGroupingIndex, u8);
+create_type_1d!(CorticalGroupingIndex, u8, 
+    "Index for grouping cortical areas of the same type within a genome.
 
-/// Optional undex mapping local device instances to cortical grouping indices.
-///
-/// This provides a mapping layer between physical devices (cameras, motors, etc.)
-/// connected to an agent and their corresponding cortical areas in the genome.
-/// Allows for flexible device-to-cortical-area assignments.
-///
-/// # Use Case
-/// If you have multiple sensors of the same type across various cortical areas, using
-/// Agent Device Mapping indexes can be a uniform way to address them all
-create_type_1d!(AgentDeviceIndex, u32);
+This index distinguishes between multiple instances of the same cortical type.
+For example, multiple vision sensors would have different CorticalGroupingIndex
+values (0, 1, 2, etc.) while sharing the same base cortical type.
 
-/// Index for addressing specific channels within an I/O cortical area.
-///
-/// Cortical areas can contain multiple channels for processing different
-/// aspects of data. This index addresses individual channels within a
-/// specific cortical area for fine-grained data routing.
-///
-/// # Examples
-/// - A multi-axis motor area might have separate channels for each axis
-create_type_1d!(CorticalIOChannelIndex, u32);
+# Range
+Values are limited to 0-255 (u8) and are encoded in hexadecimal within cortical IDs.
+This provides support for up to 256 instances of each cortical type.
+
+# Usage in Cortical IDs
+The index appears as the last two characters of a cortical ID:
+- \"ivis00\" = Vision sensor, grouping index 0
+- \"ivis01\" = Vision sensor, grouping index 1
+- \"omot0A\" = Motor output, grouping index 10 (hexadecimal A)");
+
+create_type_1d!(AgentDeviceIndex, u32,
+    "Optional index mapping local device instances to cortical grouping indices.
+
+This provides a mapping layer between physical devices (cameras, motors, etc.)
+connected to an agent and their corresponding cortical areas in the genome.
+Allows for flexible device-to-cortical-area assignments.
+
+# Use Case
+If you have multiple sensors of the same type across various cortical areas, using
+Agent Device Mapping indexes can be a uniform way to address them all");
+
+create_type_1d!(CorticalIOChannelIndex, u32,
+    "Index for addressing specific channels within an I/O cortical area.
+
+Cortical areas can contain multiple channels for processing different
+aspects of data. This index addresses individual channels within a
+specific cortical area for fine-grained data routing.
+
+# Examples
+- A multi-axis motor area might have separate channels for each axis");

@@ -252,7 +252,7 @@ impl CorticalID {
     /// ```rust
     /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalGroupingIndex, CorticalID, MotorCorticalType};
     /// let motor_id = CorticalID::new_motor_cortical_area_id(
-    ///     MotorCorticalType::RotoryMotor,
+    ///     MotorCorticalType::RotaryMotor,
     ///     CorticalGroupingIndex::from(1)
     /// ).unwrap();
     /// // Results in something like "omot01"
@@ -299,7 +299,7 @@ impl CorticalID {
     ///     true
     /// );
     /// ```
-    pub fn create_ordered_cortical_areas_for_segmented_vision(camera_index: CorticalGroupingIndex, is_grayscale: bool) -> [CorticalID; 9] {
+    pub fn create_ordered_cortical_areas_for_segmented_vision(camera_index: CorticalGroupingIndex, is_grayscale: bool) -> [CorticalID; 9] { // TODO
         if is_grayscale {
             [
                 SensorCorticalType::VisionCenterGray.to_cortical_id(camera_index),
