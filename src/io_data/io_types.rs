@@ -6,11 +6,9 @@
 //! allow functions to pass various data types while keeping Rust's type system happy
 
 use std::cmp::PartialEq;
-use std::fmt::write;
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::error::FeagiDataProcessingError::IOData;
 use crate::io_data::{ImageFrame, SegmentedImageFrame};
-use crate::io_data::image_descriptors::{ChannelLayout, ColorSpace};
+use crate::io_data::image::descriptors::ImageFrameProperties;
 //region IOTypeVariant
 
 /// Type identifiers for all supported I/O data types in FEAGI.
@@ -127,49 +125,6 @@ impl From<&IOTypeData> for IOTypeVariant {
 }
 
 //endregion
-
-//region Image Frame Properties
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ImageFrameProperties {
-    xy_resolution: (usize, usize),
-    color_space: ColorSpace,
-    color_channel_layout: ChannelLayout,
-}
-
-impl std::fmt::Display for ImageFrameProperties {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let s = format!("ImageFrameProperties(xy_resolution: <{}, {}>, {}, {})", self.xy_resolution.0, self.xy_resolution.1, self.color_space.to_string(), self.color_channel_layout.to_string());
-        write!(f, "{}", s)
-    }
-}
-
-impl ImageFrameProperties {
-    pub fn new(xy_resolution: (usize, usize), color_space: ColorSpace, color_channel_layout: ChannelLayout) -> Self {
-        ImageFrameProperties{
-            xy_resolution,
-            color_space,
-            color_channel_layout,
-        }
-    }
-
-    pub fn verify_image_frame_matches_properties(&self, image_frame: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
-        if image_frame.get_cartesian_width_height() != self.xy_resolution {
-            return Err(IODataError::InvalidParameters(format!{"Expected resolution of <{}, {}> but received an image with resolution of <{}, {}>!",
-                                                              self.xy_resolution.0, self.xy_resolution.1, image_frame.get_cartesian_width_height().0, image_frame.get_cartesian_width_height().1}).into())
-        }
-        if image_frame.get_color_space() != &self.color_space {
-            return Err(IODataError::InvalidParameters(format!("Expected color space of {}, but got image with color space of {}!", self.color_space.to_string(), self.color_space.to_string())).into())
-        }
-        if image_frame.get_channel_layout() != &self.color_channel_layout {
-            return Err(IODataError::InvalidParameters(format!("Expected color channel layout of {}, but got image with color channel layout of {}!", self.color_channel_layout.to_string(), self.color_channel_layout.to_string())).into())
-        }
-        Ok(())
-    }
-}
-
-//endregion
-
 
 //region IOTypeData
 

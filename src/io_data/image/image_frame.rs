@@ -9,7 +9,7 @@ use ndarray::{s, Array3, ArrayView3};
 use crate::io_data::image::descriptors::{ChannelLayout, ColorSpace, CornerPoints, FrameProcessingParameters, MemoryOrderLayout};
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::CorticalIOChannelIndex;
-use crate::io_data::io_types::ImageFrameProperties;
+use crate::io_data::image::descriptors::ImageFrameProperties;
 use crate::neuron_data::xyzp::NeuronXYZPArrays;
 
 /// Represents an image frame with pixel data and metadata for FEAGI vision processing.
@@ -732,7 +732,17 @@ impl ImageFrame {
     }
 
     // endregion
-
+    
+    pub fn get_internal_data(&self) -> &Array3<f32> {
+        &self.pixels
+    }
+    
+    pub(crate) fn get_internal_data_mut(&mut self) -> &mut Array3<f32> {
+        &mut self.pixels
+    }
+    
+    
+    
     // region: neuron export
 
     /// Converts pixel data to neuron arrays using a threshold filter.
