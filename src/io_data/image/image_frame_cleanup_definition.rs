@@ -143,8 +143,8 @@ impl ImageFrameCleanupDefinition {
                     return Err(FeagiDataProcessingError::NotImplemented)
                 }
 
-                destination = processing.to_owned()
-
+                *destination = processing;
+                Ok(())
             }
 
             // Do literally nothing, just copy the data
@@ -157,7 +157,7 @@ impl ImageFrameCleanupDefinition {
                 change_contrast_by:None,
                 convert_to_grayscale: false
             } => {
-                destination = source.to_owned()
+                *destination = source.clone();
                 Ok(())
             }
 
