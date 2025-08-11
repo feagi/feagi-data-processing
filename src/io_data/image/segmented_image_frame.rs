@@ -6,6 +6,7 @@
 //! mimicking how human vision works with high acuity in the center and lower acuity in
 //! the periphery.
 
+use ndarray::Array3;
 use super::image_frame::ImageFrame;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use super::descriptors::*;
@@ -147,85 +148,34 @@ impl SegmentedImageFrame {
         self.lower_left.get_channel_layout() // All peripherals should be the same
     }
     
+    pub fn get_image_internal_data(&self) -> [&Array3<f32>; 9] {
+        // return in same order as cortical IDs
+        [
+            self.lower_left.get_internal_data(),
+            self.lower_middle.get_internal_data(),
+            self.lower_right.get_internal_data(),
+            self.middle_left.get_internal_data(),
+            self.center.get_internal_data(),
+            self.middle_right.get_internal_data(),
+            self.upper_left.get_internal_data(),
+            self.upper_middle.get_internal_data(),
+            self.upper_right.get_internal_data(),
+        ]
+    }
     
-    //endregion
-    
-    //region Loading in new data
-    
-    /// Updates all nine segments with data from a source frame.
-    /// 
-    /// This method takes a source ImageFrame and divides it into nine segments according
-    /// to the center properties. Each segment is cropped from the appropriate region of
-    /// the source frame and resized to match the target resolution for that segment.
-    /// 
-    /// The method caches cropping points for efficiency - if the same source resolution
-    /// is used repeatedly, the cropping calculations are only performed once.
-    /// 
-    /// # Arguments
-    /// 
-    /// * `source_frame` - The source ImageFrame to segment
-    /// * `center_properties` - Properties defining how to position and size the center region
-    /// 
-    /// # Returns
-    /// 
-    /// A Result containing either:
-    /// - Ok(()) if all segments were updated successfully
-    /// - Err(DataProcessingError) if the source frame is incompatible or processing fails
-    /// 
-    /// # Errors
-    /// 
-    /// This method will return an error if:
-    /// - The source frame has different color channels than expected
-    /// - The source frame has a different color space than expected
-    /// - The source frame has a different resolution than expected
-    /// - Any of the cropping or resizing operations fail
-    pub fn update_segments(&mut self, source_frame: &ImageFrame, 
-                           center_properties: SegmentedFrameCenterProperties)
-        -> Result<(), FeagiDataProcessingError> {
-        
-        if source_frame.get_channel_layout() != self.get_center_channel_layout() {
-            return Err(IODataError::InvalidParameters("Input Image frame does not have a matching channel layout to the center of the peripheral!".into()).into());
-        }
-        
-        // TODO add peripheral channel layout check!
-        if source_frame.get_color_space() != self.get_color_space() {
-            return Err(IODataError::InvalidParameters("Input Image frame does not have matching color space!".into()).into());
-        }
-        if source_frame.get_internal_resolution() != self.previous_imported_internal_yx_resolution {
-            return Err(IODataError::InvalidParameters("Input Image frame does not have matching resolution!".into()).into());
-        }
-        
-        if self.previous_cropping_points_for_source_from_segment.is_none() {
-            
-            // We either have no corner points for the cropping sources defined, or they are no longer
-            // valid, we need to update them
-            self.previous_cropping_points_for_source_from_segment = Some(
-                center_properties.calculate_source_corner_points_for_segmented_video_frame(source_frame.get_cartesian_width_height())?);
-        }
-        
-        let cropping_points= self.previous_cropping_points_for_source_from_segment.unwrap(); // We know this exists by now
-        
-        self.lower_left.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.lower_left, source_frame)?;
-        self.middle_left.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.middle_left, source_frame)?;
-        self.upper_left.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.upper_left, source_frame)?;
-        self.upper_middle.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.upper_middle, source_frame)?;
-        self.upper_right.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.upper_right, source_frame)?;
-        self.middle_right.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.middle_right, source_frame)?;
-        self.lower_right.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.lower_right, source_frame)?;
-        self.lower_middle.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.lower_middle, source_frame)?;
-        self.center.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.center, source_frame)?;
-        
-        Ok(())
-        
+    pub(crate) fn get_image_internal_data_mut(&mut self) -> [&mut Array3<f32>; 9] {
+        // return in same order as cortical IDs
+        [
+            self.lower_left.get_internal_data_mut(),
+            self.lower_middle.get_internal_data_mut(),
+            self.lower_right.get_internal_data_mut(),
+            self.middle_left.get_internal_data_mut(),
+            self.center.get_internal_data_mut(),
+            self.middle_right.get_internal_data_mut(),
+            self.upper_left.get_internal_data_mut(),
+            self.upper_middle.get_internal_data_mut(),
+            self.upper_right.get_internal_data_mut(),
+        ]
     }
     
     //endregion
@@ -304,8 +254,6 @@ impl SegmentedImageFrame {
     }
     
     //endregion
-
-
     
 }
 

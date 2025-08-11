@@ -80,71 +80,22 @@ impl ImageFrameCleanupDefinition {
         self.input_image_properties.verify_image_frame_matches_properties(verifying_image)
     }
 
-
-
-    //region set settings
-    // TODO create clear all, clear individual settings
-
-    // TODO safety bound checks!
-
-    pub fn set_cropping_from(&mut self, lower_left_xy_point_inclusive: (usize, usize), upper_right_xy_point_exclusive: (usize, usize)) -> Result<&Self, FeagiDataProcessingError> {
-        let corner_points = CornerPoints::new_from_cartesian(lower_left_xy_point_inclusive, upper_right_xy_point_exclusive, self.input_image_properties.get_expected_xy_resolution())?;
-        self.cropping_from = Some(corner_points);
-        Ok(self)
-    }
-
-    pub fn set_resizing_to(&mut self, new_xy_resolution: (usize, usize)) -> Result<&Self, FeagiDataProcessingError> {
-        self.final_resize_xy_to = Some(new_xy_resolution);
-        Ok(self)
-    }
-
-    pub fn set_brightness_multiplier(&mut self, brightness_multiplier: f32) -> Result<&Self, FeagiDataProcessingError> {
-        self.multiply_brightness_by = Some(brightness_multiplier);
-        Ok(self)
-    }
-
-    pub fn set_contrast_change(&mut self, contrast_change: f32) -> Result<&Self, FeagiDataProcessingError> {
-        self.change_contrast_by = Some(contrast_change);
-        Ok(self)
-    }
-
-    pub fn set_color_space_to(&mut self, color_space: ColorSpace) -> Result<&Self, FeagiDataProcessingError> {
-        self.convert_color_space_to = Some(color_space);
-        Ok(self)
-    }
-
-    pub fn set_conversion_to_grayscale(&mut self) -> Result<&Self, FeagiDataProcessingError> {
-        if self.input_image_properties.get_expected_color_channel_layout() == ChannelLayout::GrayScale {
-            return Err(IODataError::InvalidParameters("Image is already Grayscale!".into()).into())
-        }
-        
-        if self.input_image_properties.get_expected_color_channel_layout() == ChannelLayout::RG {
-            return Err(FeagiDataProcessingError::NotImplemented)
-        }
-        self.convert_to_grayscale = true;
-        Ok(self)
-    }
-
-    //endregion
-
-    //region image processing
-
     // TODO change this entirely, we should have a flat match statement, with the most common use cases having source dest functions, and all others using a inplace repeated system
-    
+
     // TODO 2 / 4 channel pipelines!
     // TODO right now we are only cropping and resizing
     // Due to image segmentor, I would argue the most common route is crop + resize + grayscale
-    
-    pub(crate) fn process_image(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataProcessingError> {
-        
-        
+
+    pub fn process_image(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataProcessingError> {
+
+
         match self {
-            
+
             // If no fast path, use this slower universal one
             _ => {
                 // This function is much slower, There may be some optimization work possible, but ensure the most common step combinations have an accelerated path
                 let is_cropping_is_resizing = (self.cropping_from, self.final_resize_xy_to);
-                
+
                 let mut processing = source.clone();
                 match is_cropping_is_resizing {
                     (None, None) => {
@@ -160,16 +111,16 @@ impl ImageFrameCleanupDefinition {
                         crop_and_resize(source, &mut processing, &cropping_from, &final_resize_xy_to)?;
                     }
                 };
-                
+
                 match self.convert_color_space_to {
                     None => {
                         // Do Nothing
                     }
                     Some(color_space) => {
-                        processing.change_color_space(color_space)?;
+                        return Err(FeagiDataProcessingError::NotImplemented)
                     }
                 }
-                
+
                 match self.multiply_brightness_by {
                     None => {
                         // Do Nothing
@@ -178,7 +129,7 @@ impl ImageFrameCleanupDefinition {
                         processing.change_brightness(brightness_multiplier)?;
                     }
                 }
-                
+
                 match self.change_contrast_by {
                     None => {
                         // Do Nothing
@@ -187,15 +138,15 @@ impl ImageFrameCleanupDefinition {
                         processing.change_contrast(contrast_multiplier)?;
                     }
                 }
-                
+
                 if self.convert_to_grayscale {
                     return Err(FeagiDataProcessingError::NotImplemented)
                 }
 
                 destination = processing.to_owned()
-                
+
             }
-            
+
             // Do literally nothing, just copy the data
             ImageFrameCleanupDefinition {
                 input_image_properties,
@@ -274,11 +225,56 @@ impl ImageFrameCleanupDefinition {
             } => {
                 crop_and_resize_and_grayscale(source, destination, cropping_from, final_resize_xy_to, self.input_image_properties.get_expected_color_space())
             }
-            
+
         }
 
 
     }
+
+    //region set settings
+    // TODO create clear all, clear individual settings
+
+    // TODO safety bound checks!
+
+    pub fn set_cropping_from(&mut self, lower_left_xy_point_inclusive: (usize, usize), upper_right_xy_point_exclusive: (usize, usize)) -> Result<&Self, FeagiDataProcessingError> {
+        let corner_points = CornerPoints::new_from_cartesian(lower_left_xy_point_inclusive, upper_right_xy_point_exclusive, self.input_image_properties.get_expected_xy_resolution())?;
+        self.cropping_from = Some(corner_points);
+        Ok(self)
+    }
+
+    pub fn set_resizing_to(&mut self, new_xy_resolution: (usize, usize)) -> Result<&Self, FeagiDataProcessingError> {
+        self.final_resize_xy_to = Some(new_xy_resolution);
+        Ok(self)
+    }
+
+    pub fn set_brightness_multiplier(&mut self, brightness_multiplier: f32) -> Result<&Self, FeagiDataProcessingError> {
+        self.multiply_brightness_by = Some(brightness_multiplier);
+        Ok(self)
+    }
+
+    pub fn set_contrast_change(&mut self, contrast_change: f32) -> Result<&Self, FeagiDataProcessingError> {
+        self.change_contrast_by = Some(contrast_change);
+        Ok(self)
+    }
+
+    pub fn set_color_space_to(&mut self, color_space: ColorSpace) -> Result<&Self, FeagiDataProcessingError> {
+        self.convert_color_space_to = Some(color_space);
+        Ok(self)
+    }
+
+    pub fn set_conversion_to_grayscale(&mut self) -> Result<&Self, FeagiDataProcessingError> {
+        if self.input_image_properties.get_expected_color_channel_layout() == ChannelLayout::GrayScale {
+            return Err(IODataError::InvalidParameters("Image is already Grayscale!".into()).into())
+        }
+        
+        if self.input_image_properties.get_expected_color_channel_layout() == ChannelLayout::RG {
+            return Err(FeagiDataProcessingError::NotImplemented)
+        }
+        self.convert_to_grayscale = true;
+        Ok(self)
+    }
+
+    //endregion
     
     //region helpers
 
@@ -335,7 +331,7 @@ fn to_grayscale(source: &ImageFrame, destination: &mut ImageFrame, output_color_
     let mut destination_data = destination.get_internal_data_mut();
     let (r_scale, g_scale, b_scale) = match output_color_space {
         ColorSpace::Linear => {(0.2126f32, 0.7152f32, 0.072f32)} // Using formula from https://stackoverflow.com/questions/17615963/standard-rgb-to-grayscale-conversion
-        ColorSpace::Gamma => {(0.299f32, 0.587f32, 0.114f32)}
+        ColorSpace::Gamma => {(0.299f32, 0.587f32, 0.114f32)}  // https://www.youtube.com/watch?v=uKeKuaJ4nlw (I forget)
     };
     // TODO look into premultiplied alpha handling!
 

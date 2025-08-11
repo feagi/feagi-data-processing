@@ -297,54 +297,6 @@ impl ImageFrame {
         Ok(())
     }
     
-    pub fn change_color_space(&mut self, color_space: ColorSpace) -> Result<(), FeagiDataProcessingError> {
-        if color_space == self.color_space {
-            return Err(IODataError::InvalidParameters(format!("Image already in colorspace {}!", color_space.to_string())).into()); // Do Nothing
-        }
-        self.color_space = color_space;
-        match color_space {
-            ColorSpace::Linear => {
-                for ((y,x,c), color_val) in self.pixels.indexed_iter_mut() {
-                    // TODO this is bad, we shouldnt be iterating over color channel and matching like this. Major target for optimization!
-                    match c {
-                        0 => {
-                            *color_val = 0.2126 * *color_val;
-                        }
-                        1 => {
-                            *color_val = 0.7152 * *color_val;
-                        }
-                        2 => {
-                            *color_val = 0.072 * *color_val;
-                        }
-                        _ => { //impossible
-                        }
-                    }
-                }
-                Ok(())
-            }
-            ColorSpace::Gamma => {
-                for ((y,x,c), color_val) in self.pixels.indexed_iter_mut() {
-                    // TODO this is bad, we shouldnt be iterating over color channel and matching like this. Major target for optimization!
-                    match c {
-                        0 => {
-                            *color_val = 0.299 * *color_val;
-                        }
-                        1 => {
-                            *color_val = 0.587 * *color_val;
-                        }
-                        2 => {
-                            *color_val = 0.114 * *color_val;
-                        }
-                        _ => { //impossible
-                        }
-                    }
-                }
-                Ok(())
-            }
-        }
-    }
-    
-    
 
     //endregion
 
