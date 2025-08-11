@@ -296,38 +296,60 @@ impl ImageFrame {
         });
         Ok(())
     }
+    
+    pub fn change_color_space(&mut self, color_space: ColorSpace) -> Result<(), FeagiDataProcessingError> {
+        if color_space == self.color_space {
+            return Err(IODataError::InvalidParameters(format!("Image already in colorspace {}!", color_space.to_string())).into()); // Do Nothing
+        }
+        self.color_space = color_space;
+        match color_space {
+            ColorSpace::Linear => {
+                for ((y,x,c), color_val) in self.pixels.indexed_iter_mut() {
+                    // TODO this is bad, we shouldnt be iterating over color channel and matching like this. Major target for optimization!
+                    match c {
+                        0 => {
+                            *color_val = 0.2126 * *color_val;
+                        }
+                        1 => {
+                            *color_val = 0.7152 * *color_val;
+                        }
+                        2 => {
+                            *color_val = 0.072 * *color_val;
+                        }
+                        _ => { //impossible
+                        }
+                    }
+                }
+                Ok(())
+            }
+            ColorSpace::Gamma => {
+                for ((y,x,c), color_val) in self.pixels.indexed_iter_mut() {
+                    // TODO this is bad, we shouldnt be iterating over color channel and matching like this. Major target for optimization!
+                    match c {
+                        0 => {
+                            *color_val = 0.299 * *color_val;
+                        }
+                        1 => {
+                            *color_val = 0.587 * *color_val;
+                        }
+                        2 => {
+                            *color_val = 0.114 * *color_val;
+                        }
+                        _ => { //impossible
+                        }
+                    }
+                }
+                Ok(())
+            }
+        }
+    }
+    
+    
 
     //endregion
 
     //region Out-Place
-
-    /// Crops the image to the specified region.
-    ///
-    /// This method modifies the image in-place by cropping it to the specified region
-    /// defined by CornerPoints. This operation is not done inplace and
-    /// instead allocates a new array.
-    ///
-    /// # Arguments
-    ///
-    /// * `corners_crop` - The CornerPoints defining the region to crop
-    ///
-    /// # Returns
-    ///
-    /// A Result containing either:
-    /// - Ok(&mut Self) if the crop operation was successful
-    /// - Err(DataProcessingError) if the crop region would not fit in the image
-    pub fn crop_to(&mut self, corners_crop: &CornerPoints) -> Result<&mut Self, FeagiDataProcessingError> {
-        if !corners_crop.does_fit_in_frame_of_width_height(self.get_cartesian_width_height()) {
-            return Err(IODataError::InvalidParameters("The given crop would not fit in the given source!".into()).into());
-        }
-        let sliced_array_view: ArrayView3<f32> =
-            self.pixels.slice(s![corners_crop.upper_right_row_major().0 .. corners_crop.lower_left_row_major().0,
-                corners_crop.lower_left_row_major().1 .. corners_crop.upper_right_row_major().1 ,
-                0..self.get_color_channel_count()]);
-        self.pixels = sliced_array_view.into_owned();
-        Ok(self)
-    }
-
+    
 
     /// Resizes the image using nearest neighbor. Low quality, but fast.
     ///

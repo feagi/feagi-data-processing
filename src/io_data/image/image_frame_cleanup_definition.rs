@@ -4,9 +4,9 @@ use crate::io_data::image_descriptors::{ChannelLayout, ColorSpace, CornerPoints,
 use crate::io_data::ImageFrame;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct ImageFrameCleanupDefinition {
+pub struct ImageFrameCleanupDefinition { // these properties are in order of how they are applied
     input_image_properties: ImageFrameProperties,
-    cropping_from: Option<CornerPoints>,
+    cropping_from: Option<CornerPoints>, 
     final_resize_xy_to: Option<(usize, usize)>,
     convert_color_space_to: Option<ColorSpace>,
     multiply_brightness_by: Option<f32>,
@@ -75,6 +75,10 @@ impl ImageFrameCleanupDefinition {
         };
         ImageFrameProperties::new(resolution, color_space, color_channel_layout)
     }
+    
+    pub fn verify_input_image_allowed(&self, verifying_image: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
+        self.input_image_properties.verify_image_frame_matches_properties(verifying_image)
+    }
 
 
 
@@ -84,7 +88,7 @@ impl ImageFrameCleanupDefinition {
     // TODO safety bound checks!
 
     pub fn set_cropping_from(&mut self, lower_left_xy_point_inclusive: (usize, usize), upper_right_xy_point_exclusive: (usize, usize)) -> Result<&Self, FeagiDataProcessingError> {
-        let corner_points = CornerPoints::new_from_cartesian(lower_left_xy_point_inclusive, upper_right_xy_point_exclusive, self.input_xy_resolution)?;
+        let corner_points = CornerPoints::new_from_cartesian(lower_left_xy_point_inclusive, upper_right_xy_point_exclusive, self.input_image_properties.get_expected_xy_resolution())?;
         self.cropping_from = Some(corner_points);
         Ok(self)
     }
@@ -114,7 +118,7 @@ impl ImageFrameCleanupDefinition {
             return Err(IODataError::InvalidParameters("Image is already Grayscale!".into()).into())
         }
         
-        if self.input_image_properties.get_expected_color_channel_layout() != ChannelLayout::RGB {
+        if self.input_image_properties.get_expected_color_channel_layout() == ChannelLayout::RG {
             return Err(FeagiDataProcessingError::NotImplemented)
         }
         self.convert_to_grayscale = true;
@@ -133,14 +137,64 @@ impl ImageFrameCleanupDefinition {
     
     pub(crate) fn process_image(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataProcessingError> {
         
+        
         match self {
             
             // If no fast path, use this slower universal one
             _ => {
+                // This function is much slower, There may be some optimization work possible, but ensure the most common step combinations have an accelerated path
+                let is_cropping_is_resizing = (self.cropping_from, self.final_resize_xy_to);
+                
+                let mut processing = source.clone();
+                match is_cropping_is_resizing {
+                    (None, None) => {
+                        // don't do anything
+                    }
+                    (Some(cropping_from), None) => {
+                        crop(source, &mut processing, &cropping_from, self.get_output_channel_count())?;
+                    }
+                    (None, Some(final_resize_xy_to)) => {
+                        resize(source, &mut processing, &final_resize_xy_to)?;
+                    }
+                    (Some(cropping_from), Some(final_resize_xy_to)) => {
+                        crop_and_resize(source, &mut processing, &cropping_from, &final_resize_xy_to)?;
+                    }
+                };
+                
+                match self.convert_color_space_to {
+                    None => {
+                        // Do Nothing
+                    }
+                    Some(color_space) => {
+                        processing.change_color_space(color_space)?;
+                    }
+                }
+                
+                match self.multiply_brightness_by {
+                    None => {
+                        // Do Nothing
+                    }
+                    Some(brightness_multiplier) => {
+                        processing.change_brightness(brightness_multiplier)?;
+                    }
+                }
+                
+                match self.change_contrast_by {
+                    None => {
+                        // Do Nothing
+                    }
+                    Some(contrast_multiplier) => {
+                        processing.change_contrast(contrast_multiplier)?;
+                    }
+                }
+                
+                if self.convert_to_grayscale {
+                    return Err(FeagiDataProcessingError::NotImplemented)
+                }
+
+                destination = processing.to_owned()
                 
             }
-            
-            
             
             // Do literally nothing, just copy the data
             ImageFrameCleanupDefinition {
@@ -181,12 +235,53 @@ impl ImageFrameCleanupDefinition {
             } => {
                 resize(source, destination, final_resize_xy_to)
             }
+
+            // Only grayscaling
+            ImageFrameCleanupDefinition {
+                input_image_properties,
+                cropping_from: None,
+                final_resize_xy_to: None,
+                convert_color_space_to: None,
+                multiply_brightness_by: None,
+                change_contrast_by:None,
+                convert_to_grayscale: true
+            } => {
+                to_grayscale(source, destination, self.input_image_properties.get_expected_color_space())
+            }
+
+            // Cropping, Resizing
+            ImageFrameCleanupDefinition {
+                input_image_properties,
+                cropping_from: Some(cropping_from),
+                final_resize_xy_to: Some(final_resize_xy_to),
+                convert_color_space_to: None,
+                multiply_brightness_by: None,
+                change_contrast_by:None,
+                convert_to_grayscale: false
+            } => {
+                crop_and_resize(source, destination, cropping_from, final_resize_xy_to)
+            }
+
+            // Cropping, Resizing, Grayscaling (the most common with segmentation vision)
+            ImageFrameCleanupDefinition {
+                input_image_properties,
+                cropping_from: Some(cropping_from),
+                final_resize_xy_to: Some(final_resize_xy_to),
+                convert_color_space_to: None,
+                multiply_brightness_by: None,
+                change_contrast_by:None,
+                convert_to_grayscale: true
+            } => {
+                crop_and_resize_and_grayscale(source, destination, cropping_from, final_resize_xy_to, self.input_image_properties.get_expected_color_space())
+            }
             
         }
 
 
     }
     
+    //region helpers
+
     fn get_output_channel_count(&self) -> usize {
         if self.convert_to_grayscale {
             return 1;
@@ -194,95 +289,6 @@ impl ImageFrameCleanupDefinition {
         self.input_image_properties.get_expected_color_channel_layout().into()
     }
     
-    //region helpers
-    
-    //region single function
-
-    
-
-    
-    fn rgb_to_grayscale(&self, source: &ImageFrame, destination: &mut ImageFrame, output_color_space: ColorSpace) -> Result<(), FeagiDataProcessingError> {
-
-        let source_data = source.get_internal_data();
-        let mut destination_data = destination.get_internal_data_mut();
-        match output_color_space {
-            ColorSpace::Linear => {
-                for ((y,x,c), color_val) in destination_data.indexed_iter_mut() {
-                    // TODO this is bad, we shouldnt be iterating over color channel and matching like this. Major target for optimization!
-                    match c {
-                        0 => {
-                            *color_val = 0.2126 * source_data[(y, x, c)];
-                        }
-                        1 => {
-                            *color_val = 0.7152 * source_data[(y, x, c)];
-                        }
-                        2 => {
-                            *color_val = 0.072 * source_data[(y, x, c)];
-                        }
-                        _ => { //impossible
-                        }
-                    }
-                }
-                Ok(())
-            }
-            ColorSpace::Gamma => {
-                for ((y,x,c), color_val) in destination_data.indexed_iter_mut() {
-                    // TODO this is bad, we shouldnt be iterating over color channel and matching like this. Major target for optimization!
-                    match c {
-                        0 => {
-                            *color_val = 0.299 * source_data[(y, x, c)];
-                        }
-                        1 => {
-                            *color_val = 0.587 * source_data[(y, x, c)];
-                        }
-                        2 => {
-                            *color_val = 0.114 * source_data[(y, x, c)];
-                        }
-                        _ => { //impossible
-                        }
-                    }
-                }
-                Ok(())
-            }
-        }
-    }
-    //endregion
-    
-    
-    fn crop_and_resize(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataProcessingError> {
-
-        let crop_resolution: (usize, usize) = self.cropping_from.unwrap().enclosed_area_width_height();
-
-        let resolution: (usize, usize) = self.final_resize_xy_to.unwrap();
-        let resolution_f: (f32, f32) = (resolution.0 as f32, resolution.1 as f32);
-        let crop_resolution_f: (f32, f32) = (crop_resolution.0 as f32, crop_resolution.1 as f32);
-
-        let dist_factor_yx: (f32, f32) = (
-            crop_resolution_f.1 / resolution_f.1,
-            crop_resolution_f.0 / resolution_f.0);
-
-        let upper_left_corner_offset_yx: (usize, usize) = (
-            self.cropping_from.unwrap().upper_left_row_major().0,
-            self.cropping_from.unwrap().upper_left_row_major().1,
-        );
-
-        let source_data = source.get_internal_data();
-        let mut destination_data = destination.get_internal_data_mut();
-
-        for ((y,x,c), color_val) in destination_data.indexed_iter_mut() {
-            let nearest_neighbor_coordinate_from_source_y: usize = ((y as f32) * dist_factor_yx.0).floor() as usize;
-            let nearest_neighbor_coordinate_from_source_x: usize = ((x as f32) * dist_factor_yx.1).floor() as usize;
-            let nnc_y_with_offset = nearest_neighbor_coordinate_from_source_y + upper_left_corner_offset_yx.0;
-            let nnc_x_with_offset = nearest_neighbor_coordinate_from_source_x + upper_left_corner_offset_yx.1;
-
-            let nearest_neighbor_channel_value: f32 = source_data[(
-                nnc_y_with_offset,
-                nnc_x_with_offset,
-                c)];
-            *color_val = nearest_neighbor_channel_value;
-        };
-        Ok(())
-    }
 
     //endregion
     
@@ -323,28 +329,106 @@ fn resize(source: &ImageFrame, destination: &mut ImageFrame, resize_xy_to: &(usi
     Ok(())
 }
 
+fn to_grayscale(source: &ImageFrame, destination: &mut ImageFrame, output_color_space: ColorSpace) -> Result<(), FeagiDataProcessingError> {
+    // NOTE: destination should be grayscale and source should be RGB or RGBA
+    let source_data = source.get_internal_data();
+    let mut destination_data = destination.get_internal_data_mut();
+    let (r_scale, g_scale, b_scale) = match output_color_space {
+        ColorSpace::Linear => {(0.2126f32, 0.7152f32, 0.072f32)} // Using formula from https://stackoverflow.com/questions/17615963/standard-rgb-to-grayscale-conversion
+        ColorSpace::Gamma => {(0.299f32, 0.587f32, 0.114f32)}
+    };
+    // TODO look into premultiplied alpha handling!
 
+    for ((y,x,c), color_val) in destination_data.indexed_iter_mut() {
+        // TODO this is bad, we shouldnt be iterating over color channel and matching like this. Major target for optimization!
+        if c != 0 { continue; }
+        *color_val = r_scale * source_data[(y, x, 0)] + b_scale * source_data[(y, x, 1)] + g_scale * source_data[(y, x, 2)];
+    }
+    Ok(())
+    
 
-
-//endregion
-
-
-
-
-//region pixel processing functions
-
-// region single function
-fn linear_rgb_to_grayscale(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
-    // Using formula from https://stackoverflow.com/questions/17615963/standard-rgb-to-grayscale-conversion
-    (r * 0.2126, g * 0.7152, b * 0.072)
+    
 }
 
-fn gamma_rgb_to_grayscale(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
-    // This is technically not accurate as the proper way is to go to linear than back for the conversion, but this is a close approximation that runs faster
-    (r * 0.299, g * 0.587, b * 0.114)
+fn crop_and_resize(source: &ImageFrame, destination: &mut ImageFrame, crop_from: &CornerPoints, resize_xy_to: &(usize, usize)) -> Result<(), FeagiDataProcessingError> {
+
+    let crop_resolution: (usize, usize) = crop_from.enclosed_area_width_height();
+    let resolution_f: (f32, f32) = (resize_xy_to.0 as f32, resize_xy_to.1 as f32);
+    let crop_resolution_f: (f32, f32) = (crop_resolution.0 as f32, crop_resolution.1 as f32);
+
+    let dist_factor_yx: (f32, f32) = (
+        crop_resolution_f.1 / resolution_f.1,
+        crop_resolution_f.0 / resolution_f.0);
+
+    let upper_left_corner_offset_yx: (usize, usize) = (
+        crop_from.upper_left_row_major().0,
+        crop_from.upper_left_row_major().1,
+    );
+
+    let source_data = source.get_internal_data();
+    let mut destination_data = destination.get_internal_data_mut();
+
+    for ((y,x,c), color_val) in destination_data.indexed_iter_mut() {
+        let nearest_neighbor_coordinate_from_source_y: usize = ((y as f32) * dist_factor_yx.0).floor() as usize;
+        let nearest_neighbor_coordinate_from_source_x: usize = ((x as f32) * dist_factor_yx.1).floor() as usize;
+        let nnc_y_with_offset = nearest_neighbor_coordinate_from_source_y + upper_left_corner_offset_yx.0;
+        let nnc_x_with_offset = nearest_neighbor_coordinate_from_source_x + upper_left_corner_offset_yx.1;
+
+        let nearest_neighbor_channel_value: f32 = source_data[(
+            nnc_y_with_offset,
+            nnc_x_with_offset,
+            c)];
+        *color_val = nearest_neighbor_channel_value;
+    };
+    Ok(())
 }
-//endregion
 
+fn crop_and_resize_and_grayscale(source: &ImageFrame, destination: &mut ImageFrame, crop_from: &CornerPoints, resize_xy_to: &(usize, usize), output_color_space: ColorSpace) -> Result<(), FeagiDataProcessingError> {
 
+    let crop_resolution: (usize, usize) = crop_from.enclosed_area_width_height();
+    let resolution_f: (f32, f32) = (resize_xy_to.0 as f32, resize_xy_to.1 as f32);
+    let crop_resolution_f: (f32, f32) = (crop_resolution.0 as f32, crop_resolution.1 as f32);
 
+    let dist_factor_yx: (f32, f32) = (
+        crop_resolution_f.1 / resolution_f.1,
+        crop_resolution_f.0 / resolution_f.0);
+
+    let upper_left_corner_offset_yx: (usize, usize) = (
+        crop_from.upper_left_row_major().0,
+        crop_from.upper_left_row_major().1,
+    );
+
+    let source_data = source.get_internal_data();
+    let mut destination_data = destination.get_internal_data_mut();
+    let (r_scale, g_scale, b_scale) = match output_color_space {
+        ColorSpace::Linear => {(0.2126f32, 0.7152f32, 0.072f32)} // Using formula from https://stackoverflow.com/questions/17615963/standard-rgb-to-grayscale-conversion
+        ColorSpace::Gamma => {(0.299f32, 0.587f32, 0.114f32)}
+    };
+    // TODO look into premultiplied alpha handling!
+
+    for ((y,x,c), color_val) in destination_data.indexed_iter_mut() {
+        // TODO this is bad, we shouldnt be iterating over color channel and matching like this. Major target for optimization!
+        if c != 0 { continue; }
+        let nearest_neighbor_coordinate_from_source_y: usize = ((y as f32) * dist_factor_yx.0).floor() as usize;
+        let nearest_neighbor_coordinate_from_source_x: usize = ((x as f32) * dist_factor_yx.1).floor() as usize;
+        let nnc_y_with_offset = nearest_neighbor_coordinate_from_source_y + upper_left_corner_offset_yx.0;
+        let nnc_x_with_offset = nearest_neighbor_coordinate_from_source_x + upper_left_corner_offset_yx.1;
+        let nearest_neighbor_channel_r: f32 = source_data[(
+            nnc_y_with_offset,
+            nnc_x_with_offset,
+            0)];
+        let nearest_neighbor_channel_g: f32 = source_data[(
+            nnc_y_with_offset,
+            nnc_x_with_offset,
+            1)];
+        let nearest_neighbor_channel_b: f32 = source_data[(
+            nnc_y_with_offset,
+            nnc_x_with_offset,
+            2)];
+        
+        *color_val = r_scale * nearest_neighbor_channel_r + b_scale * nearest_neighbor_channel_g + g_scale * nearest_neighbor_channel_b;
+    }
+    Ok(())
+    
+}
 //endregion
