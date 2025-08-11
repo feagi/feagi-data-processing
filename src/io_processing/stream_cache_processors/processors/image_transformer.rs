@@ -30,14 +30,18 @@ impl StreamCacheProcessor for ImageFrameTransformerProcessor {
     }
 
     fn process_new_input(&mut self, value: &IOTypeData, _time_of_input: Instant) -> Result<&IOTypeData, FeagiDataProcessingError> {
-        {
-            let write_target: &mut ImageFrame = &self.cached.into();
-            let read_from: &ImageFrame = value.into();
-            self.transformer_definition.process_image(&read_from, write_target);
-        }
-        return Ok(&self.cached)
-        
-        
-        
+        let read_from: &ImageFrame = value.try_into()?;
+        let write_target: &mut ImageFrame = (&mut self.cached).try_into()?;
+        self.transformer_definition.process_image(read_from, write_target)?;
+        Ok(&self.cached)
+    }
+}
+
+impl ImageFrameTransformerProcessor {
+    pub fn new(transformer_definition: ImageFrameTransformerDefinition) -> Result<Self, FeagiDataProcessingError> {
+        Ok(ImageFrameTransformerProcessor{
+            cached: IOTypeData::ImageFrame(ImageFrame::from_image_frame_properties(&transformer_definition.get_output_image_properties())?),
+            transformer_definition,
+        })
     }
 }

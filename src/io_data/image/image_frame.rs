@@ -54,12 +54,16 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A new ImageFrame instance with all pixels initialized to zero.
-    pub fn new(channel_format: &ChannelLayout, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> ImageFrame {
-        ImageFrame {
+    pub fn new(channel_format: &ChannelLayout, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> Result<ImageFrame, FeagiDataProcessingError> {
+        if xy_resolution.0 == 0 || xy_resolution.1 == 0 {
+            return Err(IODataError::InvalidParameters("Given resolution cannot be 0 in any direction!".into()).into())
+        }
+        
+        Ok(ImageFrame {
             channel_layout: *channel_format,
             color_space: *color_space,
             pixels: Array3::<f32>::zeros((xy_resolution.1, xy_resolution.0, *channel_format as usize)),
-        }
+        })
     }
 
     /// Creates an ImageFrame from an existing ndarray with the specified color space.
@@ -83,7 +87,13 @@ impl ImageFrame {
             channel_layout: ChannelLayout::try_from(number_color_channels)?
         })
     }
-
+    
+    
+    pub fn from_image_frame_properties(image_frame_properties: &ImageFrameProperties) -> Result<ImageFrame, FeagiDataProcessingError>
+    {
+        ImageFrame::new(&image_frame_properties.get_expected_color_channel_layout(), &image_frame_properties.get_expected_color_space(), &image_frame_properties.get_expected_xy_resolution())
+    }
+    
     // endregion
 
     // region Get Properties
