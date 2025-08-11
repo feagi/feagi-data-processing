@@ -113,6 +113,16 @@ impl SegmentedImageFrame {
     
     //region get properties
     
+    /// Returns the properties of all nine image frame segments.
+    ///
+    /// Provides the image properties (resolution, color space, channel layout) for each
+    /// of the nine segments in the standard cortical ordering: center, lower_left, 
+    /// middle_left, upper_left, upper_middle, upper_right, middle_right, lower_right, 
+    /// lower_middle.
+    ///
+    /// # Returns
+    ///
+    /// An array of 9 ImageFrameProperties, one for each segment in cortical order.
     pub fn get_image_frame_properties(&self) -> [ImageFrameProperties; 9] {
         // return in same order as cortical IDs
         [
@@ -140,14 +150,35 @@ impl SegmentedImageFrame {
         self.upper_left.get_color_space()
     }
     
+    /// Returns the channel layout of the center segment.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the ChannelLayout enum value for the center segment.
     pub fn get_center_channel_layout(&self) -> &ChannelLayout {
         self.center.get_channel_layout()
     }
     
+    /// Returns the channel layout of the peripheral segments.
+    ///
+    /// All peripheral segments (non-center) are expected to have the same channel layout.
+    /// This method returns the layout from the lower_left segment as representative.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the ChannelLayout enum value for the peripheral segments.
     pub fn get_peripheral_channel_layout(&self) -> &ChannelLayout {
         self.lower_left.get_channel_layout() // All peripherals should be the same
     }
     
+    /// Returns references to the internal pixel data arrays for all nine segments.
+    ///
+    /// Provides direct access to the underlying 3D arrays containing pixel data
+    /// for each segment. The arrays are returned in the standard cortical ordering.
+    ///
+    /// # Returns
+    ///
+    /// An array of 9 references to Array3<f32>, one for each segment in cortical order.
     pub fn get_image_internal_data(&self) -> [&Array3<f32>; 9] {
         // return in same order as cortical IDs
         [
@@ -181,6 +212,21 @@ impl SegmentedImageFrame {
     //endregion
     
     //region neuron export
+    /// Exports all segments as new cortical mapped neuron data.
+    ///
+    /// Converts the pixel data from all nine image segments into neuron data format
+    /// suitable for FEAGI processing. Creates a new CorticalMappedXYZPNeuronData container
+    /// with the appropriate cortical IDs and spatial mappings.
+    ///
+    /// # Arguments
+    ///
+    /// * `camera_index` - The cortical grouping index for the camera/vision system
+    /// * `channel_index` - The channel index within the cortical IO system
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(CorticalMappedXYZPNeuronData)` - Successfully created neuron data
+    /// * `Err(FeagiDataProcessingError)` - If the conversion fails
     pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: CorticalGroupingIndex, channel_index: CorticalIOChannelIndex) -> Result<CorticalMappedXYZPNeuronData, FeagiDataProcessingError> {
 
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();

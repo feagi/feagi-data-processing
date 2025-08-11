@@ -10,6 +10,30 @@ use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::ImageFrame;
 
 //region Image Frame Properties
+
+/// Describes the properties of an image frame including resolution, color space, and channel layout.
+///
+/// This struct encapsulates all the metadata needed to describe an image frame's format
+/// and dimensions. It's used throughout the system for type checking, validation, and
+/// ensuring compatibility between different image processing operations.
+///
+/// # Fields
+///
+/// * `xy_resolution` - The image dimensions as (width, height) in pixels
+/// * `color_space` - The color space (Linear or Gamma-corrected)
+/// * `color_channel_layout` - The channel configuration (Grayscale, RGB, RGBA, etc.)
+///
+/// # Example
+///
+/// ```rust
+/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ChannelLayout};
+///
+/// let properties = ImageFrameProperties::new(
+///     (640, 480),
+///     ColorSpace::Linear,
+///     ChannelLayout::RGB
+/// );
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ImageFrameProperties {
     xy_resolution: (usize, usize),
@@ -25,6 +49,17 @@ impl std::fmt::Display for ImageFrameProperties {
 }
 
 impl ImageFrameProperties {
+    /// Creates a new ImageFrameProperties instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `xy_resolution` - The image dimensions as (width, height) in pixels
+    /// * `color_space` - The color space (Linear or Gamma-corrected)
+    /// * `color_channel_layout` - The channel configuration (Grayscale, RGB, RGBA, etc.)
+    ///
+    /// # Returns
+    ///
+    /// A new ImageFrameProperties instance with the specified configuration.
     pub fn new(xy_resolution: (usize, usize), color_space: ColorSpace, color_channel_layout: ChannelLayout) -> Self {
         ImageFrameProperties{
             xy_resolution,
@@ -33,6 +68,26 @@ impl ImageFrameProperties {
         }
     }
 
+    /// Verifies that an image frame matches these properties.
+    ///
+    /// Checks if the given image frame has the same resolution, color space,
+    /// and channel layout as specified in these properties.
+    ///
+    /// # Arguments
+    ///
+    /// * `image_frame` - The image frame to verify against these properties
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` if the image frame matches these properties
+    /// * `Err(FeagiDataProcessingError)` if any property doesn't match
+    ///
+    /// # Errors
+    ///
+    /// Returns an error with a descriptive message if:
+    /// - The resolution doesn't match
+    /// - The color space doesn't match  
+    /// - The channel layout doesn't match
     pub fn verify_image_frame_matches_properties(&self, image_frame: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
         if image_frame.get_cartesian_width_height() != self.xy_resolution {
             return Err(IODataError::InvalidParameters(format!{"Expected resolution of <{}, {}> but received an image with resolution of <{}, {}>!",
@@ -47,14 +102,29 @@ impl ImageFrameProperties {
         Ok(())
     }
     
+    /// Returns the expected XY resolution.
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing (width, height) in pixels.
     pub fn get_expected_xy_resolution(&self) -> (usize, usize) {
         self.xy_resolution
     }
     
+    /// Returns the expected color space.
+    ///
+    /// # Returns
+    ///
+    /// The ColorSpace enum value (Linear or Gamma).
     pub fn get_expected_color_space(&self) -> ColorSpace {
         self.color_space
     }
     
+    /// Returns the expected color channel layout.
+    ///
+    /// # Returns
+    ///
+    /// The ChannelLayout enum value (Grayscale, RGB, RGBA, etc.).
     pub fn get_expected_color_channel_layout(&self) -> ChannelLayout {
         self.color_channel_layout
     }

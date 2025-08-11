@@ -89,6 +89,20 @@ impl ImageFrame {
     }
     
     
+    /// Creates a new ImageFrame from ImageFrameProperties specification.
+    ///
+    /// Creates a new ImageFrame with all pixels initialized to zero, using the
+    /// resolution, color space, and channel layout specified in the properties.
+    ///
+    /// # Arguments
+    ///
+    /// * `image_frame_properties` - Properties specifying the desired image configuration
+    ///
+    /// # Returns
+    ///
+    /// A Result containing either:
+    /// - Ok(ImageFrame) if the frame was created successfully
+    /// - Err(FeagiDataProcessingError) if the properties specify invalid dimensions
     pub fn from_image_frame_properties(image_frame_properties: &ImageFrameProperties) -> Result<ImageFrame, FeagiDataProcessingError>
     {
         ImageFrame::new(&image_frame_properties.get_expected_color_channel_layout(), &image_frame_properties.get_expected_color_space(), &image_frame_properties.get_expected_xy_resolution())
@@ -136,6 +150,14 @@ impl ImageFrame {
         true
     }
 
+    /// Returns the properties of this image frame.
+    ///
+    /// Creates an ImageFrameProperties struct that describes this frame's
+    /// resolution, color space, and channel layout.
+    ///
+    /// # Returns
+    ///
+    /// An ImageFrameProperties struct containing this frame's properties.
     pub fn get_image_frame_properties(&self) -> ImageFrameProperties {
         ImageFrameProperties::new(
             self.get_cartesian_width_height(),
@@ -235,10 +257,32 @@ impl ImageFrame {
         self.pixels.shape()[0] * self.pixels.shape()[1] * self.pixels.shape()[2]
     }
 
+    /// Returns a reference to the internal pixel data array.
+    ///
+    /// Provides direct access to the underlying 3D array containing the pixel data.
+    /// The array is organized as (height, width, channels) following row-major ordering.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the Array3<f32> containing the raw pixel data.
+    ///
+    /// # Safety
+    ///
+    /// This method provides direct access to internal data. Modifying the array
+    /// through this reference could break invariants. Use `get_internal_data_mut()`
+    /// for safe mutable access.
     pub fn get_internal_data(&self) -> &Array3<f32> {
         &self.pixels
     }
 
+    /// Returns a mutable reference to the internal pixel data array.
+    ///
+    /// Provides mutable access to the underlying 3D array containing the pixel data.
+    /// This method is restricted to crate-internal use to maintain data integrity.
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to the Array3<f32> containing the raw pixel data.
     pub(crate) fn get_internal_data_mut(&mut self) -> &mut Array3<f32> {
         &mut self.pixels
     }
