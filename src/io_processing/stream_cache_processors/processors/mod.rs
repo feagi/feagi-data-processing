@@ -4,6 +4,7 @@
 mod identities;
 mod rolling_windows;
 mod ranges;
+mod image_transformer;
 
 pub use identities::*;
 pub use rolling_windows::*;

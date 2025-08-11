@@ -4,7 +4,7 @@ use crate::io_data::image_descriptors::{ChannelLayout, ColorSpace, CornerPoints,
 use crate::io_data::ImageFrame;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct ImageFrameCleanupDefinition { // these properties are in order of how they are applied
+pub struct ImageFrameTransformerDefinition { // these properties are in order of how they are applied
     input_image_properties: ImageFrameProperties,
     cropping_from: Option<CornerPoints>, 
     final_resize_xy_to: Option<(usize, usize)>,
@@ -14,7 +14,7 @@ pub struct ImageFrameCleanupDefinition { // these properties are in order of how
     convert_to_grayscale: bool, // Only allowed on RGB
 }
 
-impl std::fmt::Display for ImageFrameCleanupDefinition {
+impl std::fmt::Display for ImageFrameTransformerDefinition {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let initial = format!("Expecting {}.", self.input_image_properties);
         let mut steps: String = match (self.cropping_from, self.final_resize_xy_to) {
@@ -45,9 +45,10 @@ impl std::fmt::Display for ImageFrameCleanupDefinition {
     }
 }
 
-impl ImageFrameCleanupDefinition {
-    pub fn new(input_image_properties: ImageFrameProperties) -> ImageFrameCleanupDefinition {
-        ImageFrameCleanupDefinition{
+impl ImageFrameTransformerDefinition {
+    
+    pub fn new(input_image_properties: ImageFrameProperties) -> ImageFrameTransformerDefinition {
+        ImageFrameTransformerDefinition {
             input_image_properties,
             cropping_from: None,
             final_resize_xy_to: None,
@@ -58,6 +59,8 @@ impl ImageFrameCleanupDefinition {
         }
     }
 
+    pub fn get_input_image_properties(&self) -> &ImageFrameProperties { &self.input_image_properties }
+    
     pub fn get_output_image_properties(&self) -> ImageFrameProperties {
         let resolution = match (self.cropping_from, self.final_resize_xy_to) {
             (None, None) => self.input_image_properties.get_expected_xy_resolution(),
@@ -79,16 +82,12 @@ impl ImageFrameCleanupDefinition {
     pub fn verify_input_image_allowed(&self, verifying_image: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
         self.input_image_properties.verify_image_frame_matches_properties(verifying_image)
     }
-
-    // TODO change this entirely, we should have a flat match statement, with the most common use cases having source dest functions, and all others using a inplace repeated system
+    
 
     // TODO 2 / 4 channel pipelines!
-    // TODO right now we are only cropping and resizing
     // Due to image segmentor, I would argue the most common route is crop + resize + grayscale
 
     pub fn process_image(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataProcessingError> {
-
-
         match self {
 
             // If no fast path, use this slower universal one
@@ -148,7 +147,7 @@ impl ImageFrameCleanupDefinition {
             }
 
             // Do literally nothing, just copy the data
-            ImageFrameCleanupDefinition {
+            ImageFrameTransformerDefinition {
                 input_image_properties,
                 cropping_from: None,
                 final_resize_xy_to: None,
@@ -162,7 +161,7 @@ impl ImageFrameCleanupDefinition {
             }
 
             // Only cropping
-            ImageFrameCleanupDefinition {
+            ImageFrameTransformerDefinition {
                 input_image_properties,
                 cropping_from: Some(cropping_from),
                 final_resize_xy_to: None,
@@ -175,7 +174,7 @@ impl ImageFrameCleanupDefinition {
             }
 
             // Only resizing
-            ImageFrameCleanupDefinition {
+            ImageFrameTransformerDefinition {
                 input_image_properties,
                 cropping_from: None,
                 final_resize_xy_to: Some(final_resize_xy_to),
@@ -188,7 +187,7 @@ impl ImageFrameCleanupDefinition {
             }
 
             // Only grayscaling
-            ImageFrameCleanupDefinition {
+            ImageFrameTransformerDefinition {
                 input_image_properties,
                 cropping_from: None,
                 final_resize_xy_to: None,
@@ -201,7 +200,7 @@ impl ImageFrameCleanupDefinition {
             }
 
             // Cropping, Resizing
-            ImageFrameCleanupDefinition {
+            ImageFrameTransformerDefinition {
                 input_image_properties,
                 cropping_from: Some(cropping_from),
                 final_resize_xy_to: Some(final_resize_xy_to),
@@ -214,7 +213,7 @@ impl ImageFrameCleanupDefinition {
             }
 
             // Cropping, Resizing, Grayscaling (the most common with segmentation vision)
-            ImageFrameCleanupDefinition {
+            ImageFrameTransformerDefinition {
                 input_image_properties,
                 cropping_from: Some(cropping_from),
                 final_resize_xy_to: Some(final_resize_xy_to),
