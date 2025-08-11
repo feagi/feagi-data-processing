@@ -12,7 +12,7 @@ pub(crate) struct ImageFrameNeuronXYZPEncoder {
 impl NeuronXYZPEncoder for ImageFrameNeuronXYZPEncoder {
 
     fn get_encodable_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::ImageFrame
+        IOTypeVariant::ImageFrame(None) // Any Image frame can be processed
     }
     
     fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {

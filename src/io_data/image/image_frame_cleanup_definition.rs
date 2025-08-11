@@ -3,6 +3,7 @@ use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::image_descriptors::{ChannelLayout, ColorSpace, CornerPoints, ImageFrameProperties, MemoryOrderLayout};
 use crate::io_data::ImageFrame;
 
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct ImageFrameCleanupDefinition {
     input_image_properties: ImageFrameProperties,
     cropping_from: Option<CornerPoints>,
@@ -10,13 +11,14 @@ pub struct ImageFrameCleanupDefinition {
     convert_color_space_to: Option<ColorSpace>,
     multiply_brightness_by: Option<f32>,
     change_contrast_by: Option<f32>,
-    convert_to_grayscale: bool,
+    convert_to_grayscale: bool, // Only allowed on RGB
 }
 
 impl std::fmt::Display for ImageFrameCleanupDefinition {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let initial = format!("Expecting {}.", self.input_image_properties);
         let mut steps: String = match (self.cropping_from, self.final_resize_xy_to) {
-            (None, None) => format!("Keeping input size of <{}, {}> (no cropping from or resizing to)", self.input_xy_resolution.0, self.input_xy_resolution.1),
+            (None, None) => format!("Keeping input size of <{}, {}> (no cropping from or resizing to)", self.input_image_properties.get_expected_xy_resolution().0, self.input_image_properties.get_expected_xy_resolution().1),
             (Some(cropping_from), None) => format!("Cropping from xy points <{}, {}> to <{}, {}> without resizing after,",
                                                    cropping_from.lower_left_row_major().1, cropping_from.lower_left_row_major().0, cropping_from.upper_right_row_major().1, cropping_from.upper_right_row_major().0),
             (None, Some(final_resize_xy_to)) => format!("resizing to resolution <{}, {}> without any cropping,", final_resize_xy_to.0, final_resize_xy_to.1),
@@ -39,7 +41,7 @@ impl std::fmt::Display for ImageFrameCleanupDefinition {
             false => String::new(),
             true => "Convert to grayscale".to_string(),
         });
-        write!(f, "ImageFrameCleanupDefinition({})", steps)
+        write!(f, "ImageFrameCleanupDefinition({} {})", initial, steps)
     }
 }
 
@@ -52,13 +54,14 @@ impl ImageFrameCleanupDefinition {
             multiply_brightness_by: None,
             change_contrast_by: None,
             convert_color_space_to: None,
+            convert_to_grayscale: false,
         }
     }
 
     pub fn get_output_image_properties(&self) -> ImageFrameProperties {
         let resolution = match (self.cropping_from, self.final_resize_xy_to) {
             (None, None) => self.input_image_properties.get_expected_xy_resolution(),
-            (Some(cropping_from), None) => self.cropping_from.unwrap().enclosed_area_width_height(),
+            (Some(cropping_from), None) => cropping_from.enclosed_area_width_height(),
             (None, Some(final_resize_xy_to)) => final_resize_xy_to,
             (Some(_), Some(final_resize_xy_to)) => final_resize_xy_to,
         };
@@ -107,6 +110,13 @@ impl ImageFrameCleanupDefinition {
     }
 
     pub fn set_conversion_to_grayscale(&mut self) -> Result<&Self, FeagiDataProcessingError> {
+        if self.input_image_properties.get_expected_color_channel_layout() == ChannelLayout::GrayScale {
+            return Err(IODataError::InvalidParameters("Image is already Grayscale!".into()).into())
+        }
+        
+        if self.input_image_properties.get_expected_color_channel_layout() != ChannelLayout::RGB {
+            return Err(FeagiDataProcessingError::NotImplemented)
+        }
         self.convert_to_grayscale = true;
         Ok(self)
     }
@@ -115,30 +125,65 @@ impl ImageFrameCleanupDefinition {
 
     //region image processing
 
+    // TODO change this entirely, we should have a flat match statement, with the most common use cases having source dest functions, and all others using a inplace repeated system
+    
+    // TODO 2 / 4 channel pipelines!
+    // TODO right now we are only cropping and resizing
+    // Due to image segmentor, I would argue the most common route is crop + resize + grayscale
+    
     pub(crate) fn process_image(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataProcessingError> {
-        // TODO build optimal routes!
-        // TODO right now we are only cropping and resizing
         
-        // Due to image segmentor, I would argue the most common route is crop + resize + grayscale
-        
-        if self.cropping_from.is_some() && self.final_resize_xy_to.is_some() {
-            if self.convert_color_space_to.is_none() && self.multiply_brightness_by.is_none() && self.change_contrast_by.is_none() {
-                self.crop_and_resize(source, destination);
-                return Ok(());
+        match self {
+            
+            // If no fast path, use this slower universal one
+            _ => {
+                
             }
             
             
-        }
             
-        if self.cropping_from.is_some() && self.final_resize_xy_to.is_none() {
+            // Do literally nothing, just copy the data
+            ImageFrameCleanupDefinition {
+                input_image_properties,
+                cropping_from: None,
+                final_resize_xy_to: None,
+                convert_color_space_to: None,
+                multiply_brightness_by: None,
+                change_contrast_by:None,
+                convert_to_grayscale: false
+            } => {
+                destination = source.to_owned()
+                Ok(())
+            }
+
+            // Only cropping
+            ImageFrameCleanupDefinition {
+                input_image_properties,
+                cropping_from: Some(cropping_from),
+                final_resize_xy_to: None,
+                convert_color_space_to: None,
+                multiply_brightness_by: None,
+                change_contrast_by:None,
+                convert_to_grayscale: false
+            } => {
+                crop(source, destination, cropping_from, self.get_output_channel_count())
+            }
+
+            // Only resizing
+            ImageFrameCleanupDefinition {
+                input_image_properties,
+                cropping_from: None,
+                final_resize_xy_to: Some(final_resize_xy_to),
+                convert_color_space_to: None,
+                multiply_brightness_by: None,
+                change_contrast_by:None,
+                convert_to_grayscale: false
+            } => {
+                resize(source, destination, final_resize_xy_to)
+            }
             
         }
 
-        if self.cropping_from.is_none() && self.final_resize_xy_to.is_some() {
-
-        }
-        
-        // no cropping or resizing
 
     }
     
@@ -149,39 +194,59 @@ impl ImageFrameCleanupDefinition {
         self.input_image_properties.get_expected_color_channel_layout().into()
     }
     
-    fn crop(&self, source: &ImageFrame, destination: &mut ImageFrame, number_color_channels: usize) -> Result<(), FeagiDataProcessingError> {
-        let crop_from = self.cropping_from.unwrap();
-        // TODO whats going on with color channels here
-        let mut destination_data = destination.get_internal_data_mut();
-        let sliced_array_view: ArrayView3<f32> = source.get_internal_data().slice(
-            s![crop_from.lower_left_row_major().0 .. crop_from.upper_right_row_major().0,
-                crop_from.lower_left_row_major().1 .. crop_from.upper_right_row_major().1 , 0..number_color_channels]
-        );
-        destination_data = &mut sliced_array_view.into_owned();
-        Ok(())
-    }
+    //region helpers
     
-    fn resize(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataProcessingError> {
-        // Uses Nearest Neighbor. Not pretty but fast
-        let resize_xy_to = self.final_resize_xy_to.unwrap();
-        let source_resolution = source.get_internal_resolution();
-        let dest_resolution_f: (f32, f32) = (resize_xy_to.0 as f32, resize_xy_to.1 as f32);
-        let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32);
-        
+    //region single function
+
+    
+
+    
+    fn rgb_to_grayscale(&self, source: &ImageFrame, destination: &mut ImageFrame, output_color_space: ColorSpace) -> Result<(), FeagiDataProcessingError> {
+
         let source_data = source.get_internal_data();
         let mut destination_data = destination.get_internal_data_mut();
-        
-        for ((y,x,c), color_val) in destination_data.indexed_iter_mut() {
-            let nearest_neighbor_coordinate_y: usize = (((y as f32) / dest_resolution_f.1) * source_resolution_f.1).floor() as usize;
-            let nearest_neighbor_coordinate_x: usize = (((x as f32) / dest_resolution_f.0) * source_resolution_f.0).floor() as usize;
-            let nearest_neighbor_channel_value: f32 = source_data[(
-                nearest_neighbor_coordinate_x,
-                nearest_neighbor_coordinate_y,
-                c)];
-            *color_val = nearest_neighbor_channel_value;
-        };
-        Ok(())
+        match output_color_space {
+            ColorSpace::Linear => {
+                for ((y,x,c), color_val) in destination_data.indexed_iter_mut() {
+                    // TODO this is bad, we shouldnt be iterating over color channel and matching like this. Major target for optimization!
+                    match c {
+                        0 => {
+                            *color_val = 0.2126 * source_data[(y, x, c)];
+                        }
+                        1 => {
+                            *color_val = 0.7152 * source_data[(y, x, c)];
+                        }
+                        2 => {
+                            *color_val = 0.072 * source_data[(y, x, c)];
+                        }
+                        _ => { //impossible
+                        }
+                    }
+                }
+                Ok(())
+            }
+            ColorSpace::Gamma => {
+                for ((y,x,c), color_val) in destination_data.indexed_iter_mut() {
+                    // TODO this is bad, we shouldnt be iterating over color channel and matching like this. Major target for optimization!
+                    match c {
+                        0 => {
+                            *color_val = 0.299 * source_data[(y, x, c)];
+                        }
+                        1 => {
+                            *color_val = 0.587 * source_data[(y, x, c)];
+                        }
+                        2 => {
+                            *color_val = 0.114 * source_data[(y, x, c)];
+                        }
+                        _ => { //impossible
+                        }
+                    }
+                }
+                Ok(())
+            }
+        }
     }
+    //endregion
     
     
     fn crop_and_resize(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataProcessingError> {
@@ -221,24 +286,65 @@ impl ImageFrameCleanupDefinition {
 
     //endregion
     
-    //region pixel plane processing
-    
-    fn apply_brightness_scale(&self, input_pixel_plane: f32, multiplier: f32) -> f32 {
-        input_pixel_plane * multiplier
-    }
-    
-    
-    
-    fn rg_to_r(&self,r: f32, g: f32) -> f32 {
-        return r * g / 2.0;
-    }
-    
-    fn rgb_to_r(&self,r: f32, g: f32, b: f32) -> f32 {
-        return r * g * b / 3.0; // TODO: This is likely not correct!
-    }
-    
-    
-    //endregion
 
-
+    
 }
+
+//region source destination processors
+
+fn crop(source: &ImageFrame, destination: &mut ImageFrame, crop_from: &CornerPoints, number_output_color_channels: usize) -> Result<(), FeagiDataProcessingError> {
+    let mut destination_data = destination.get_internal_data_mut();
+    let sliced_array_view: ArrayView3<f32> = source.get_internal_data().slice(
+        s![crop_from.lower_left_row_major().0 .. crop_from.upper_right_row_major().0,
+                crop_from.lower_left_row_major().1 .. crop_from.upper_right_row_major().1 , 0..number_output_color_channels]
+    );
+    destination_data = &mut sliced_array_view.into_owned();
+    Ok(())
+}
+
+fn resize(source: &ImageFrame, destination: &mut ImageFrame, resize_xy_to: &(usize, usize)) -> Result<(), FeagiDataProcessingError> {
+    // Uses Nearest Neighbor. Not pretty but fast
+    let source_resolution = source.get_internal_resolution();
+    let dest_resolution_f: (f32, f32) = (resize_xy_to.0 as f32, resize_xy_to.1 as f32);
+    let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32);
+
+    let source_data = source.get_internal_data();
+    let mut destination_data = destination.get_internal_data_mut();
+
+    for ((y,x,c), color_val) in destination_data.indexed_iter_mut() {
+        let nearest_neighbor_coordinate_y: usize = (((y as f32) / dest_resolution_f.1) * source_resolution_f.1).floor() as usize;
+        let nearest_neighbor_coordinate_x: usize = (((x as f32) / dest_resolution_f.0) * source_resolution_f.0).floor() as usize;
+        let nearest_neighbor_channel_value: f32 = source_data[(
+            nearest_neighbor_coordinate_x,
+            nearest_neighbor_coordinate_y,
+            c)];
+        *color_val = nearest_neighbor_channel_value;
+    };
+    Ok(())
+}
+
+
+
+
+//endregion
+
+
+
+
+//region pixel processing functions
+
+// region single function
+fn linear_rgb_to_grayscale(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
+    // Using formula from https://stackoverflow.com/questions/17615963/standard-rgb-to-grayscale-conversion
+    (r * 0.2126, g * 0.7152, b * 0.072)
+}
+
+fn gamma_rgb_to_grayscale(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
+    // This is technically not accurate as the proper way is to go to linear than back for the conversion, but this is a close approximation that runs faster
+    (r * 0.299, g * 0.587, b * 0.114)
+}
+//endregion
+
+
+
+//endregion
