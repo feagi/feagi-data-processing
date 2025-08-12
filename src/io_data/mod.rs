@@ -54,10 +54,9 @@
 //! - **Neuron Data**: For conversion to neural representations
 
 mod image;
-mod json_structure;
 mod io_types;
 
-pub use image::{ImageFrame, SegmentedImageFrame};
+pub use image::{ImageFrame, SegmentedImageFrame, ImageFrameTransformerDefinition};
 pub use image::descriptors as image_descriptors;
-pub use json_structure::JsonStructure;
+pub use crate::feagi_json::FeagiJSON;
 pub use io_types::{IOTypeData, IOTypeVariant};

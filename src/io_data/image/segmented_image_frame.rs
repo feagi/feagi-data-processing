@@ -6,10 +6,12 @@
 //! mimicking how human vision works with high acuity in the center and lower acuity in
 //! the periphery.
 
+use ndarray::Array3;
 use super::image_frame::ImageFrame;
-use crate::error::{FeagiDataProcessingError, IODataError};
+use crate::error::{FeagiDataProcessingError};
 use super::descriptors::*;
 use crate::genomic_structures::{CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex};
+use crate::io_data::image::descriptors::ImageFrameProperties;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 
 
@@ -93,15 +95,15 @@ impl SegmentedImageFrame {
     pub fn new(segment_resolutions: &SegmentedFrameTargetResolutions, segment_color_channels: &ChannelLayout,
                segment_color_space: &ColorSpace, input_frames_source_width_height: (usize, usize)) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
         Ok(SegmentedImageFrame {
-            lower_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_left),
-            middle_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_left),
-            upper_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_left),
-            upper_middle: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_middle),
-            upper_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_right),
-            middle_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_right),
-            lower_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_right),
-            lower_middle: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_middle),
-            center: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.center),
+            lower_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_left)?,
+            middle_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_left)?,
+            upper_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_left)?,
+            upper_middle: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_middle)?,
+            upper_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_right)?,
+            middle_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_right)?,
+            lower_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_right)?,
+            lower_middle: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_middle)?,
+            center: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.center)?,
             previous_imported_internal_yx_resolution: (input_frames_source_width_height.1, input_frames_source_width_height.0),
             previous_cropping_points_for_source_from_segment: None,
         })
@@ -110,6 +112,31 @@ impl SegmentedImageFrame {
     //endregion
     
     //region get properties
+    
+    /// Returns the properties of all nine image frame segments.
+    ///
+    /// Provides the image properties (resolution, color space, channel layout) for each
+    /// of the nine segments in the standard cortical ordering: center, lower_left, 
+    /// middle_left, upper_left, upper_middle, upper_right, middle_right, lower_right, 
+    /// lower_middle.
+    ///
+    /// # Returns
+    ///
+    /// An array of 9 ImageFrameProperties, one for each segment in cortical order.
+    pub fn get_image_frame_properties(&self) -> [ImageFrameProperties; 9] {
+        // return in same order as cortical IDs
+        [
+            self.lower_left.get_image_frame_properties(),
+            self.lower_middle.get_image_frame_properties(),
+            self.lower_right.get_image_frame_properties(),
+            self.middle_left.get_image_frame_properties(),
+            self.center.get_image_frame_properties(),
+            self.middle_right.get_image_frame_properties(),
+            self.upper_left.get_image_frame_properties(),
+            self.upper_middle.get_image_frame_properties(),
+            self.upper_right.get_image_frame_properties(),
+        ]
+    }
     
     /// Returns the color space used by all segments in this frame.
     /// 
@@ -123,103 +150,88 @@ impl SegmentedImageFrame {
         self.upper_left.get_color_space()
     }
     
+    /// Returns the channel layout of the center segment.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the ChannelLayout enum value for the center segment.
     pub fn get_center_channel_layout(&self) -> &ChannelLayout {
         self.center.get_channel_layout()
     }
     
+    /// Returns the channel layout of the peripheral segments.
+    ///
+    /// All peripheral segments (non-center) are expected to have the same channel layout.
+    /// This method returns the layout from the lower_left segment as representative.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the ChannelLayout enum value for the peripheral segments.
     pub fn get_peripheral_channel_layout(&self) -> &ChannelLayout {
         self.lower_left.get_channel_layout() // All peripherals should be the same
     }
     
-    
-    //endregion
-    
-    //region Loading in new data
-    
-    /// Updates all nine segments with data from a source frame.
-    /// 
-    /// This method takes a source ImageFrame and divides it into nine segments according
-    /// to the center properties. Each segment is cropped from the appropriate region of
-    /// the source frame and resized to match the target resolution for that segment.
-    /// 
-    /// The method caches cropping points for efficiency - if the same source resolution
-    /// is used repeatedly, the cropping calculations are only performed once.
-    /// 
-    /// # Arguments
-    /// 
-    /// * `source_frame` - The source ImageFrame to segment
-    /// * `center_properties` - Properties defining how to position and size the center region
-    /// 
+    /// Returns references to the internal pixel data arrays for all nine segments.
+    ///
+    /// Provides direct access to the underlying 3D arrays containing pixel data
+    /// for each segment. The arrays are returned in the standard cortical ordering.
+    ///
     /// # Returns
-    /// 
-    /// A Result containing either:
-    /// - Ok(()) if all segments were updated successfully
-    /// - Err(DataProcessingError) if the source frame is incompatible or processing fails
-    /// 
-    /// # Errors
-    /// 
-    /// This method will return an error if:
-    /// - The source frame has different color channels than expected
-    /// - The source frame has a different color space than expected
-    /// - The source frame has a different resolution than expected
-    /// - Any of the cropping or resizing operations fail
-    pub fn update_segments(&mut self, source_frame: &ImageFrame, 
-                           center_properties: SegmentedFrameCenterProperties)
-        -> Result<(), FeagiDataProcessingError> {
-        
-        if source_frame.get_channel_layout() != self.get_center_channel_layout() {
-            return Err(IODataError::InvalidParameters("Input Image frame does not have a matching channel layout to the center of the peripheral!".into()).into());
-        }
-        
-        // TODO add peripheral channel layout check!
-        if source_frame.get_color_space() != self.get_color_space() {
-            return Err(IODataError::InvalidParameters("Input Image frame does not have matching color space!".into()).into());
-        }
-        if source_frame.get_internal_resolution() != self.previous_imported_internal_yx_resolution {
-            return Err(IODataError::InvalidParameters("Input Image frame does not have matching resolution!".into()).into());
-        }
-        
-        if self.previous_cropping_points_for_source_from_segment.is_none() {
-            
-            // We either have no corner points for the cropping sources defined, or they are no longer
-            // valid, we need to update them
-            self.previous_cropping_points_for_source_from_segment = Some(
-                center_properties.calculate_source_corner_points_for_segmented_video_frame(source_frame.get_cartesian_width_height())?);
-        }
-        
-        let cropping_points= self.previous_cropping_points_for_source_from_segment.unwrap(); // We know this exists by now
-        
-        self.lower_left.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.lower_left, source_frame)?;
-        self.middle_left.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.middle_left, source_frame)?;
-        self.upper_left.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.upper_left, source_frame)?;
-        self.upper_middle.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.upper_middle, source_frame)?;
-        self.upper_right.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.upper_right, source_frame)?;
-        self.middle_right.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.middle_right, source_frame)?;
-        self.lower_right.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.lower_right, source_frame)?;
-        self.lower_middle.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.lower_middle, source_frame)?;
-        self.center.in_place_crop_and_nearest_neighbor_resize(
-            &cropping_points.center, source_frame)?;
-        
-        Ok(())
-        
+    ///
+    /// An array of 9 references to Array3<f32>, one for each segment in cortical order.
+    pub fn get_image_internal_data(&self) -> [&Array3<f32>; 9] {
+        // return in same order as cortical IDs
+        [
+            self.lower_left.get_internal_data(),
+            self.lower_middle.get_internal_data(),
+            self.lower_right.get_internal_data(),
+            self.middle_left.get_internal_data(),
+            self.center.get_internal_data(),
+            self.middle_right.get_internal_data(),
+            self.upper_left.get_internal_data(),
+            self.upper_middle.get_internal_data(),
+            self.upper_right.get_internal_data(),
+        ]
+    }
+    
+    pub(crate) fn get_image_internal_data_mut(&mut self) -> [&mut Array3<f32>; 9] {
+        // return in same order as cortical IDs
+        [
+            self.lower_left.get_internal_data_mut(),
+            self.lower_middle.get_internal_data_mut(),
+            self.lower_right.get_internal_data_mut(),
+            self.middle_left.get_internal_data_mut(),
+            self.center.get_internal_data_mut(),
+            self.middle_right.get_internal_data_mut(),
+            self.upper_left.get_internal_data_mut(),
+            self.upper_middle.get_internal_data_mut(),
+            self.upper_right.get_internal_data_mut(),
+        ]
     }
     
     //endregion
     
     //region neuron export
+    /// Exports all segments as new cortical mapped neuron data.
+    ///
+    /// Converts the pixel data from all nine image segments into neuron data format
+    /// suitable for FEAGI processing. Creates a new CorticalMappedXYZPNeuronData container
+    /// with the appropriate cortical IDs and spatial mappings.
+    ///
+    /// # Arguments
+    ///
+    /// * `camera_index` - The cortical grouping index for the camera/vision system
+    /// * `channel_index` - The channel index within the cortical IO system
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(CorticalMappedXYZPNeuronData)` - Successfully created neuron data
+    /// * `Err(FeagiDataProcessingError)` - If the conversion fails
     pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: CorticalGroupingIndex, channel_index: CorticalIOChannelIndex) -> Result<CorticalMappedXYZPNeuronData, FeagiDataProcessingError> {
 
         let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
         
-        let cortical_ids: [CorticalID; 9] = CorticalID::create_ordered_cortical_areas_for_segmented_vision(camera_index, ordered_refs[0].get_color_channel_count() == 1);
+        let cortical_ids: [CorticalID; 9] = CorticalID::create_ordered_cortical_areas_for_segmented_vision(camera_index);
         
         let mut output: CorticalMappedXYZPNeuronData = CorticalMappedXYZPNeuronData::new();
         
@@ -288,8 +300,6 @@ impl SegmentedImageFrame {
     }
     
     //endregion
-
-
     
 }
 

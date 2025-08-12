@@ -68,6 +68,7 @@ impl IdentityFloatProcessor {
 #[derive(Debug, Clone)]
 pub struct IdentityImageFrameProcessor {
     previous_value: IOTypeData,
+    expected_image_variant: IOTypeVariant,  // IOTypeVariant::ImageFrame(ImageFrameProperties)
 }
 
 impl Display for IdentityImageFrameProcessor {
@@ -78,11 +79,11 @@ impl Display for IdentityImageFrameProcessor {
 
 impl StreamCacheProcessor for IdentityImageFrameProcessor {
     fn get_input_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::ImageFrame
+        self.expected_image_variant
     }
 
     fn get_output_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::ImageFrame
+        self.expected_image_variant
     }
 
     fn get_most_recent_output(&self) -> &IOTypeData {
@@ -105,6 +106,7 @@ impl IdentityImageFrameProcessor {
     /// * `Ok(IdentityImageFrameProcessor)` - A new processor instance
     pub fn new(initial_image: ImageFrame) -> Result<Self, FeagiDataProcessingError> {
         Ok(IdentityImageFrameProcessor{
+            expected_image_variant: IOTypeVariant::ImageFrame(Some(initial_image.get_image_frame_properties())),
             previous_value: IOTypeData::ImageFrame(initial_image),
         })
     }
@@ -116,6 +118,7 @@ impl IdentityImageFrameProcessor {
 #[derive(Debug, Clone)]
 pub struct IdentitySegmentedImageFrameProcessor {
     previous_value: IOTypeData,
+    expected_segmented_image_variant: IOTypeVariant,  // IOTypeVariant::SegmentedImageFrame(Some([ImageFrameProperties ;9]))
 }
 
 impl Display for IdentitySegmentedImageFrameProcessor {
@@ -126,11 +129,11 @@ impl Display for IdentitySegmentedImageFrameProcessor {
 
 impl StreamCacheProcessor for IdentitySegmentedImageFrameProcessor {
     fn get_input_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::SegmentedImageFrame
+        self.expected_segmented_image_variant
     }
 
     fn get_output_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::SegmentedImageFrame
+        self.expected_segmented_image_variant
     }
 
     fn get_most_recent_output(&self) -> &IOTypeData {
@@ -153,6 +156,7 @@ impl IdentitySegmentedImageFrameProcessor {
     /// * `Ok(IdentitySegmentedImageFrameProcessor)` - A new processor instance
     pub fn new(initial_segmented_image: SegmentedImageFrame) -> Result<Self, FeagiDataProcessingError> {
         Ok(IdentitySegmentedImageFrameProcessor{
+            expected_segmented_image_variant: IOTypeVariant::SegmentedImageFrame(Some(initial_segmented_image.get_image_frame_properties())),
             previous_value: IOTypeData::SegmentedImageFrame(initial_segmented_image),
         })
     }

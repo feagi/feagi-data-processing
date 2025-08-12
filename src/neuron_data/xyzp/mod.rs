@@ -89,7 +89,7 @@
 //!
 //! // Organize neurons by cortical areas
 //! let mut cortical_data = CorticalMappedXYZPNeuronData::new();
-//! let id = CorticalID::from_string("iVcc00".to_string()).unwrap();
+//! let id = CorticalID::from_string("iic400".to_string()).unwrap();
 //! cortical_data.insert(id, arrays);
 //! ```
 //!

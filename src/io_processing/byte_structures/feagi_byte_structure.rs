@@ -6,7 +6,7 @@
 
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
-use crate::io_data::JsonStructure;
+use crate::io_data::FeagiJSON;
 use crate::neuron_data::xyzp::CorticalMappedXYZPNeuronData; 
 use super::FeagiByteStructureType;
 use super::FeagiByteStructureCompatible;
@@ -349,7 +349,7 @@ impl FeagiByteStructure {
         // Factory pattern to create the appropriate concrete type based on structure type
         match this_struct_type {
             FeagiByteStructureType::JSON => {
-                Ok(Box::new(JsonStructure::new_from_feagi_byte_structure(self)?))
+                Ok(Box::new(FeagiJSON::new_from_feagi_byte_structure(self)?))
             },
             FeagiByteStructureType::NeuronCategoricalXYZP => {
                 Ok(Box::new(CorticalMappedXYZPNeuronData::new_from_feagi_byte_structure(self)?))

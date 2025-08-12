@@ -8,7 +8,7 @@
 use std::cmp::PartialEq;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{ImageFrame, SegmentedImageFrame};
-
+use crate::io_data::image::descriptors::ImageFrameProperties;
 //region IOTypeVariant
 
 /// Type identifiers for all supported I/O data types in FEAGI.
@@ -44,8 +44,8 @@ pub enum IOTypeVariant {
     F32,
     F32Normalized0To1,
     F32NormalizedM1To1,
-    ImageFrame,
-    SegmentedImageFrame,
+    ImageFrame(Option<ImageFrameProperties>),
+    SegmentedImageFrame(Option<[ImageFrameProperties; 9]>),
 }
 
 impl IOTypeVariant {
@@ -76,11 +76,26 @@ impl IOTypeVariant {
 impl std::fmt::Display for IOTypeVariant {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self { 
-            IOTypeVariant::F32 => write!(f, "F32"),
-            IOTypeVariant::F32Normalized0To1 => write!(f, "F32 [Normalized 0<->1]"),
-            IOTypeVariant::F32NormalizedM1To1 => write!(f, "F32 [Normalized -1<->1]"),
-            IOTypeVariant::ImageFrame => write!(f, "Image Frame"),
-            IOTypeVariant::SegmentedImageFrame => write!(f, "Segmented Image Frame"),
+            IOTypeVariant::F32 => write!(f, "IOTypeVariant(F32)"),
+            IOTypeVariant::F32Normalized0To1 => write!(f, "IOTypeVariant(F32 [Normalized 0<->1])"),
+            IOTypeVariant::F32NormalizedM1To1 => write!(f, "IOTypeVariant(F32 [Normalized -1<->1])"),
+            IOTypeVariant::ImageFrame(image_properties) => {
+                let s: String = match image_properties {
+                    Some(properties) => format!("ImageFrame({})", properties.to_string()),
+                    None => "ImageFrame(No Requirements)".to_string(),
+                };
+                write!(f, "{}", s)
+            } 
+            IOTypeVariant::SegmentedImageFrame(segment_properties) => {
+                let s: String = match segment_properties {
+                    None => "No Requirements".to_string(),
+                    Some(properties) => {
+                        format!("[Lower Left: {}, Lower Middle: {}, Lower Right: {}, Middle Left: {}, Middle Middle: {}, Middle Right: {}, Upper Left: {}, Upper Middle: {}, Upper Right: {}]", 
+                                properties[0].to_string(), properties[1].to_string(), properties[2].to_string(), properties[3].to_string(), properties[4].to_string(), properties[5].to_string(), properties[6].to_string(), properties[7].to_string(), properties[8].to_string())
+                    }
+                };
+                write!(f, "SegmentedImageFrame({})", s)
+            }
         }
     }
 }
@@ -91,8 +106,8 @@ impl From<IOTypeData> for IOTypeVariant {
             IOTypeData::F32(_) => IOTypeVariant::F32,
             IOTypeData::F32Normalized0To1(_) => IOTypeVariant::F32Normalized0To1,
             IOTypeData::F32NormalizedM1To1(_) => IOTypeVariant::F32NormalizedM1To1,
-            IOTypeData::ImageFrame(_) => IOTypeVariant::ImageFrame,
-            IOTypeData::SegmentedImageFrame(_) => IOTypeVariant::SegmentedImageFrame,
+            IOTypeData::ImageFrame(image) => IOTypeVariant::ImageFrame(Some(image.get_image_frame_properties())),
+            IOTypeData::SegmentedImageFrame(segments) => IOTypeVariant::SegmentedImageFrame(Some(segments.get_image_frame_properties())),
         }
     }
 }
@@ -103,8 +118,8 @@ impl From<&IOTypeData> for IOTypeVariant {
             IOTypeData::F32(_) => IOTypeVariant::F32,
             IOTypeData::F32Normalized0To1(_) => IOTypeVariant::F32Normalized0To1,
             IOTypeData::F32NormalizedM1To1(_) => IOTypeVariant::F32NormalizedM1To1,
-            IOTypeData::ImageFrame(_) => IOTypeVariant::ImageFrame,
-            IOTypeData::SegmentedImageFrame(_) => IOTypeVariant::SegmentedImageFrame,
+            IOTypeData::ImageFrame(image) => IOTypeVariant::ImageFrame(Some(image.get_image_frame_properties())),
+            IOTypeData::SegmentedImageFrame(segments) => IOTypeVariant::SegmentedImageFrame(Some(segments.get_image_frame_properties())),
         }
     }
 }

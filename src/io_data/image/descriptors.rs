@@ -7,8 +7,129 @@
 use std::cmp;
 use std::ops::RangeInclusive;
 use crate::error::{FeagiDataProcessingError, IODataError};
+use crate::io_data::ImageFrame;
 
+//region Image Frame Properties
 
+/// Describes the properties of an image frame including resolution, color space, and channel layout.
+///
+/// This struct encapsulates all the metadata needed to describe an image frame's format
+/// and dimensions. It's used throughout the system for type checking, validation, and
+/// ensuring compatibility between different image processing operations.
+///
+/// # Fields
+///
+/// * `xy_resolution` - The image dimensions as (width, height) in pixels
+/// * `color_space` - The color space (Linear or Gamma-corrected)
+/// * `color_channel_layout` - The channel configuration (Grayscale, RGB, RGBA, etc.)
+///
+/// # Example
+///
+/// ```rust
+/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ChannelLayout};
+///
+/// let properties = ImageFrameProperties::new(
+///     (640, 480),
+///     ColorSpace::Linear,
+///     ChannelLayout::RGB
+/// );
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ImageFrameProperties {
+    xy_resolution: (usize, usize),
+    color_space: ColorSpace,
+    color_channel_layout: ChannelLayout,
+}
+
+impl std::fmt::Display for ImageFrameProperties {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let s = format!("ImageFrameProperties(xy_resolution: <{}, {}>, {}, {})", self.xy_resolution.0, self.xy_resolution.1, self.color_space.to_string(), self.color_channel_layout.to_string());
+        write!(f, "{}", s)
+    }
+}
+
+impl ImageFrameProperties {
+    /// Creates a new ImageFrameProperties instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `xy_resolution` - The image dimensions as (width, height) in pixels
+    /// * `color_space` - The color space (Linear or Gamma-corrected)
+    /// * `color_channel_layout` - The channel configuration (Grayscale, RGB, RGBA, etc.)
+    ///
+    /// # Returns
+    ///
+    /// A new ImageFrameProperties instance with the specified configuration.
+    pub fn new(xy_resolution: (usize, usize), color_space: ColorSpace, color_channel_layout: ChannelLayout) -> Self {
+        ImageFrameProperties{
+            xy_resolution,
+            color_space,
+            color_channel_layout,
+        }
+    }
+
+    /// Verifies that an image frame matches these properties.
+    ///
+    /// Checks if the given image frame has the same resolution, color space,
+    /// and channel layout as specified in these properties.
+    ///
+    /// # Arguments
+    ///
+    /// * `image_frame` - The image frame to verify against these properties
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` if the image frame matches these properties
+    /// * `Err(FeagiDataProcessingError)` if any property doesn't match
+    ///
+    /// # Errors
+    ///
+    /// Returns an error with a descriptive message if:
+    /// - The resolution doesn't match
+    /// - The color space doesn't match  
+    /// - The channel layout doesn't match
+    pub fn verify_image_frame_matches_properties(&self, image_frame: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
+        if image_frame.get_cartesian_width_height() != self.xy_resolution {
+            return Err(IODataError::InvalidParameters(format!{"Expected resolution of <{}, {}> but received an image with resolution of <{}, {}>!",
+                                                              self.xy_resolution.0, self.xy_resolution.1, image_frame.get_cartesian_width_height().0, image_frame.get_cartesian_width_height().1}).into())
+        }
+        if image_frame.get_color_space() != &self.color_space {
+            return Err(IODataError::InvalidParameters(format!("Expected color space of {}, but got image with color space of {}!", self.color_space.to_string(), self.color_space.to_string())).into())
+        }
+        if image_frame.get_channel_layout() != &self.color_channel_layout {
+            return Err(IODataError::InvalidParameters(format!("Expected color channel layout of {}, but got image with color channel layout of {}!", self.color_channel_layout.to_string(), self.color_channel_layout.to_string())).into())
+        }
+        Ok(())
+    }
+    
+    /// Returns the expected XY resolution.
+    ///
+    /// # Returns
+    ///
+    /// A tuple containing (width, height) in pixels.
+    pub fn get_expected_xy_resolution(&self) -> (usize, usize) {
+        self.xy_resolution
+    }
+    
+    /// Returns the expected color space.
+    ///
+    /// # Returns
+    ///
+    /// The ColorSpace enum value (Linear or Gamma).
+    pub fn get_expected_color_space(&self) -> ColorSpace {
+        self.color_space
+    }
+    
+    /// Returns the expected color channel layout.
+    ///
+    /// # Returns
+    ///
+    /// The ChannelLayout enum value (Grayscale, RGB, RGBA, etc.).
+    pub fn get_expected_color_channel_layout(&self) -> ChannelLayout {
+        self.color_channel_layout
+    }
+}
+//endregion
 
 /// Parameters for processing an image frame, including cropping, resizing, and color adjustments.
 ///
@@ -265,8 +386,12 @@ impl CornerPoints {
         left_lower_xy: (usize, usize), right_upper_xy: (usize, usize),
         total_source_resolution_width_height: (usize, usize))
         -> Result<CornerPoints,  FeagiDataProcessingError> {
-        if left_lower_xy.0 > total_source_resolution_width_height.0 || right_upper_xy.0 > total_source_resolution_width_height.0 ||
-            left_lower_xy.1 > total_source_resolution_width_height.1 || right_upper_xy.1 > total_source_resolution_width_height.1 {
+        
+        if left_lower_xy.0 >= right_upper_xy.0 || left_lower_xy.1 >= right_upper_xy.1 {
+            return Err(IODataError::InvalidParameters("Given corner points do not enclose a valid area!".into()).into());
+        }
+        
+        if right_upper_xy.0 > total_source_resolution_width_height.0 || right_upper_xy.1 > total_source_resolution_width_height.1 {
             return Err(IODataError::InvalidParameters("Corner bounds must be within the total resolution!".into()).into());
         }
         
@@ -340,7 +465,7 @@ impl CornerPoints {
 /// This enum defines the possible color spaces:
 /// - Linear: Linear color space
 /// - Gamma: Gamma-corrected color space
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum ColorSpace {
     Linear,
     Gamma
@@ -362,7 +487,7 @@ impl std::fmt::Display for ColorSpace {
 /// - RG: Two channels (red, green)
 /// - RGB: Three channels (red, green, blue)
 /// - RGBA: Four channels (red, green, blue, alpha)
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
 pub enum ChannelLayout {
     GrayScale = 1, // R
     RG = 2,
@@ -373,10 +498,10 @@ pub enum ChannelLayout {
 impl std::fmt::Display for ChannelLayout {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ChannelLayout::GrayScale => write!(f, "GrayScale"),
-            ChannelLayout::RG => write!(f, "RedGreen"),
-            ChannelLayout::RGB => write!(f, "RedGreenBlue"),
-            ChannelLayout::RGBA => write!(f, "RedGreenBlueAlpha"),
+            ChannelLayout::GrayScale => write!(f, "ChannelLayout(GrayScale)"),
+            ChannelLayout::RG => write!(f, "ChannelLayout(RedGreen)"),
+            ChannelLayout::RGB => write!(f, "ChannelLayout(RedGreenBlue)"),
+            ChannelLayout::RGBA => write!(f, "ChannelLayout(RedGreenBlueAlpha)"),
         }
     }
 }
@@ -394,6 +519,11 @@ impl TryFrom<usize> for ChannelLayout {
     }
 }
 
+impl From<ChannelLayout> for usize {
+    fn from(value: ChannelLayout) -> usize {
+        value as usize
+    }
+}
 
 /// Represents the memory layout of an image array.
 ///
