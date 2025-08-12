@@ -11,3 +11,5 @@ mod image_quick_diff;
 pub use identities::*;
 pub use rolling_windows::*;
 pub use ranges::*;
+pub use image_transformer::*;
+pub use image_quick_diff::*;
