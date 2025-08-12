@@ -143,9 +143,6 @@ macro_rules! define_io_cortical_types {
 /// // Get dimensional constraints
 /// let channel_range = cortical_type.try_get_channel_size_boundaries().unwrap();
 /// 
-/// // Get encoding information
-/// let coder_type = cortical_type.try_get_coder_type().unwrap();
-/// 
 /// // Type classification checks
 /// assert!(cortical_type.is_type_sensor());
 /// assert!(!cortical_type.is_type_core());
@@ -210,7 +207,7 @@ impl CorticalType {
             _ => Err(handle_byte_id_mapping_fail(bytes))
         }
         
-    }
+    } // TODO rename?
     
     /// Attempts to convert the cortical type to a CorticalID, using the io_cortical_index in the
     /// case of input / output cortical areas as well
@@ -293,23 +290,7 @@ impl CorticalType {
     /// - **Motor outputs**: May use signed normalized coders for bidirectional control
     /// - **Audio sensors**: Frequency domain or time domain coders
     /// - **Other I/O**: Type-specific encoding optimized for the data characteristics
-    ///
-    /// # Example
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalType, MotorCorticalType};
-    /// use feagi_core_data_structures_and_processing::neuron_data::xyzp::NeuronCoderVariantType;
-    /// let motor_type = CorticalType::Motor(MotorCorticalType::RotaryMotor);
-    /// let coder = motor_type.try_get_coder_type().unwrap();
-    ///
-    /// // Use coder for data conversion
-    /// match coder {
-    ///     NeuronCoderVariantType::F32NormalizedM1To1_SplitSignDivided => {
-    ///         // Handle bidirectional motor control encoding
-    ///     }
-    ///     _ => { /* Other coder types */ }
-    /// }
-    /// ```
-    pub fn try_get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
+    pub(crate) fn try_get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataProcessingError> {
         match self {
             Self::Custom => Err(IODataError::InvalidParameters("Custom Cortical Areas do not have coders!".into()).into()),
             Self::Memory => Err(IODataError::InvalidParameters("Memory Cortical Areas do not have coders!".into()).into()),

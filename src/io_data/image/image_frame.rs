@@ -356,7 +356,6 @@ impl ImageFrame {
 
     //region Out-Place
     
-
     /// Resizes the image using nearest neighbor. Low quality, but fast.
     ///
     /// This method modifies the image in-place by resizing it to the target resolution
@@ -373,7 +372,7 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(&mut Self) if the resize operation was successful
     /// - Err(DataProcessingError) if the target resolution is invalid (zero or negative)
-    pub fn resize_nearest_neighbor(&mut self, target_width_height: &(usize, usize)) -> Result<&mut Self, FeagiDataProcessingError> {
+    pub fn resize_nearest_neighbor(&mut self, target_width_height: &(usize, usize)) -> Result<&mut Self, FeagiDataProcessingError> { // TODO dont return self!
         if target_width_height.0 <= 0 || target_width_height.1 <= 0 {
             return Err(IODataError::InvalidParameters("The target resize width or height cannot be zero or negative!".into()).into())
         }
