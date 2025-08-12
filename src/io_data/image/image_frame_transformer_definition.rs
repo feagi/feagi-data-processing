@@ -36,7 +36,7 @@ use crate::io_data::ImageFrame;
 /// use feagi_core_data_structures_and_processing::io_data::{ImageFrameTransformerDefinition};
 /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ColorSpace, ChannelLayout, ImageFrameProperties};
 ///
-/// let input_props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ChannelLayout::RGB);
+/// let input_props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ChannelLayout::RGB).unwrap();
 /// let mut transformer = ImageFrameTransformerDefinition::new(input_props);
 /// 
 /// // Configure the transformation pipeline
@@ -116,7 +116,7 @@ impl ImageFrameTransformerDefinition {
     /// use feagi_core_data_structures_and_processing::io_data::ImageFrameTransformerDefinition;
     ///
     /// let props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ChannelLayout::RGB);
-    /// let transformer = ImageFrameTransformerDefinition::new(props);
+    /// let transformer = ImageFrameTransformerDefinition::new(props.unwrap());
     /// ```
     pub fn new(input_image_properties: ImageFrameProperties) -> ImageFrameTransformerDefinition {
         ImageFrameTransformerDefinition {
@@ -161,7 +161,7 @@ impl ImageFrameTransformerDefinition {
             false => self.input_image_properties.get_expected_color_channel_layout(),
             true => ChannelLayout::GrayScale,
         };
-        ImageFrameProperties::new(resolution, color_space, color_channel_layout)
+        ImageFrameProperties::new(resolution, color_space, color_channel_layout).unwrap()
     }
     
     /// Verifies that an input image matches the required properties.

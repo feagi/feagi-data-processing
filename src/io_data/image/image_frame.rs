@@ -163,7 +163,7 @@ impl ImageFrame {
             self.get_cartesian_width_height(),
             self.color_space,
             self.channel_layout
-        )
+        ).unwrap()
     }
     
     /// Returns a reference to the channel layout of this image.

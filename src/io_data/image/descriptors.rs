@@ -60,12 +60,15 @@ impl ImageFrameProperties {
     /// # Returns
     ///
     /// A new ImageFrameProperties instance with the specified configuration.
-    pub fn new(xy_resolution: (usize, usize), color_space: ColorSpace, color_channel_layout: ChannelLayout) -> Self {
-        ImageFrameProperties{
+    pub fn new(xy_resolution: (usize, usize), color_space: ColorSpace, color_channel_layout: ChannelLayout) -> Result<Self, FeagiDataProcessingError> {
+        if xy_resolution.0 == 0 || xy_resolution.1 == 0 {
+            return Err(IODataError::InvalidParameters("Resolution cannot be 0 on any axis!".into()).into())
+        }
+        Ok(ImageFrameProperties{
             xy_resolution,
             color_space,
             color_channel_layout,
-        }
+        })
     }
 
     /// Verifies that an image frame matches these properties.
