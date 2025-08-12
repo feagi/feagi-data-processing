@@ -26,19 +26,19 @@ use crate::io_data::ImageFrame;
 /// # Example
 ///
 /// ```rust
-/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ChannelLayout};
+/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
 ///
 /// let properties = ImageFrameProperties::new(
 ///     (640, 480),
 ///     ColorSpace::Linear,
-///     ChannelLayout::RGB
+///     ColorChannelLayout::RGB
 /// );
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ImageFrameProperties {
     xy_resolution: (usize, usize),
     color_space: ColorSpace,
-    color_channel_layout: ChannelLayout,
+    color_channel_layout: ColorChannelLayout,
 }
 
 impl std::fmt::Display for ImageFrameProperties {
@@ -60,12 +60,15 @@ impl ImageFrameProperties {
     /// # Returns
     ///
     /// A new ImageFrameProperties instance with the specified configuration.
-    pub fn new(xy_resolution: (usize, usize), color_space: ColorSpace, color_channel_layout: ChannelLayout) -> Self {
-        ImageFrameProperties{
+    pub fn new(xy_resolution: (usize, usize), color_space: ColorSpace, color_channel_layout: ColorChannelLayout) -> Result<Self, FeagiDataProcessingError> {
+        if xy_resolution.0 == 0 || xy_resolution.1 == 0 {
+            return Err(IODataError::InvalidParameters("Resolution cannot be 0 on any axis!".into()).into())
+        }
+        Ok(ImageFrameProperties{
             xy_resolution,
             color_space,
             color_channel_layout,
-        }
+        })
     }
 
     /// Verifies that an image frame matches these properties.
@@ -125,209 +128,11 @@ impl ImageFrameProperties {
     /// # Returns
     ///
     /// The ChannelLayout enum value (Grayscale, RGB, RGBA, etc.).
-    pub fn get_expected_color_channel_layout(&self) -> ChannelLayout {
+    pub fn get_expected_color_channel_layout(&self) -> ColorChannelLayout {
         self.color_channel_layout
     }
 }
 //endregion
-
-/// Parameters for processing an image frame, including cropping, resizing, and color adjustments.
-///
-/// This struct holds all the parameters needed to process an image frame, with each parameter
-/// being optional. The processing steps are applied in the most efficient order when used,
-/// including combining some steps into one to reduce processing time.
-#[derive(PartialEq, Clone, Copy)]
-pub struct FrameProcessingParameters {
-    pub cropping_from: Option<CornerPoints>,
-    pub resizing_to: Option<(usize, usize)>,
-    pub multiply_brightness_by: Option<f32>,
-    pub change_contrast_by: Option<f32>,
-    pub memory_ordering_of_source: MemoryOrderLayout,
-    pub convert_to_grayscale: bool, // TODO
-    pub convert_color_space_to: Option<ColorSpace>, // TODO
-}
-
-impl FrameProcessingParameters {
-    /// Creates a new FrameProcessingParameters instance with all settings disabled.
-    ///
-    /// # Returns
-    ///
-    /// A new FrameProcessingParameters instance with default values:
-    /// - No cropping
-    /// - No resizing
-    /// - No brightness adjustment
-    /// - No contrast adjustment
-    /// - HeightsWidthsChannels memory layout
-    /// - No grayscale conversion
-    /// - No color space conversion
-    pub fn new() -> FrameProcessingParameters {
-        FrameProcessingParameters{
-            cropping_from: None,
-            resizing_to: None,
-            multiply_brightness_by: None,
-            change_contrast_by: None,
-            memory_ordering_of_source: MemoryOrderLayout::HeightsWidthsChannels,
-            convert_to_grayscale: false,
-            convert_color_space_to: None,
-        }
-    }
-
-    /// Clears all processing settings, resetting them to their default values.
-    pub fn clear_all_settings(&mut self) {
-        self.cropping_from = None;
-        self.resizing_to = None;
-        self.multiply_brightness_by = None;
-        self.change_contrast_by = None;
-        self.convert_to_grayscale = false;
-        self.convert_color_space_to = None;
-    }
-
-    /// Sets the cropping region for the image.
-    ///
-    /// # Arguments
-    ///
-    /// * `cropping_from` - The CornerPoints defining the region to crop
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining
-    pub fn set_cropping_from(&mut self, cropping_from: CornerPoints) -> &mut Self {
-        self.cropping_from = Some(cropping_from);
-        self
-    }
-
-    /// Sets the target resolution for resizing the image.
-    ///
-    /// # Arguments
-    ///
-    /// * `resizing_to` - The target resolution as (width, height)
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining
-    pub fn set_resizing_to(&mut self, resizing_to: (usize, usize)) -> &mut Self {
-        self.resizing_to = Some(resizing_to);
-        self
-    }
-
-    /// Sets the brightness multiplication factor.
-    ///
-    /// # Arguments
-    ///
-    /// * `multiply_brightness_by` - The factor to multiply brightness by (must be positive)
-    ///
-    /// # Returns
-    ///
-    /// A Result containing either:
-    /// - Ok(&mut Self) if the brightness factor is valid
-    /// - Err(DataProcessingError) if the brightness factor is negative
-    pub fn set_multiply_brightness_by(&mut self, multiply_brightness_by: f32) -> Result<&mut Self, FeagiDataProcessingError> {
-        if multiply_brightness_by < 0.0 {
-            return Err(IODataError::InvalidParameters("Multiply brightness by must be positive!".into()).into());
-        }
-        self.multiply_brightness_by = Some(multiply_brightness_by);
-        Ok(self)
-    }
-
-    /// Sets the contrast adjustment factor.
-    ///
-    /// # Arguments
-    ///
-    /// * `change_contrast_by` - The contrast adjustment factor between -1.0 and 1.0
-    ///
-    /// # Returns
-    ///
-    /// A Result containing either:
-    /// - Ok(&mut Self) if the contrast factor is valid
-    /// - Err(DataProcessingError) if the contrast factor is outside the valid range
-    pub fn set_change_contrast_by(&mut self, change_contrast_by: f32) -> Result<&mut Self, FeagiDataProcessingError> {
-        if change_contrast_by < -1.0 || change_contrast_by > 1.0 {
-            return Err(IODataError::InvalidParameters("The contrast factor must be between -1.0 and 1.0!".into()).into());
-        }
-        self.change_contrast_by = Some(change_contrast_by);
-        Ok(self)
-    }
-    
-    /// Sets the memory layout of the source array.
-    ///
-    /// # Arguments
-    ///
-    /// * `new_source_array_ordering` - The memory layout of the input array
-    ///
-    /// # Returns
-    ///
-    /// A Result containing either:
-    /// - Ok(&mut Self) if the memory layout is valid
-    /// - Err(DataProcessingError) if the memory layout is invalid
-    pub fn set_source_array_ordering(&mut self, new_source_array_ordering: MemoryOrderLayout) -> Result<&mut Self, FeagiDataProcessingError> {
-        self.memory_ordering_of_source = new_source_array_ordering;
-        Ok(self)
-    }
-
-    /// Enables conversion to grayscale.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining
-    pub fn enable_convert_to_grayscale(&mut self) -> &mut Self {
-        self.convert_to_grayscale = true;
-        self
-    }
-
-    /// Enables conversion to a specific color space.
-    ///
-    /// # Arguments
-    ///
-    /// * `color_space` - The target color space to convert to
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to self for method chaining
-    pub fn enable_convert_to_color_space_to(&mut self, color_space: ColorSpace) -> &mut Self {
-        self.convert_color_space_to = Some(color_space);
-        self
-    }
-    
-    /// Returns a tuple indicating which processing steps are required.
-    ///
-    /// The tuple contains boolean flags in the following order:
-    /// 1. Cropping
-    /// 2. Resizing
-    /// 3. Brightness adjustment
-    /// 4. Contrast adjustment
-    /// 5. Grayscale conversion
-    /// 6. Color space conversion
-    pub fn process_steps_required_to_run(&self) -> (bool, bool, bool, bool, bool, bool) { // Yandredev moment
-        (
-            self.cropping_from.is_some(),
-            self.resizing_to.is_some(),
-            self.multiply_brightness_by.is_some(),
-            self.change_contrast_by.is_some(),
-            self.convert_to_grayscale,
-            self.convert_color_space_to.is_some(),
-            )
-    }
-    
-    /// Returns the final width and height after processing operations.
-    /// 
-    /// This method calculates the final dimensions of the image after applying
-    /// the configured processing steps. The final size depends on whether cropping
-    /// and/or resizing operations are specified.
-    /// 
-    /// # Returns
-    /// 
-    /// A Result containing either:
-    /// - Ok((width, height)) if the final dimensions can be determined
-    /// - Err(DataProcessingError) if no size-changing operations are configured
-    pub fn get_final_width_height(&self) -> Result<(usize, usize), FeagiDataProcessingError> {
-        let crop_resize_exist = (self.cropping_from.is_some(), self.resizing_to.is_some());
-        match crop_resize_exist {
-            (false, false) => Err(IODataError::InvalidParameters("Unknown final width of height as its not being changed by the image preprocessor!".into()).into()),
-            (true, false) => Ok(self.cropping_from.unwrap().enclosed_area_width_height()),
-            _ => Ok(self.resizing_to.unwrap()),
-        }
-    }
-}
 
 /// Holds pixel coordinates for cropping in row-major order.
 ///
@@ -488,39 +293,39 @@ impl std::fmt::Display for ColorSpace {
 /// - RGB: Three channels (red, green, blue)
 /// - RGBA: Four channels (red, green, blue, alpha)
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
-pub enum ChannelLayout {
+pub enum ColorChannelLayout {
     GrayScale = 1, // R
     RG = 2,
     RGB = 3,
     RGBA = 4,
 }
 
-impl std::fmt::Display for ChannelLayout {
+impl std::fmt::Display for ColorChannelLayout {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ChannelLayout::GrayScale => write!(f, "ChannelLayout(GrayScale)"),
-            ChannelLayout::RG => write!(f, "ChannelLayout(RedGreen)"),
-            ChannelLayout::RGB => write!(f, "ChannelLayout(RedGreenBlue)"),
-            ChannelLayout::RGBA => write!(f, "ChannelLayout(RedGreenBlueAlpha)"),
+            ColorChannelLayout::GrayScale => write!(f, "ChannelLayout(GrayScale)"),
+            ColorChannelLayout::RG => write!(f, "ChannelLayout(RedGreen)"),
+            ColorChannelLayout::RGB => write!(f, "ChannelLayout(RedGreenBlue)"),
+            ColorChannelLayout::RGBA => write!(f, "ChannelLayout(RedGreenBlueAlpha)"),
         }
     }
 }
 
-impl TryFrom<usize> for ChannelLayout {
+impl TryFrom<usize> for ColorChannelLayout {
     type Error = FeagiDataProcessingError;
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            1 => Ok(ChannelLayout::GrayScale),
-            2 => Ok(ChannelLayout::RG),
-            3 => Ok(ChannelLayout::RGB),
-            4 => Ok(ChannelLayout::RGBA),
+            1 => Ok(ColorChannelLayout::GrayScale),
+            2 => Ok(ColorChannelLayout::RG),
+            3 => Ok(ColorChannelLayout::RGB),
+            4 => Ok(ColorChannelLayout::RGBA),
             _ => Err(IODataError::InvalidParameters(format!("No Channel Layout has {} channels! Acceptable values are 1,2,3,4!", value)).into())
         }
     }
 }
 
-impl From<ChannelLayout> for usize {
-    fn from(value: ChannelLayout) -> usize {
+impl From<ColorChannelLayout> for usize {
+    fn from(value: ColorChannelLayout) -> usize {
         value as usize
     }
 }

@@ -92,7 +92,7 @@ impl SegmentedImageFrame {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrame) if all segments were created successfully
     /// - Err(DataProcessingError) if any segment creation fails
-    pub fn new(segment_resolutions: &SegmentedFrameTargetResolutions, segment_color_channels: &ChannelLayout,
+    pub fn new(segment_resolutions: &SegmentedFrameTargetResolutions, segment_color_channels: &ColorChannelLayout,
                segment_color_space: &ColorSpace, input_frames_source_width_height: (usize, usize)) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
         Ok(SegmentedImageFrame {
             lower_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_left)?,
@@ -155,7 +155,7 @@ impl SegmentedImageFrame {
     /// # Returns
     ///
     /// A reference to the ChannelLayout enum value for the center segment.
-    pub fn get_center_channel_layout(&self) -> &ChannelLayout {
+    pub fn get_center_channel_layout(&self) -> &ColorChannelLayout {
         self.center.get_channel_layout()
     }
     
@@ -167,7 +167,7 @@ impl SegmentedImageFrame {
     /// # Returns
     ///
     /// A reference to the ChannelLayout enum value for the peripheral segments.
-    pub fn get_peripheral_channel_layout(&self) -> &ChannelLayout {
+    pub fn get_peripheral_channel_layout(&self) -> &ColorChannelLayout {
         self.lower_left.get_channel_layout() // All peripherals should be the same
     }
     
