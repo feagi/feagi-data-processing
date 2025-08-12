@@ -6,7 +6,7 @@
 //! and conversion to neuron data for FEAGI processing.
 
 use ndarray::{Array3, ArrayView3};
-use crate::io_data::image::descriptors::{ChannelLayout, ColorSpace, MemoryOrderLayout};
+use crate::io_data::image::descriptors::{ColorChannelLayout, ColorSpace, MemoryOrderLayout};
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::CorticalIOChannelIndex;
 use crate::io_data::image::descriptors::ImageFrameProperties;
@@ -22,7 +22,7 @@ pub struct ImageFrame {
     /// The pixel data stored as a 3D array with dimensions (height, width, channels)
     pixels: Array3<f32>,
     /// The color channel format (GrayScale, RG, RGB, or RGBA)
-    channel_layout: ChannelLayout,
+    channel_layout: ColorChannelLayout,
     /// The color space (Linear or Gamma)
     color_space: ColorSpace,
 }
@@ -54,7 +54,7 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A new ImageFrame instance with all pixels initialized to zero.
-    pub fn new(channel_format: &ChannelLayout, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> Result<ImageFrame, FeagiDataProcessingError> {
+    pub fn new(channel_format: &ColorChannelLayout, color_space: &ColorSpace, xy_resolution: &(usize, usize)) -> Result<ImageFrame, FeagiDataProcessingError> {
         if xy_resolution.0 == 0 || xy_resolution.1 == 0 {
             return Err(IODataError::InvalidParameters("Given resolution cannot be 0 in any direction!".into()).into())
         }
@@ -79,12 +79,12 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(ImageFrame) if the input array has a valid number of color channels (1-4)
     /// - Err(DataProcessingError) if the number of color channels is invalid
-    pub fn from_array(input: Array3<f32>, color_space: ColorSpace, source_memory_order: MemoryOrderLayout) -> Result<ImageFrame, FeagiDataProcessingError> {
+    pub fn from_array(input: Array3<f32>, color_space: &ColorSpace, source_memory_order: &MemoryOrderLayout) -> Result<ImageFrame, FeagiDataProcessingError> {
         let number_color_channels: usize = input.shape()[2];
         Ok(ImageFrame {
             pixels: ImageFrame::change_memory_order_to_row_major(input, source_memory_order),
-            color_space,
-            channel_layout: ChannelLayout::try_from(number_color_channels)?
+            color_space: *color_space,
+            channel_layout: ColorChannelLayout::try_from(number_color_channels)?
         })
     }
     
@@ -171,7 +171,7 @@ impl ImageFrame {
     /// # Returns
     ///
     /// A reference to the ChannelLayout enum value representing the image's color channel format.
-    pub fn get_channel_layout(&self) -> &ChannelLayout {
+    pub fn get_channel_layout(&self) -> &ColorChannelLayout {
         &self.channel_layout
     }
 
@@ -355,7 +355,7 @@ impl ImageFrame {
     //endregion
 
     //region Out-Place
-    
+
     /// Resizes the image using nearest neighbor. Low quality, but fast.
     ///
     /// This method modifies the image in-place by resizing it to the target resolution
@@ -417,7 +417,7 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(()) if the conversion was successful
     /// - Err(DataProcessingError) if the operation fails
-    pub fn write_xyzp_neuron_arrays(& self, write_target: &mut NeuronXYZPArrays, x_channel_offset: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
+    pub fn write_xyzp_neuron_arrays(&self, write_target: &mut NeuronXYZPArrays, x_channel_offset: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
         const EPSILON: f32 = 0.0001; // avoid writing near zero vals
         
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
@@ -453,7 +453,7 @@ impl ImageFrame {
     /// # Returns
     ///
     /// The converted array in row-major format.
-    fn change_memory_order_to_row_major(input: Array3<f32>, source_memory_order: MemoryOrderLayout) -> Array3<f32> {
+    fn change_memory_order_to_row_major(input: Array3<f32>, source_memory_order: &MemoryOrderLayout) -> Array3<f32> {
         match source_memory_order {
             MemoryOrderLayout::HeightsWidthsChannels => input, // Nothing needed, we store in this format anyway
             MemoryOrderLayout::ChannelsHeightsWidths => input.permuted_axes([2, 0, 1]),
@@ -477,7 +477,7 @@ impl ImageFrame {
     /// # Returns
     ///
     /// The converted array in the target memory layout.
-    fn change_memory_order_from_row_major(input: Array3<f32>, target_memory_order: MemoryOrderLayout) -> Array3<f32> {
+    fn change_memory_order_from_row_major(input: Array3<f32>, target_memory_order: &MemoryOrderLayout) -> Array3<f32> {
         match target_memory_order {
             MemoryOrderLayout::HeightsWidthsChannels => input, // Nothing needed, we store in this format anyway
             MemoryOrderLayout::ChannelsHeightsWidths => input.permuted_axes([1, 2, 0]),

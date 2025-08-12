@@ -7,7 +7,7 @@
 
 use ndarray::{s, ArrayView3};
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::io_data::image_descriptors::{ChannelLayout, ColorSpace, CornerPoints, ImageFrameProperties};
+use crate::io_data::image_descriptors::{ColorChannelLayout, ColorSpace, CornerPoints, ImageFrameProperties};
 use crate::io_data::ImageFrame;
 
 /// Defines a complete image transformation pipeline with multiple processing steps.
@@ -34,11 +34,11 @@ use crate::io_data::ImageFrame;
 ///
 /// ```rust
 /// use feagi_core_data_structures_and_processing::io_data::{ImageFrameTransformerDefinition};
-/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ColorSpace, ChannelLayout, ImageFrameProperties};
+/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ColorSpace, ColorChannelLayout, ImageFrameProperties};
 ///
-/// let input_props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ChannelLayout::RGB).unwrap();
+/// let input_props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
 /// let mut transformer = ImageFrameTransformerDefinition::new(input_props);
-/// 
+///
 /// // Configure the transformation pipeline
 /// transformer.set_cropping_from((100, 100), (540, 380)).unwrap();
 /// transformer.set_resizing_to((224, 224)).unwrap();
@@ -112,10 +112,10 @@ impl ImageFrameTransformerDefinition {
     /// # Example
     ///
     /// ```rust
-    /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ChannelLayout};
+    /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
     /// use feagi_core_data_structures_and_processing::io_data::ImageFrameTransformerDefinition;
     ///
-    /// let props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ChannelLayout::RGB);
+    /// let props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB);
     /// let transformer = ImageFrameTransformerDefinition::new(props.unwrap());
     /// ```
     pub fn new(input_image_properties: ImageFrameProperties) -> ImageFrameTransformerDefinition {
@@ -159,7 +159,7 @@ impl ImageFrameTransformerDefinition {
         };
         let color_channel_layout = match self.convert_to_grayscale {
             false => self.input_image_properties.get_expected_color_channel_layout(),
-            true => ChannelLayout::GrayScale,
+            true => ColorChannelLayout::GrayScale,
         };
         ImageFrameProperties::new(resolution, color_space, color_channel_layout).unwrap()
     }
@@ -466,11 +466,11 @@ impl ImageFrameTransformerDefinition {
     /// - Cannot be applied to images that are already grayscale
     /// - Uses different luminance weights depending on the color space (Linear vs Gamma)
     pub fn set_conversion_to_grayscale(&mut self) -> Result<&Self, FeagiDataProcessingError> {
-        if self.input_image_properties.get_expected_color_channel_layout() == ChannelLayout::GrayScale {
+        if self.input_image_properties.get_expected_color_channel_layout() == ColorChannelLayout::GrayScale {
             return Err(IODataError::InvalidParameters("Image is already Grayscale!".into()).into())
         }
         
-        if self.input_image_properties.get_expected_color_channel_layout() == ChannelLayout::RG {
+        if self.input_image_properties.get_expected_color_channel_layout() == ColorChannelLayout::RG {
             return Err(FeagiDataProcessingError::NotImplemented)
         }
         self.convert_to_grayscale = true;

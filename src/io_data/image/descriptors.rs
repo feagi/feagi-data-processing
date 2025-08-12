@@ -26,19 +26,19 @@ use crate::io_data::ImageFrame;
 /// # Example
 ///
 /// ```rust
-/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ChannelLayout};
+/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
 ///
 /// let properties = ImageFrameProperties::new(
 ///     (640, 480),
 ///     ColorSpace::Linear,
-///     ChannelLayout::RGB
+///     ColorChannelLayout::RGB
 /// );
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ImageFrameProperties {
     xy_resolution: (usize, usize),
     color_space: ColorSpace,
-    color_channel_layout: ChannelLayout,
+    color_channel_layout: ColorChannelLayout,
 }
 
 impl std::fmt::Display for ImageFrameProperties {
@@ -60,7 +60,7 @@ impl ImageFrameProperties {
     /// # Returns
     ///
     /// A new ImageFrameProperties instance with the specified configuration.
-    pub fn new(xy_resolution: (usize, usize), color_space: ColorSpace, color_channel_layout: ChannelLayout) -> Result<Self, FeagiDataProcessingError> {
+    pub fn new(xy_resolution: (usize, usize), color_space: ColorSpace, color_channel_layout: ColorChannelLayout) -> Result<Self, FeagiDataProcessingError> {
         if xy_resolution.0 == 0 || xy_resolution.1 == 0 {
             return Err(IODataError::InvalidParameters("Resolution cannot be 0 on any axis!".into()).into())
         }
@@ -128,7 +128,7 @@ impl ImageFrameProperties {
     /// # Returns
     ///
     /// The ChannelLayout enum value (Grayscale, RGB, RGBA, etc.).
-    pub fn get_expected_color_channel_layout(&self) -> ChannelLayout {
+    pub fn get_expected_color_channel_layout(&self) -> ColorChannelLayout {
         self.color_channel_layout
     }
 }
@@ -293,39 +293,39 @@ impl std::fmt::Display for ColorSpace {
 /// - RGB: Three channels (red, green, blue)
 /// - RGBA: Four channels (red, green, blue, alpha)
 #[derive(Debug, PartialEq, Clone, Copy, Eq, Hash)]
-pub enum ChannelLayout {
+pub enum ColorChannelLayout {
     GrayScale = 1, // R
     RG = 2,
     RGB = 3,
     RGBA = 4,
 }
 
-impl std::fmt::Display for ChannelLayout {
+impl std::fmt::Display for ColorChannelLayout {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            ChannelLayout::GrayScale => write!(f, "ChannelLayout(GrayScale)"),
-            ChannelLayout::RG => write!(f, "ChannelLayout(RedGreen)"),
-            ChannelLayout::RGB => write!(f, "ChannelLayout(RedGreenBlue)"),
-            ChannelLayout::RGBA => write!(f, "ChannelLayout(RedGreenBlueAlpha)"),
+            ColorChannelLayout::GrayScale => write!(f, "ChannelLayout(GrayScale)"),
+            ColorChannelLayout::RG => write!(f, "ChannelLayout(RedGreen)"),
+            ColorChannelLayout::RGB => write!(f, "ChannelLayout(RedGreenBlue)"),
+            ColorChannelLayout::RGBA => write!(f, "ChannelLayout(RedGreenBlueAlpha)"),
         }
     }
 }
 
-impl TryFrom<usize> for ChannelLayout {
+impl TryFrom<usize> for ColorChannelLayout {
     type Error = FeagiDataProcessingError;
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            1 => Ok(ChannelLayout::GrayScale),
-            2 => Ok(ChannelLayout::RG),
-            3 => Ok(ChannelLayout::RGB),
-            4 => Ok(ChannelLayout::RGBA),
+            1 => Ok(ColorChannelLayout::GrayScale),
+            2 => Ok(ColorChannelLayout::RG),
+            3 => Ok(ColorChannelLayout::RGB),
+            4 => Ok(ColorChannelLayout::RGBA),
             _ => Err(IODataError::InvalidParameters(format!("No Channel Layout has {} channels! Acceptable values are 1,2,3,4!", value)).into())
         }
     }
 }
 
-impl From<ChannelLayout> for usize {
-    fn from(value: ChannelLayout) -> usize {
+impl From<ColorChannelLayout> for usize {
+    fn from(value: ColorChannelLayout) -> usize {
         value as usize
     }
 }

@@ -39,10 +39,10 @@ use crate::io_processing::StreamCacheProcessor;
 ///
 /// ```rust
 /// use feagi_core_data_structures_and_processing::io_data::{ImageFrameTransformerDefinition};
-/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ChannelLayout};
+/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
 /// use feagi_core_data_structures_and_processing::io_processing::processors::ImageFrameTransformerProcessor;
 ///
-/// let input_props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ChannelLayout::RGB);
+/// let input_props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
 /// let mut transformer_def = ImageFrameTransformerDefinition::new(input_props);
 /// transformer_def.set_resizing_to((224, 224)).unwrap();
 /// transformer_def.set_conversion_to_grayscale().unwrap();
@@ -104,10 +104,10 @@ impl ImageFrameTransformerProcessor {
     ///
     /// ```rust
     /// use feagi_core_data_structures_and_processing::io_data::{ImageFrameTransformerDefinition};
-    /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ChannelLayout};
+    /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
     /// use feagi_core_data_structures_and_processing::io_processing::processors::ImageFrameTransformerProcessor;
     ///
-    /// let input_props = ImageFrameProperties::new((1920, 1080), ColorSpace::Linear, ChannelLayout::RGB);
+    /// let input_props = ImageFrameProperties::new((1920, 1080), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
     /// let mut transformer_def = ImageFrameTransformerDefinition::new(input_props);
     /// transformer_def.set_cropping_from((100, 100), (900, 700)).unwrap();
     /// transformer_def.set_resizing_to((256, 256)).unwrap();

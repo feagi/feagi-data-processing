@@ -36,10 +36,10 @@ use crate::io_processing::StreamCacheProcessor;
 /// # Example
 ///
 /// ```rust
-/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ChannelLayout};
+/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
 /// use feagi_core_data_structures_and_processing::io_processing::processors::ImageFrameQuickDiffProcessor;
 ///
-/// let props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ChannelLayout::RGB);
+/// let props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
 /// let threshold = 0.1; // 10% difference threshold
 /// let diff_processor = ImageFrameQuickDiffProcessor::new(props, threshold).unwrap();
 /// ```
@@ -112,10 +112,10 @@ impl ImageFrameQuickDiffProcessor {
     /// # Example
     ///
     /// ```rust
-    /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ChannelLayout};
+    /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
     /// use feagi_core_data_structures_and_processing::io_processing::processors::ImageFrameQuickDiffProcessor;
     ///
-    /// let props = ImageFrameProperties::new((320, 240), ColorSpace::Linear, ChannelLayout::RGB);
+    /// let props = ImageFrameProperties::new((320, 240), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
     /// let processor = ImageFrameQuickDiffProcessor::new(props, 0.05).unwrap();
     /// ```
     pub fn new(image_properties: ImageFrameProperties, threshold: f32) -> Result<Self, FeagiDataProcessingError> {
