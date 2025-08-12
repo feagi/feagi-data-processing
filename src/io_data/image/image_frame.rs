@@ -314,7 +314,7 @@ impl ImageFrame {
 
         self.pixels.mapv_inplace(|v| {
             let scaled = (v) * brightness_factor;
-            scaled.clamp(0.0, 1.0) // Ensure that we do not exceed outside 0.0 and 1.0
+            scaled.clamp(0.0, 1.0) // Ensure that we do not exceed outside 0.0 and 1.0 //TODO do we need this? Do we want to help the user in single step operations or be accurate in multistep operations
         });
         Ok(())
     }
@@ -421,8 +421,6 @@ impl ImageFrame {
         const EPSILON: f32 = 0.0001; // avoid writing near zero vals
         
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
-        write_target.ensure_capacity(self.get_max_capacity_neuron_count());
-        write_target.clear(); // Ensure we push from the start
         let x_offset: u32 = *x_channel_offset * self.get_cartesian_width_height().0 as u32;
         
         // write to the vectors
