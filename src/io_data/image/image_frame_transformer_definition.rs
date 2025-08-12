@@ -5,9 +5,9 @@
 //! conversion, brightness/contrast adjustment, and grayscale conversion. The 
 //! transformations are applied in a specific order for optimal performance.
 
-use ndarray::{s, Array3, ArrayView3};
+use ndarray::{s, ArrayView3};
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::io_data::image_descriptors::{ChannelLayout, ColorSpace, CornerPoints, ImageFrameProperties, MemoryOrderLayout};
+use crate::io_data::image_descriptors::{ChannelLayout, ColorSpace, CornerPoints, ImageFrameProperties};
 use crate::io_data::ImageFrame;
 
 /// Defines a complete image transformation pipeline with multiple processing steps.
@@ -209,63 +209,6 @@ impl ImageFrameTransformerDefinition {
     /// - Single operations (crop only, resize only, etc.)
     pub fn process_image(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataProcessingError> {
         match self {
-
-            // If no fast path, use this slower universal one
-            _ => {
-                // This function is much slower, There may be some optimization work possible, but ensure the most common step combinations have an accelerated path
-                let is_cropping_is_resizing = (self.cropping_from, self.final_resize_xy_to);
-
-                let mut processing = source.clone();
-                match is_cropping_is_resizing {
-                    (None, None) => {
-                        // don't do anything
-                    }
-                    (Some(cropping_from), None) => {
-                        crop(source, &mut processing, &cropping_from, self.get_output_channel_count())?;
-                    }
-                    (None, Some(final_resize_xy_to)) => {
-                        resize(source, &mut processing, &final_resize_xy_to)?;
-                    }
-                    (Some(cropping_from), Some(final_resize_xy_to)) => {
-                        crop_and_resize(source, &mut processing, &cropping_from, &final_resize_xy_to)?;
-                    }
-                };
-
-                match self.convert_color_space_to {
-                    None => {
-                        // Do Nothing
-                    }
-                    Some(color_space) => {
-                        return Err(FeagiDataProcessingError::NotImplemented)
-                    }
-                }
-
-                match self.multiply_brightness_by {
-                    None => {
-                        // Do Nothing
-                    }
-                    Some(brightness_multiplier) => {
-                        processing.change_brightness(brightness_multiplier)?;
-                    }
-                }
-
-                match self.change_contrast_by {
-                    None => {
-                        // Do Nothing
-                    }
-                    Some(contrast_multiplier) => {
-                        processing.change_contrast(contrast_multiplier)?;
-                    }
-                }
-
-                if self.convert_to_grayscale {
-                    return Err(FeagiDataProcessingError::NotImplemented)
-                }
-
-                *destination = processing;
-                Ok(())
-            }
-
             // Do literally nothing, just copy the data
             ImageFrameTransformerDefinition {
                 input_image_properties,
@@ -343,6 +286,62 @@ impl ImageFrameTransformerDefinition {
                 convert_to_grayscale: true
             } => {
                 crop_and_resize_and_grayscale(source, destination, cropping_from, final_resize_xy_to, self.input_image_properties.get_expected_color_space())
+            }
+            
+            // If no fast path, use this slower universal one
+            _ => {
+                // This function is much slower, There may be some optimization work possible, but ensure the most common step combinations have an accelerated path
+                let is_cropping_is_resizing = (self.cropping_from, self.final_resize_xy_to);
+
+                let mut processing = source.clone();
+                match is_cropping_is_resizing {
+                    (None, None) => {
+                        // don't do anything
+                    }
+                    (Some(cropping_from), None) => {
+                        crop(source, &mut processing, &cropping_from, self.get_output_channel_count())?;
+                    }
+                    (None, Some(final_resize_xy_to)) => {
+                        resize(source, &mut processing, &final_resize_xy_to)?;
+                    }
+                    (Some(cropping_from), Some(final_resize_xy_to)) => {
+                        crop_and_resize(source, &mut processing, &cropping_from, &final_resize_xy_to)?;
+                    }
+                };
+
+                match self.convert_color_space_to {
+                    None => {
+                        // Do Nothing
+                    }
+                    Some(color_space) => {
+                        return Err(FeagiDataProcessingError::NotImplemented)
+                    }
+                }
+
+                match self.multiply_brightness_by {
+                    None => {
+                        // Do Nothing
+                    }
+                    Some(brightness_multiplier) => {
+                        processing.change_brightness(brightness_multiplier)?;
+                    }
+                }
+
+                match self.change_contrast_by {
+                    None => {
+                        // Do Nothing
+                    }
+                    Some(contrast_multiplier) => {
+                        processing.change_contrast(contrast_multiplier)?;
+                    }
+                }
+
+                if self.convert_to_grayscale {
+                    return Err(FeagiDataProcessingError::NotImplemented)
+                }
+
+                *destination = processing;
+                Ok(())
             }
 
         }

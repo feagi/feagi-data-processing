@@ -8,7 +8,6 @@ use std::fmt::{Display, Formatter};
 use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{IOTypeData, IOTypeVariant, ImageFrame, SegmentedImageFrame};
-use crate::io_data::image_descriptors::ImageFrameProperties;
 use crate::io_processing::StreamCacheProcessor;
 
 //region Identity Float

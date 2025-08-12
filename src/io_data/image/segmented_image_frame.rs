@@ -8,7 +8,7 @@
 
 use ndarray::Array3;
 use super::image_frame::ImageFrame;
-use crate::error::{FeagiDataProcessingError, IODataError};
+use crate::error::{FeagiDataProcessingError};
 use super::descriptors::*;
 use crate::genomic_structures::{CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex};
 use crate::io_data::image::descriptors::ImageFrameProperties;

@@ -5,8 +5,8 @@
 //! image processing operations like cropping, resizing, brightness/contrast adjustment,
 //! and conversion to neuron data for FEAGI processing.
 
-use ndarray::{s, Array3, ArrayView3};
-use crate::io_data::image::descriptors::{ChannelLayout, ColorSpace, CornerPoints, MemoryOrderLayout};
+use ndarray::{Array3, ArrayView3};
+use crate::io_data::image::descriptors::{ChannelLayout, ColorSpace, MemoryOrderLayout};
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::CorticalIOChannelIndex;
 use crate::io_data::image::descriptors::ImageFrameProperties;
