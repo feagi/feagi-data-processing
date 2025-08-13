@@ -13,16 +13,16 @@ use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMapped
 #[test]
 fn test_simple_serialization() {
     let res = (4, 5);
-    
+
     let array = Array3::ones((res.0, res.1, 3));
     let mut frame = ImageFrame::from_array(
         array,
         &ColorSpace::Linear,
         &MemoryOrderLayout::HeightsWidthsChannels
     ).unwrap();
-    
+
     frame.change_brightness(10.0);
-    assert_eq!(frame.get_internal_data()[(0,0,0)], 1.0);
+    assert_eq!(frame.get_internal_data()[(0,0,0)], 10.0);
 
 
     let cortical_type = SensorCorticalType::ImageCameraCenter;

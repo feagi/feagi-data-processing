@@ -287,7 +287,7 @@ impl ImageFrameTransformerDefinition {
             } => {
                 crop_and_resize_and_grayscale(source, destination, cropping_from, final_resize_xy_to, self.input_image_properties.get_expected_color_space())
             }
-            
+
             // If no fast path, use this slower universal one
             _ => {
                 // This function is much slower, There may be some optimization work possible, but ensure the most common step combinations have an accelerated path
@@ -350,8 +350,6 @@ impl ImageFrameTransformerDefinition {
     }
 
     //region set settings
-    // TODO create clear all, clear individual settings
-
     // TODO safety bound checks!
 
     /// Sets the cropping region for the transformation pipeline.
@@ -476,6 +474,124 @@ impl ImageFrameTransformerDefinition {
         self.convert_to_grayscale = true;
         Ok(self)
     }
+
+    //region clear settings
+
+    /// Clears all transformation settings, resetting to default state.
+    ///
+    /// Removes all configured transformations (cropping, resizing, brightness, contrast,
+    /// color space conversion, and grayscale conversion), returning the transformer to
+    /// its initial state where only the input properties are preserved.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::io_data::ImageFrameTransformerDefinition;
+    /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
+    ///
+    /// let props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
+    /// let mut transformer = ImageFrameTransformerDefinition::new(props);
+    /// 
+    /// // Configure some transformations
+    /// transformer.set_resizing_to((224, 224)).unwrap();
+    /// transformer.set_conversion_to_grayscale().unwrap();
+    /// 
+    /// // Clear all transformations
+    /// transformer.clear_all_transformations();
+    /// ```
+    pub fn clear_all_transformations(&mut self) -> &Self {
+        self.cropping_from = None;
+        self.final_resize_xy_to = None;
+        self.convert_color_space_to = None;
+        self.multiply_brightness_by = None;
+        self.change_contrast_by = None;
+        self.convert_to_grayscale = false;
+        self
+    }
+
+    /// Clears the cropping transformation.
+    ///
+    /// Removes the configured cropping region, causing the transformer to process
+    /// the entire input image without cropping.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_cropping(&mut self) -> &Self {
+        self.cropping_from = None;
+        self
+    }
+
+    /// Clears the resizing transformation.
+    ///
+    /// Removes the configured target resolution, causing the transformer to preserve
+    /// the original image dimensions (after any cropping).
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_resizing(&mut self) -> &Self {
+        self.final_resize_xy_to = None;
+        self
+    }
+
+    /// Clears the brightness adjustment.
+    ///
+    /// Removes the configured brightness multiplier, causing the transformer to
+    /// preserve the original image brightness.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_brightness_adjustment(&mut self) -> &Self {
+        self.multiply_brightness_by = None;
+        self
+    }
+
+    /// Clears the contrast adjustment.
+    ///
+    /// Removes the configured contrast modification, causing the transformer to
+    /// preserve the original image contrast.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_contrast_adjustment(&mut self) -> &Self {
+        self.change_contrast_by = None;
+        self
+    }
+
+    /// Clears the color space conversion.
+    ///
+    /// Removes the configured target color space, causing the transformer to
+    /// preserve the original color space.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_color_space_conversion(&mut self) -> &Self {
+        self.convert_color_space_to = None;
+        self
+    }
+
+    /// Clears the grayscale conversion.
+    ///
+    /// Disables grayscale conversion, causing the transformer to preserve the
+    /// original color channels.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_grayscale_conversion(&mut self) -> &Self {
+        self.convert_to_grayscale = false;
+        self
+    }
+
+    //endregion
 
     //endregion
     

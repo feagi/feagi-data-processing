@@ -314,7 +314,8 @@ impl ImageFrame {
 
         self.pixels.mapv_inplace(|v| {
             let scaled = (v) * brightness_factor;
-            scaled.clamp(0.0, 1.0) // Ensure that we do not exceed outside 0.0 and 1.0 //TODO do we need this? Do we want to help the user in single step operations or be accurate in multistep operations
+            scaled
+            //scaled.clamp(0.0, 1.0) // Ensure that we do not exceed outside 0.0 and 1.0 //TODO do we need this? Do we want to help the user in single step operations or be accurate in multistep operations
         });
         Ok(())
     }
@@ -372,7 +373,7 @@ impl ImageFrame {
     /// A Result containing either:
     /// - Ok(&mut Self) if the resize operation was successful
     /// - Err(DataProcessingError) if the target resolution is invalid (zero or negative)
-    pub fn resize_nearest_neighbor(&mut self, target_width_height: &(usize, usize)) -> Result<&mut Self, FeagiDataProcessingError> { // TODO dont return self!
+    pub fn resize_nearest_neighbor(&mut self, target_width_height: &(usize, usize)) -> Result<(), FeagiDataProcessingError> {
         if target_width_height.0 <= 0 || target_width_height.1 <= 0 {
             return Err(IODataError::InvalidParameters("The target resize width or height cannot be zero or negative!".into()).into())
         }
@@ -390,7 +391,7 @@ impl ImageFrame {
         };
         self.pixels = sized_array;
 
-        Ok(self)
+        Ok(())
     }
 
     //endregion

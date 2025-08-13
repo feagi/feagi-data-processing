@@ -10,7 +10,7 @@ use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalIOChannelIndex, CorticalType, SensorCorticalType, SingleChannelDimensions};
 use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::io_processing::{StreamCacheProcessor};
-use crate::io_processing::channel_stream_caches::SensoryChannelStreamCache;
+use crate::io_processing::sensory_channel_stream_cache::SensoryChannelStreamCache;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
 
 /// High-level sensor data cache managing multiple cortical areas and channels.

@@ -273,6 +273,41 @@ impl<'a> TryFrom<&'a mut IOTypeData> for &'a mut ImageFrame {
     }
 }
 
+impl TryFrom<IOTypeData> for SegmentedImageFrame {
+    type Error = FeagiDataProcessingError;
+    
+    fn try_from(value: IOTypeData) -> Result<Self, Self::Error> {
+        match value { 
+            IOTypeData::SegmentedImageFrame(image_ref) => Ok(image_ref),
+            _ => Err(IODataError::InvalidParameters("This variable is not a SegmentedImageFrame!".into()).into()),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a IOTypeData> for &'a SegmentedImageFrame {
+    type Error = FeagiDataProcessingError;
+
+    fn try_from(value: &'a IOTypeData) -> Result<Self, Self::Error> {
+        match value {
+            IOTypeData::SegmentedImageFrame(image_ref) => Ok(image_ref),
+            _ => Err(IODataError::InvalidParameters("This variable is not a Segmented Image Frame!".into()).into()),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a mut IOTypeData> for &'a mut SegmentedImageFrame {
+    type Error = FeagiDataProcessingError;
+
+    fn try_from(value: &'a mut IOTypeData) -> Result<Self, Self::Error> {
+        match value {
+            IOTypeData::SegmentedImageFrame(image_ref) => Ok(image_ref),
+            _ => Err(IODataError::InvalidParameters("This variable is not a Segmented Image Frame!".into()).into()),
+        }
+    }
+}
+
+
+
 impl IOTypeData {
     /// Creates a new F32 IOTypeData with validation.
     ///

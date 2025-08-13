@@ -340,7 +340,7 @@ impl CorticalID {
         Self::verify_input_ascii(&as_string)?;
         Self::verify_allowed_characters(&as_string)?;
         
-        let _ = CorticalType::get_type_from_bytes(bytes)?; // if type is invalid, error
+        let _ = CorticalType::try_get_type_from_bytes(bytes)?; // if type is invalid, error
         Ok(CorticalID {bytes: *bytes})
     }
 
@@ -383,7 +383,7 @@ impl CorticalID {
         Self::verify_allowed_characters(&string)?;
         
         let bytes: [u8; CorticalID::CORTICAL_ID_LENGTH] = string.as_bytes().try_into().unwrap();
-        let _ = CorticalType::get_type_from_bytes(&bytes)?; // if type is invalid, error
+        let _ = CorticalType::try_get_type_from_bytes(&bytes)?; // if type is invalid, error
         Ok(CorticalID {bytes })
     }
     
@@ -481,7 +481,7 @@ impl CorticalID {
     /// This method will never panic as the cortical ID is validated during creation
     /// to ensure it always corresponds to a valid cortical type.
     pub fn get_cortical_type(&self) -> CorticalType {
-        CorticalType::get_type_from_bytes(&self.bytes).unwrap() // will never error
+        CorticalType::try_get_type_from_bytes(&self.bytes).unwrap() // will never error
     }
     
     /// Validates that the input string has the correct length for a cortical ID.

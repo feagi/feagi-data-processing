@@ -196,7 +196,7 @@ impl CorticalType {
     /// - `_` → Core cortical area (delegates to CoreCorticalType)
     /// - `i` → Sensory cortical area (delegates to SensorCorticalType)
     /// - `o` → Motor cortical area (delegates to MotorCorticalType)
-    pub fn get_type_from_bytes(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
+    pub fn try_get_type_from_bytes(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
         let start: u8 = bytes[0];
         match start { 
             b'c' => Ok(CorticalType::Custom),
@@ -207,7 +207,7 @@ impl CorticalType {
             _ => Err(handle_byte_id_mapping_fail(bytes))
         }
         
-    } // TODO rename?
+    }
     
     /// Attempts to convert the cortical type to a CorticalID, using the io_cortical_index in the
     /// case of input / output cortical areas as well
