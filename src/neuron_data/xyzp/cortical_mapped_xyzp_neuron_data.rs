@@ -596,7 +596,7 @@ impl CorticalMappedXYZPNeuronData {
     ///
     /// A mutable reference to the neuron arrays, guaranteed to be empty and ready for use.
     pub fn ensure_clear_and_borrow_mut(&mut self, cortical_id: &CorticalID, estimated_neuron_count: usize) -> &mut NeuronXYZPArrays {
-        if self.mappings.contains_key(cortical_id) {
+        if self.mappings.contains_key(cortical_id) { // If already contains neuron array, clear it and return it
             let neurons = self.mappings.get_mut(cortical_id).unwrap();
             neurons.clear();
             return neurons;

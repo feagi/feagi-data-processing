@@ -37,10 +37,13 @@ impl NeuronXYZPEncoder for F32SplitSignDividedNeuronXYZPEncoder {
 }
 
 impl F32SplitSignDividedNeuronXYZPEncoder {
-    pub fn new(cortical_write_target: CorticalID, channel_dimensions: SingleChannelDimensions) -> Self {
-        F32SplitSignDividedNeuronXYZPEncoder {
-            channel_dimensions,
+
+    pub const CHANNEL_X_LENGTH: u32 = 2;
+    pub const CHANNEL_Y_LENGTH: u32 = 1;
+    pub fn new(cortical_write_target: CorticalID, z_resolution: u32) -> Result<Self, FeagiDataProcessingError> {
+        Ok(F32SplitSignDividedNeuronXYZPEncoder {
+            channel_dimensions: SingleChannelDimensions::new(Self::CHANNEL_X_LENGTH, Self::CHANNEL_Y_LENGTH, z_resolution)?,
             cortical_write_target,
-        }
+        })
     }
 }

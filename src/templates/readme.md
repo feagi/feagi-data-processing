@@ -48,4 +48,96 @@ brain output
     - ormr00 (output rotary motor relative cortical group 00)
     - orma00 (output rotary motor absolute cortical group 00)
   - servo motor (r / a)
-  - 
+
+
+robot 
+- rgb camera
+- 2 rotary motors
+- 3 proximity sensors
+
+[what we have]
+(init)
+register_sensor(camera, cortical grouping index 0, 1 channel, expected dimensions of image)
+register_sensor(proximity, coritcal grouping index 0, 3 channels, (1,1,20) as dimensions given 20 is resolution neurons)
+register_motor(rotary_motor, cortical_grouping_index_0, 2 channels, (1,1,20) as dimensions given 20 is resolution neurons)
+
+register_sensor_device_channel(camera, cortical_grouping_index 0, channel 0, processing_steps[resize + crop])
+register_sensor_device_channel(proximity, cortical_grouping_index 0, channel 0, processing_steps[rolling window of length 5])
+register_sensor_device_channel(proximity, cortical_grouping_index 0, channel 1, processing_steps[rolling window of length 5])
+register_sensor_device_channel(proximity, cortical_grouping_index 0, channel 2, processing_steps[rolling window of length 5])
+
+register_motor_device_channel(rotary_motor, cortical_grouping_index 0, channel 0, processing_steps[rolling window of length 3)
+register_motor_device_channel(rotary_motor, cortical_grouping_index 0, channel 1, processing_steps[rolling window of length 3)
+
+
+sending
+send_sensor_data(proximity, cortical_grouping_index 0, channel 1, recieved input 0.5)
+send()
+
+
+// what we should do
+
+we a registering 3 proximity sensors, with the same resolution, under the same group (cortical area), but they want
+the middle proximity sensor in this case to have a smoother average.
+
+register_float_sensor(proximity, coritcal grouping index 0, resolution 20,
+[
+processing_steps[rolling window of length 5],
+processing_steps[rolling window of length 10],
+processing_steps[rolling window of length 5],
+])
+
+send_sensor_data(proximity, cortical_grouping_index 0, channel 1, recieved input 0.5)
+
+
+we a registering 3 proximity sensors, with the same resolution, but different groups (cortical area), but they want
+the middle proximity sensor in this case to have a smoother average.
+
+register_float_sensor(proximity, coritcal grouping index 0, resolution 20,
+[
+processing_steps[rolling window of length 5],
+])
+register_float_sensor(proximity, coritcal grouping index 1, resolution 20,
+[
+processing_steps[rolling window of length 5],
+])
+register_float_sensor(proximity, coritcal grouping index 2, resolution 20,
+[
+processing_steps[rolling window of length 5],
+])
+
+
+we a registering 3 proximity sensors, with different resolution, but different groups (cortical area), but they want
+the middle proximity sensor in this case to have a smoother average.
+
+register_float_sensor(proximity, coritcal grouping index 0, resolution 20,
+[
+processing_steps[rolling window of length 5],
+])
+register_float_sensor(proximity, coritcal grouping index 1, resolution 40,
+[
+processing_steps[rolling window of length 3, nonlinear rolling window of length 2],
+])
+register_float_sensor(proximity, coritcal grouping index 2, resolution 20,
+[
+processing_steps[rolling window of length 5],
+])
+
+
+
+
+
+
+sensor::proxmity::register_group(cortical_grouping_index 0, resolution 20, number_of_channels 1)      // {initialize default identity processor}
+sensor::proximity::set_data_processing(cortical_group 0, channel 0, [rolling window of length 5])
+
+
+set_sensor_processor(proximity, group 0, [rolling window of length 5])
+
+register.sensor.proximity_group(group_index 0, sensor_resolution 20)
+
+rsgister.sensor.image_camera()
+
+
+
+

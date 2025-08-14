@@ -71,8 +71,8 @@
 
 mod coder_traits;
 mod coder_types;
-mod decoders;
-mod encoders;
+pub(crate) mod decoders;
+pub(crate) mod encoders;
 
 // The only thing that *may* be used outside of this crate is the NeuronEncoderVariantType enum.
 // The encoder logic is internal to this crate and nothing needs to know the details of the

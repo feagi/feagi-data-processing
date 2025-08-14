@@ -3,6 +3,7 @@ mod stream_cache_processors;
 pub mod byte_structures;
 mod sensory_channel_stream_cache;
 mod io_caches;
+mod caches;
 
 pub use callback_manager::{CallBackManager, CallbackSubscriberID};
 

@@ -8,9 +8,9 @@
 use ndarray::{Array3, ArrayView3};
 use crate::io_data::image::descriptors::{ColorChannelLayout, ColorSpace, MemoryOrderLayout};
 use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::genomic_structures::CorticalIOChannelIndex;
+use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex};
 use crate::io_data::image::descriptors::ImageFrameProperties;
-use crate::neuron_data::xyzp::NeuronXYZPArrays;
+use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 
 /// Represents an image frame with pixel data and metadata for FEAGI vision processing.
 /// 
@@ -399,44 +399,32 @@ impl ImageFrame {
 
     //endregion
     
-    // region Neuron Export
-
-    /// Converts pixel data to neuron arrays using a threshold filter.
-    /// 
-    /// This method extracts pixels with values above the specified threshold and
-    /// converts them to neuron data with X, Y, channel, and potential values.
-    /// The Y coordinates are flipped to convert from image coordinates to FEAGI's
-    /// Cartesian coordinate system.
-    /// 
-    /// # Arguments
-    /// 
-    /// * `threshold` - The minimum pixel value required to generate a neuron
-    /// * `write_target` - The NeuronXYCPArrays to write the neuron data to
-    /// 
-    /// # Returns
-    /// 
-    /// A Result containing either:
-    /// - Ok(()) if the conversion was successful
-    /// - Err(DataProcessingError) if the operation fails
-    pub fn write_xyzp_neuron_arrays(&self, write_target: &mut NeuronXYZPArrays, x_channel_offset: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
+    // region Outputting Neurons
+    
+    pub fn write_as_neuron_xyzp_data(&self, write_target: &mut CorticalMappedXYZPNeuronData, target_id: CorticalID, x_channel_offset: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
         const EPSILON: f32 = 0.0001; // avoid writing near zero vals
+        const MIN_PIXEL_VAL: f32 = 0.0;
+        const MAX_PIXEL_VAL: f32 = 1.0;
         
         let y_flip_distance: u32 = self.get_internal_shape().0 as u32;
         let x_offset: u32 = *x_channel_offset * self.get_cartesian_width_height().0 as u32;
-        
-        // write to the vectors
-        write_target.update_vectors_from_external(|x_vec, y_vec, c_vec, p_vec| {
+        let mapped_neuron_data = write_target.ensure_clear_and_borrow_mut(&target_id, self.get_max_capacity_neuron_count());
+
+        mapped_neuron_data.update_vectors_from_external(|x_vec, y_vec, c_vec, p_vec| {
             for ((y, x, c), color_val) in self.pixels.indexed_iter() { // going from row major to cartesian
                 if color_val.abs() > EPSILON {
                     x_vec.push(x as u32 + x_offset);
                     y_vec.push( y_flip_distance - y as u32);  // flip y
                     c_vec.push(c as u32);
-                    p_vec.push(*color_val);
+                    p_vec.push((*color_val).clamp(MIN_PIXEL_VAL, MAX_PIXEL_VAL));
                 }
             };
             Ok(())
         })
+        
+        
     }
+    
     // endregion
 
     // region Internal Functions

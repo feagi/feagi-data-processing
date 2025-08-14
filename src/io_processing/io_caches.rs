@@ -9,9 +9,11 @@ use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalIOChannelIndex, CorticalType, SensorCorticalType, SingleChannelDimensions};
 use crate::io_data::{IOTypeData, IOTypeVariant};
+use crate::io_data::image_descriptors::ImageFrameProperties;
 use crate::io_processing::{StreamCacheProcessor};
 use crate::io_processing::sensory_channel_stream_cache::SensoryChannelStreamCache;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
+use crate::neuron_data::xyzp::encoders::{F32LinearNeuronXYZPEncoder, ImageFrameNeuronXYZPEncoder};
 
 /// High-level sensor data cache managing multiple cortical areas and channels.
 ///
@@ -75,7 +77,124 @@ impl SensorCache {
             agent_key_proxy: HashMap::new()
         }
     }
+    
+    
+    
+    
+    
+    pub fn register_cortical_group_for_proximity(&mut self, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32, neuron_resolution_depth: u32) -> Result<(), FeagiDataProcessingError> {
+        
+        let cortical_type = CorticalType::Sensory(SensorCorticalType::Proximity);
+        
+        if self.cortical_area_metadata.contains_key(&CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index)) {
+            return Err(IODataError::InvalidParameters(format!("Cortical area of type {:?} of group index {:?} is already registered", cortical_type, cortical_grouping_index)).into());
+        }
+        if number_supported_channels == 0 {
+            return Err(IODataError::InvalidParameters(format!("A {} sensor cortical area cannot be registered with 0 channels!", "proximity")).into())
+        }
+        if neuron_resolution_depth == 0 {
+            return Err(IODataError::InvalidParameters(format!("A {} sensor cortical area cannot have a resolution of 0!", "proximity")).into())
+        }
+        
+        let channel_dimensions = SingleChannelDimensions::new(1, 1, neuron_resolution_depth)?;
+        let cortical_metadata_key = CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index);
+        let cortical_id = cortical_type.to_cortical_id(cortical_grouping_index)?;
+        let neuron_encoder_type = cortical_type.try_get_coder_type()?;
+        let neuron_encoder = neuron_encoder_type.instantiate_single_ipu_encoder(&cortical_id, &channel_dimensions)?;
 
+        _ = self.cortical_area_metadata.insert(
+            cortical_metadata_key,
+            CorticalAreaCacheDetails::new(number_supported_channels, neuron_encoder)
+        );
+        Ok(())
+    }
+    
+    pub fn register_cortical_group_for_image_camera(&mut self, cortical_grouping_index: CorticalGroupingIndex, image_properties: ImageFrameProperties) -> Result<(), FeagiDataProcessingError> {
+        let cortical_type = CorticalType::Sensory(SensorCorticalType::ImageCameraCenter);
+        if self.cortical_area_metadata.contains_key(&CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index)) {
+            return Err(IODataError::InvalidParameters(format!("Cortical area of type {:?} of group index {:?} is already registered", cortical_type, cortical_grouping_index)).into());
+        }
+
+        let cortical_metadata_key = CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index);
+        let cortical_id = cortical_type.to_cortical_id(cortical_grouping_index)?;
+
+        let neuron_encoder: Box<dyn NeuronXYZPEncoder+Sync+Send> = Box::new(ImageFrameNeuronXYZPEncoder::new(cortical_id, &image_properties));
+
+        _ = self.cortical_area_metadata.insert(
+            cortical_metadata_key,
+            CorticalAreaCacheDetails::new(1, neuron_encoder)
+        );
+        Ok(())
+    }
+    
+    
+    //region default cortical type generated functions
+    
+    //region register
+    fn register_f32_normalized_0_to_1_linear(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32, z_depth_resolution: u32) -> Result<(), FeagiDataProcessingError> {
+        if self.cortical_area_metadata.contains_key(&CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index)) {
+            return Err(IODataError::InvalidParameters(format!("Cortical area of type {:?} of group index {:?} is already registered", cortical_type, cortical_grouping_index)).into());
+        }
+        if number_supported_channels == 0 {
+            return Err(IODataError::InvalidParameters(format!("A {} sensor cortical area cannot be registered with 0 channels!", "proximity")).into())
+        }
+        if z_depth_resolution == 0 {
+            return Err(IODataError::InvalidParameters(format!("A {} sensor cortical area cannot have a resolution of 0!", cortical_type.to_string())).into())
+        }
+
+        const CHANNEL_SIZE_X: u32 = 1;
+        const CHANNEL_SIZE_Y: u32 = 1;
+        
+        let channel_dimensions = SingleChannelDimensions::new(CHANNEL_SIZE_X, CHANNEL_SIZE_Y, z_depth_resolution)?;
+        let cortical_metadata_key = CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index);
+        let cortical_id = cortical_type.to_cortical_id(cortical_grouping_index)?;
+        let neuron_encoder: Box<dyn NeuronXYZPEncoder+Sync+Send> = Box::new(F32LinearNeuronXYZPEncoder::new(cortical_id, channel_dimensions));
+
+        _ = self.cortical_area_metadata.insert(
+            cortical_metadata_key,
+            CorticalAreaCacheDetails::new(number_supported_channels, neuron_encoder)
+        );
+        Ok(())
+    }
+
+    fn register_f32_normalized_0_to_1_linear(&mut self, cortical_type: CorticalType, cortical_grouping_index: CorticalGroupingIndex, number_supported_channels: u32, z_depth_resolution: u32) -> Result<(), FeagiDataProcessingError> {
+        if self.cortical_area_metadata.contains_key(&CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index)) {
+            return Err(IODataError::InvalidParameters(format!("Cortical area of type {:?} of group index {:?} is already registered", cortical_type, cortical_grouping_index)).into());
+        }
+        if number_supported_channels == 0 {
+            return Err(IODataError::InvalidParameters(format!("A {} sensor cortical area cannot be registered with 0 channels!", "proximity")).into())
+        }
+        if z_depth_resolution == 0 {
+            return Err(IODataError::InvalidParameters(format!("A {} sensor cortical area cannot have a resolution of 0!", cortical_type.to_string())).into())
+        }
+
+        const CHANNEL_SIZE_X: u32 = 1;
+        const CHANNEL_SIZE_Y: u32 = 1;
+
+        let channel_dimensions = SingleChannelDimensions::new(CHANNEL_SIZE_X, CHANNEL_SIZE_Y, z_depth_resolution)?;
+        let cortical_metadata_key = CorticalAreaMetadataKey::new(cortical_type, cortical_grouping_index);
+        let cortical_id = cortical_type.to_cortical_id(cortical_grouping_index)?;
+        let neuron_encoder: Box<dyn NeuronXYZPEncoder+Sync+Send> = Box::new(F32NormalizedM1To1_PSPBidirectional::new(cortical_id, channel_dimensions));
+
+        _ = self.cortical_area_metadata.insert(
+            cortical_metadata_key,
+            CorticalAreaCacheDetails::new(number_supported_channels, neuron_encoder)
+        );
+        Ok(())
+    }
+    
+    //endregion
+    
+    
+    
+    
+    //endregion
+    
+    
+    
+    
+    
+    
     /// Registers a single cortical area with specified characteristics.
     ///
     /// Creates a new cortical area that can contain multiple sensor channels.

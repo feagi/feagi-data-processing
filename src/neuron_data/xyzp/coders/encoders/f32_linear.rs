@@ -38,12 +38,16 @@ impl NeuronXYZPEncoder for F32LinearNeuronXYZPEncoder {
 }
 
 impl F32LinearNeuronXYZPEncoder {
-    pub fn new(cortical_write_target: CorticalID, channel_dimensions: SingleChannelDimensions) -> Self {
-        let z_res: f32 = channel_dimensions.get_z() as f32;
-        F32LinearNeuronXYZPEncoder {
-            channel_dimensions,
+    
+    pub const CHANNEL_X_LENGTH: u32 = 1;
+    pub const CHANNEL_Y_LENGTH: u32 = 1;
+    
+    pub fn new(cortical_write_target: CorticalID, z_resolution: u32) -> Result<Self, FeagiDataProcessingError> {
+        
+        Ok(F32LinearNeuronXYZPEncoder {
+            channel_dimensions: SingleChannelDimensions::new(Self::CHANNEL_X_LENGTH, Self::CHANNEL_Y_LENGTH, z_resolution)?,
             cortical_write_target,
-            z_res
-        }
+            z_res: z_resolution as f32,
+        })
     }
 }

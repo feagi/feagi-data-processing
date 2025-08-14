@@ -212,70 +212,10 @@ impl SegmentedImageFrame {
     //endregion
     
     //region neuron export
-    /// Exports all segments as new cortical mapped neuron data.
-    ///
-    /// Converts the pixel data from all nine image segments into neuron data format
-    /// suitable for FEAGI processing. Creates a new CorticalMappedXYZPNeuronData container
-    /// with the appropriate cortical IDs and spatial mappings.
-    ///
-    /// # Arguments
-    ///
-    /// * `camera_index` - The cortical grouping index for the camera/vision system
-    /// * `channel_index` - The channel index within the cortical IO system
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(CorticalMappedXYZPNeuronData)` - Successfully created neuron data
-    /// * `Err(FeagiDataProcessingError)` - If the conversion fails
-    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: CorticalGroupingIndex, channel_index: CorticalIOChannelIndex) -> Result<CorticalMappedXYZPNeuronData, FeagiDataProcessingError> {
-
-        let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
-        
-        let cortical_ids: [CorticalID; 9] = CorticalID::create_ordered_cortical_areas_for_segmented_vision(camera_index);
-        
-        let mut output: CorticalMappedXYZPNeuronData = CorticalMappedXYZPNeuronData::new();
-        
+    pub fn write_as_neuron_xyzp_data(&self, write_target: &mut CorticalMappedXYZPNeuronData, channel_index: CorticalIOChannelIndex, ordered_cortical_ids: &[CorticalID; 9]) -> Result<(), FeagiDataProcessingError> {
+        let ordered_refs: [&ImageFrame; 9] = self.get_ordered_image_frame_references();
         for index in 0..9 {
-            let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
-            let mut data: NeuronXYZPArrays = NeuronXYZPArrays::with_capacity(max_neurons);
-            ordered_refs[index].write_xyzp_neuron_arrays(&mut data, channel_index)?;
-            output.insert(cortical_ids[index].clone(), data);
-        }
-        
-        Ok(output)
-    }
-    
-    /// Exports neuron data from all segments into an existing cortical-mapped data structure.
-    /// 
-    /// This method is similar to `export_as_new_cortical_mapped_neuron_data` but writes
-    /// the neuron data into pre-existing NeuronXYCPArrays structures. This is more efficient
-    /// when the cortical data structure is being reused across multiple frames.
-    /// 
-    /// # Arguments
-    /// 
-    /// * `ordered_cortical_ids` - An array of 9 cortical IDs in the expected order:
-    ///   [center, lower_left, middle_left, upper_left, upper_middle, upper_right, middle_right, lower_right, lower_middle]
-    /// * `all_mapped_neuron_data` - The existing cortical-mapped data structure to write into
-    /// 
-    /// # Returns
-    /// 
-    /// A Result containing either:
-    /// - Ok(()) if all segments were exported successfully
-    /// - Err(DataProcessingError) if any cortical ID is not found or conversion fails
-    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData, channel_index: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
-        let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
-        
-        for index in 0..9 {
-            let cortical_id = &ordered_cortical_ids[index];
-            let mapped_neuron_data = all_mapped_neuron_data.get_neurons_of_mut(cortical_id);
-            match mapped_neuron_data { 
-                None => {
-                    return Err(FeagiDataProcessingError::InternalError("Unable to find cortical area to unwrap!".into())); // TODO specific error?
-                }
-                Some(mapped_data) => {
-                    ordered_refs[index].write_xyzp_neuron_arrays(mapped_data, channel_index)?;
-                }
-            }
+            ordered_refs[index].write_as_neuron_xyzp_data(write_target,ordered_cortical_ids[index], channel_index)?;
         }
         Ok(())
     }
@@ -283,20 +223,10 @@ impl SegmentedImageFrame {
     //endregion
     
     //region internal functions
-    
-    /// Returns mutable references to all nine image frames in the standard order.
-    /// 
-    /// This internal helper method provides ordered access to the image frame segments
-    /// for operations that need to process all segments uniformly.
-    /// 
-    /// # Returns
-    /// 
-    /// An array of mutable references to the nine ImageFrame segments in the order:
-    /// [center, lower_left, middle_left, upper_left, upper_middle, upper_right, middle_right, lower_right, lower_middle]
-    fn get_ordered_image_frame_references(&mut self) -> [&mut ImageFrame; 9] {
-        [&mut self.center, &mut self.lower_left, &mut self.middle_left,
-            &mut self.upper_left, &mut self.upper_middle, &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,
-            &mut self.lower_middle]
+    fn get_ordered_image_frame_references(&self) -> [&ImageFrame; 9] {
+        [&self.center, &self.lower_left, &self.middle_left, &self.upper_left, &self.upper_middle,
+            &self.upper_right, &self.middle_right, &self.lower_right,
+            &self.lower_middle]
     }
     
     //endregion
