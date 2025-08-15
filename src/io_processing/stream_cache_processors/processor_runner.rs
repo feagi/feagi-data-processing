@@ -7,6 +7,7 @@
 use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{IOTypeData, IOTypeVariant};
+use crate::io_processing::stream_cache_processors::verify_stream_cache_processor_chain::verify_sensor_chain;
 use crate::io_processing::StreamCacheProcessor;
 
 /// Orchestrates execution of a chain of stream cache processors.
@@ -57,31 +58,8 @@ impl ProcessorRunner {
     /// Processor B: Input(F32) -> Output(Bool)              ✗ Incompatible
     /// ```
     pub fn new(cache_processors: Vec<Box<dyn StreamCacheProcessor + Sync + Send>>) -> Result<Self, FeagiDataProcessingError> {
-        let number_of_processors = cache_processors.len();
-        
-        if number_of_processors == 0 {
-            return Err(IODataError::InvalidParameters("Processor Runner cannot have 0 Cache Processors!".into()).into())
-        }
-        
-        if number_of_processors == 1 {
-            let processor = &cache_processors[0];
-            return Ok(ProcessorRunner {
-                input_type: processor.get_input_data_type(),
-                output_type: processor.get_output_data_type(),
-                cache_processors,
-            });
-        }
-        
-        
-        // Ensure data can pass between processors
-        for processer_index in 0..number_of_processors - 1  {
-            let first = &cache_processors[processer_index];
-            let second = &cache_processors[processer_index + 1];
-            if first.get_output_data_type() != second.get_input_data_type() {
-                return Err(IODataError::InvalidParameters(format!("Given cache processor at index {} has output type {}, which does not match the input type of cache processor at index {} or type {}!",
-                processer_index, first.get_output_data_type(), processer_index + 1,  second.get_input_data_type()).into()).into());
-            }
-        };
+
+        verify_sensor_chain(&cache_processors)?;
         
         Ok(ProcessorRunner {
             input_type: cache_processors.first().unwrap().get_input_data_type(),

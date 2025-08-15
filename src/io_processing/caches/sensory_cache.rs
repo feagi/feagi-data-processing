@@ -39,27 +39,59 @@ impl SensorCache {
     //region Internal Functions
 
 
-    fn register_cortical_area(&mut self, sensor_cortical_type: SensorCorticalType, cortical_group: CorticalGroupingIndex, number_supported_channels: usize, neuron_encoder: Box<dyn NeuronXYZPEncoder + Sync + Send>) -> Result<(), FeagiDataProcessingError> {
+    //region by type registration
+    
+    fn register_cortical_
+    
+    
+    
+    //endregion
+    
+    
+    
+    
+    
+    
+    fn register_cortical_area_and_channels(&mut self, sensor_cortical_type: SensorCorticalType, cortical_group: CorticalGroupingIndex, 
+                              number_supported_channels: u32, neuron_encoder: Box<dyn NeuronXYZPEncoder + Sync + Send>, 
+                              default_processor_chain: Vec<Box<dyn StreamCacheProcessor + Sync + Send>>,
+                              allow_stale_data: bool) -> Result<(), FeagiDataProcessingError> {
+        
         let cortical_type = sensor_cortical_type.into();
         let cortical_metadata = CorticalAreaMetadataKey::new(cortical_type, cortical_group);
-
+        
         if number_supported_channels == 0 {
             return Err(IODataError::InvalidParameters("A cortical area cannot be registered with 0 channels!".into()).into())
         }
         if self.cortical_area_metadata.contains_key(&cortical_metadata) {
-            return Err(FeagiDataProcessingError::InternalError("cortical area already registered!".into()).into())
+            return Err(FeagiDataProcessingError::InternalError("Cortical area already registered!".into()).into())
         }
-
-
+        
+        
+        let mut cache_keys: Vec<FullChannelCacheKey> = Vec::with_capacity(number_supported_channels as usize);
+        for i in 0..number_supported_channels {
+            
+            let channel: CorticalIOChannelIndex = i.into();
+            let sensor_key: FullChannelCacheKey = FullChannelCacheKey::new(cortical_type, cortical_group, channel);
+            let sensor_cache: SensoryChannelStreamCache = SensoryChannelStreamCache::new(
+                default_processor_chain.clone(),
+                channel,
+                allow_stale_data
+            )?;
+            
+            _ = self.channel_caches.insert(sensor_key.clone(), sensor_cache);
+            cache_keys.push(sensor_key);
+        }
+        
+        
+        let cortical_cache_details = CorticalAreaCacheDetails::new(cache_keys, number_supported_channels, neuron_encoder);
+        _ = self.cortical_area_metadata.insert(cortical_metadata, cortical_cache_details);
+        
+        Ok(())
     }
-
-    fn register_cache_on_channel(cortical_type: CorticalType, cortical_group: CorticalGroupingIndex,
-                                 channel_index: CorticalIOChannelIndex, cache_processors: Vec<Box<dyn StreamCacheProcessor + Sync + Send>>,
-                                 should_allow_sending_stale_data: bool) -> Result<(), FeagiDataProcessingError> {
-
-
-
-    }
+    
+    
+    
 
 
     //endregion
@@ -73,18 +105,6 @@ impl SensorCache {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 struct CorticalAreaCacheDetails {
     relevant_channel_lookups: Vec<FullChannelCacheKey>,
     number_channels: u32,
@@ -92,9 +112,9 @@ struct CorticalAreaCacheDetails {
 }
 
 impl  CorticalAreaCacheDetails {
-    pub(crate) fn new(number_channels: u32, neuron_encoder: Box<dyn NeuronXYZPEncoder + Sync + Send>) -> Self {
+    pub(crate) fn new(relevant_channel_lookups: Vec<FullChannelCacheKey>, number_channels: u32, neuron_encoder: Box<dyn NeuronXYZPEncoder + Sync + Send>) -> Self {
         CorticalAreaCacheDetails{
-            relevant_channel_lookups: Vec::new(),
+            relevant_channel_lookups,
             number_channels,
             neuron_encoder
         }

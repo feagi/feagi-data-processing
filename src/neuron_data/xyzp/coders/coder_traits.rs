@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError};
 use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, SingleChannelDimensions};
 use crate::io_data::{IOTypeData, IOTypeVariant};
+use crate::io_processing::StreamCacheProcessor;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
 
 /// Trait for encoding external data into neural XYZP representations.
@@ -94,6 +95,8 @@ pub(crate) trait NeuronXYZPEncoder {
         };
         Ok(())
     }
+
+    fn create_default_processor_chain(&self) -> Vec<Box<dyn StreamCacheProcessor + Sync + Send>>;
 }
 
 /// Trait for decoding neural XYZP data back into external I/O formats.

@@ -1,6 +1,8 @@
 use crate::error::FeagiDataProcessingError;
 use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, SingleChannelDimensions};
 use crate::io_data::{IOTypeData, IOTypeVariant};
+use crate::io_processing::processors::LinearScaleTo0And1;
+use crate::io_processing::StreamCacheProcessor;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPArrays};
 use crate::neuron_data::xyzp::coders::NeuronXYZPEncoder;
 
@@ -33,6 +35,10 @@ impl NeuronXYZPEncoder for F32SplitSignDividedNeuronXYZPEncoder {
         );
         generated_neuron_data.push(&neuron);
         Ok(())
+    }
+
+    fn create_default_processor_chain(&self) -> Vec<Box<dyn StreamCacheProcessor + Sync + Send>> {
+        vec![Box::new(LinearScaleTo0And1::new(-1f32, 1f32, 0f32).unwrap())]
     }
 }
 
