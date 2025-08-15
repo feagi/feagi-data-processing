@@ -19,25 +19,25 @@ use crate::io_processing::StreamCacheProcessor;
 /// # Example
 /// ```
 /// // Scale values from range [10, 50] to [0, 1]
-/// use feagi_core_data_structures_and_processing::io_processing::processors::LinearScaleTo0And1;
-/// let mut processor = LinearScaleTo0And1::new(10.0, 50.0, 30.0).unwrap();
+/// use feagi_core_data_structures_and_processing::io_processing::processors::LinearScaleTo0And1Processor;
+/// let mut processor = LinearScaleTo0And1Processor::new(10.0, 50.0, 30.0).unwrap();
 /// // Input 30.0 would map to 0.5 in the output range
 /// ```
 #[derive(Debug, Clone)]
-pub struct LinearScaleTo0And1 {
+pub struct LinearScaleTo0And1Processor {
     previous_value: IOTypeData,
     lower: f32,
     upper: f32,
     upper_minus_lower: f32
 }
 
-impl Display for LinearScaleTo0And1 {
+impl Display for LinearScaleTo0And1Processor {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "LinearScaleTo0And1(lower_bound={:?},upper_bound={:?},prev_val={:?})", self.lower, self.upper,  self.previous_value)
     }
 }
 
-impl StreamCacheProcessor for LinearScaleTo0And1 {
+impl StreamCacheProcessor for LinearScaleTo0And1Processor {
     fn get_input_data_type(&self) -> IOTypeVariant {
         IOTypeVariant::F32
     }
@@ -60,7 +60,7 @@ impl StreamCacheProcessor for LinearScaleTo0And1 {
     }
 }
 
-impl LinearScaleTo0And1 {
+impl LinearScaleTo0And1Processor {
     /// Creates a new LinearScaleTo0And1 processor.
     ///
     /// # Arguments
@@ -88,7 +88,7 @@ impl LinearScaleTo0And1 {
             return Err(IODataError::InvalidParameters(format!("Initial value float {} must be between bounds {} and {}!", initial_value, lower_bound, upper_bound)).into());
         }
 
-        Ok(LinearScaleTo0And1 {
+        Ok(LinearScaleTo0And1Processor {
             previous_value: IOTypeData::F32Normalized0To1(initial_value),
             lower: lower_bound,
             upper: upper_bound,

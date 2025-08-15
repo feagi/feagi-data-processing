@@ -130,6 +130,24 @@ impl ImageFrameTransformerDefinition {
         }
     }
 
+    pub fn new_from_input_output_properties(input: &ImageFrameProperties, output: &ImageFrameProperties) -> Result<Self, FeagiDataProcessingError> {
+        let mut definition = ImageFrameTransformerDefinition::new(input.clone());
+        if output.get_expected_color_channel_layout() != input.get_expected_color_channel_layout() {
+            if output.get_expected_color_channel_layout() == ColorChannelLayout::GrayScale && input.get_expected_color_channel_layout() == ColorChannelLayout::RGB {
+                // supported
+                definition.convert_to_grayscale = true;
+            }
+            // unsupported
+            return Err(IODataError::InvalidParameters("Given Color Conversion not possible!". into()). into())
+        }
+        if output.get_expected_xy_resolution() != input.get_expected_xy_resolution() {
+            definition.set_resizing_to(output.get_expected_xy_resolution());
+        }
+        if output.get_expected_color_space() != output.get_expected_color_space() {
+            definition.set_color_space_to(output.get_expected_color_space());
+        }
+    }
+
     /// Returns the required input image properties.
     ///
     /// # Returns

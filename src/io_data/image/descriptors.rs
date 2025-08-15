@@ -353,7 +353,7 @@ pub enum MemoryOrderLayout {
 ///
 /// This structure defines the coordinates and size of the central region
 /// in a normalized coordinate space (0.0 to 1.0).
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub struct SegmentedFrameCenterProperties {
     /// Center point coordinates in normalized space (0.0-1.0), from the top left
     center_coordinates_normalized_yx: (f32, f32), // Scaled from 0 to 1
@@ -377,7 +377,7 @@ impl SegmentedFrameCenterProperties {
     /// A Result containing either:
     /// - Ok(SegmentedVisionCenterProperties) if the parameters are valid
     /// - Err(DataProcessingError) if coordinates or size are outside valid ranges
-    pub fn new_row_major_where_origin_top_left(center_coordinates_normalized_yx: (f32, f32), center_size_normalized_yx: (f32, f32)) -> Result<SegmentedFrameCenterProperties, FeagiDataProcessingError> {
+    pub(crate) fn new_row_major_where_origin_top_left(center_coordinates_normalized_yx: (f32, f32), center_size_normalized_yx: (f32, f32)) -> Result<SegmentedFrameCenterProperties, FeagiDataProcessingError> {
         let range_0_1: RangeInclusive<f32> = 0.0..=1.0;
         if !(range_0_1.contains(&center_coordinates_normalized_yx.0) && range_0_1.contains(&center_coordinates_normalized_yx.1)) {
             return Err(IODataError::InvalidParameters("Central vision center coordinates are to be normalized and must be between 0 and 1!".into()).into())
@@ -446,7 +446,8 @@ impl SegmentedFrameCenterProperties {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrameSourceCroppingPointGrouping) with corner points for all segments
     /// - Err(DataProcessingError) if the calculations fail
-    pub(crate) fn calculate_source_corner_points_for_segmented_video_frame(&self, source_frame_width_height: (usize, usize)) -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, FeagiDataProcessingError> {
+    pub fn calculate_source_corner_points_for_segmented_video_frame(&self, source_frame_width_height: (usize, usize)) -> Result<SegmentedVisionFrameSourceCroppingPointGrouping, FeagiDataProcessingError> {
+        // TODO ensure input is at least 3x3
         let center_corner_points = self.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
         Ok(SegmentedVisionFrameSourceCroppingPointGrouping{
             lower_left: CornerPoints::new_from_row_major((source_frame_width_height.1, 0), center_corner_points.lower_left_row_major())?,

@@ -8,7 +8,7 @@ use feagi_core_data_structures_and_processing::genomic_structures::{
 };
 use feagi_core_data_structures_and_processing::io_data::IOTypeData;
 use feagi_core_data_structures_and_processing::io_processing::processors::{
-    LinearAverageRollingWindowProcessor, LinearScaleTo0And1
+    LinearAverageRollingWindowProcessor, LinearScaleTo0And1Processor
 };
 use feagi_core_data_structures_and_processing::io_processing::{SensorCache, StreamCacheProcessor};
 use feagi_core_data_structures_and_processing::neuron_data::xyzp::{
@@ -25,7 +25,7 @@ fn test_chained_encoders() -> Result<(), Box<dyn std::error::Error>> {
     let mut rolling_window_processor = LinearAverageRollingWindowProcessor::new(5, 0.0)?;
 
     // Create the range scaling processor (maps 0-50 to 0-1)
-    let mut range_processor = LinearScaleTo0And1::new(0.0, 50.0, 25.0)?;
+    let mut range_processor = LinearScaleTo0And1Processor::new(0.0, 50.0, 25.0)?;
 
     // In here, lets try manually running the data through without the help of higher level structures, just to ensure the math is fine in here
     {
@@ -69,7 +69,7 @@ fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn
         2.into(),
         vec![
             Box::new(LinearAverageRollingWindowProcessor::new(5, 0.0)?),
-            Box::new(LinearScaleTo0And1::new(0.0, 50.0, 25.0)?)
+            Box::new(LinearScaleTo0And1Processor::new(0.0, 50.0, 25.0)?)
         ],
         true
     )?;

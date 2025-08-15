@@ -95,8 +95,6 @@ pub(crate) trait NeuronXYZPEncoder {
         };
         Ok(())
     }
-
-    fn create_default_processor_chain(&self) -> Vec<Box<dyn StreamCacheProcessor + Sync + Send>>;
 }
 
 /// Trait for decoding neural XYZP data back into external I/O formats.
