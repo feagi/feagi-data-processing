@@ -139,5 +139,24 @@ register.sensor.proximity_group(group_index 0, sensor_resolution 20)
 rsgister.sensor.image_camera()
 
 
+# Rules -  what is allowed without reinitializing
+
+## things that require connector reinitialization
+- anything that adds / removes a cortical area
+- anything that changes a dimension of a cortical area
+  - resolution changes
+- these are things that should be part of encoder definitions
+
+## things that dont
+- these things should be only managed by provessors, never encoders (which require reinits to change)
+- processing steps
+- segmention of images
+  - modulation, eccentricity
+- thresholds
+- 
+
+
+
+
 
 

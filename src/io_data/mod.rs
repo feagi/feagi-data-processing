@@ -56,7 +56,7 @@
 mod image;
 mod io_types;
 
-pub use image::{ImageFrame, SegmentedImageFrame, ImageFrameTransformerDefinition};
+pub use image::{ImageFrame, SegmentedImageFrame, ImageFrameTransformer, ImageFrameSegmentator};
 pub use image::descriptors as image_descriptors;
 pub use crate::feagi_json::FeagiJSON;
 pub use io_types::{IOTypeData, IOTypeVariant};
