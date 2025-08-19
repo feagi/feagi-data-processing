@@ -3,9 +3,7 @@
 //! This test demonstrates creating a proximity sensor with rolling window and range
 //! processors, processing sensor data, and encoding to FEAGI byte structures.
 
-use feagi_core_data_structures_and_processing::genomic_structures::{
-    SensorCorticalType, SingleChannelDimensions
-};
+use feagi_core_data_structures_and_processing::genomic_structures::{CorticalGroupingIndex, SensorCorticalType, SingleChannelDimensions};
 use feagi_core_data_structures_and_processing::io_data::IOTypeData;
 use feagi_core_data_structures_and_processing::io_processing::processors::{
     LinearAverageRollingWindowProcessor, LinearScaleTo0And1Processor
@@ -48,6 +46,45 @@ fn test_chained_encoders() -> Result<(), Box<dyn std::error::Error>> {
         Ok(())
     }
 }
+
+#[test]
+fn test_simple_sensor_neuron_encodering() -> Result<(), Box<dyn std::error::Error>> {
+
+    // Create Sensor Cache and neuron container
+    let mut sensor_cache = SensorCache::new();
+    let mut neuron_data = CorticalMappedXYZPNeuronData::new();
+    
+    // Register a single channel Proximity Sensor with default settings
+    sensor_cache.register_cortical_group_for_proximity(
+        1.into(),
+        1,
+        true,
+        10,
+        0.0,
+        100.0,
+    )?;
+    
+    // Send a value
+    sensor_cache.send_data_for_proximity(
+        10.0, 
+        1.into(), 
+        0.into()
+    )?;
+    
+    // Encode the data to neurons
+    sensor_cache.encode_to_neurons(Instant::now(), &mut neuron_data)?;
+    
+    let byte_structure = neuron_data.as_new_feagi_byte_structure()?;
+    
+    let bytes = byte_structure.copy_out_as_byte_vector();
+    
+    dbg!(bytes);
+    
+    Ok(())
+    
+    
+}
+
 
 /*
 #[test]
