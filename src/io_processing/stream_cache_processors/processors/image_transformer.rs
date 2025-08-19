@@ -8,7 +8,7 @@
 use std::fmt::Display;
 use std::time::Instant;
 use crate::error::FeagiDataProcessingError;
-use crate::io_data::{IOTypeData, IOTypeVariant, ImageFrame, ImageFrameTransformerDefinition};
+use crate::io_data::{IOTypeData, IOTypeVariant, ImageFrame, ImageFrameTransformer};
 use crate::io_processing::StreamCacheProcessor;
 
 /// A stream processor that applies image transformations to incoming frames.
@@ -38,21 +38,21 @@ use crate::io_processing::StreamCacheProcessor;
 /// # Example
 ///
 /// ```rust
-/// use feagi_core_data_structures_and_processing::io_data::{ImageFrameTransformerDefinition};
+/// use feagi_core_data_structures_and_processing::io_data::{ImageFrameTransformer};
 /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
 /// use feagi_core_data_structures_and_processing::io_processing::processors::ImageFrameTransformerProcessor;
 ///
 /// let input_props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
-/// let mut transformer_def = ImageFrameTransformerDefinition::new(input_props);
+/// let mut transformer_def = ImageFrameTransformer::new(input_props);
 /// transformer_def.set_resizing_to((224, 224)).unwrap();
-/// transformer_def.set_conversion_to_grayscale().unwrap();
+/// transformer_def.set_conversion_to_grayscale(true).unwrap();
 ///
 /// let processor = ImageFrameTransformerProcessor::new(transformer_def).unwrap();
 /// ```
 #[derive(Debug)]
 pub struct ImageFrameTransformerProcessor {
     /// The transformation configuration defining which operations to apply and their parameters
-    transformer_definition: ImageFrameTransformerDefinition,
+    transformer_definition: ImageFrameTransformer,
     /// Cached output buffer containing the most recent transformed image
     cached: IOTypeData, // Image Frame
 }
@@ -103,18 +103,18 @@ impl ImageFrameTransformerProcessor {
     /// # Example
     ///
     /// ```rust
-    /// use feagi_core_data_structures_and_processing::io_data::{ImageFrameTransformerDefinition};
+    /// use feagi_core_data_structures_and_processing::io_data::{ImageFrameTransformer};
     /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
     /// use feagi_core_data_structures_and_processing::io_processing::processors::ImageFrameTransformerProcessor;
     ///
     /// let input_props = ImageFrameProperties::new((1920, 1080), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
-    /// let mut transformer_def = ImageFrameTransformerDefinition::new(input_props);
+    /// let mut transformer_def = ImageFrameTransformer::new(input_props);
     /// transformer_def.set_cropping_from((100, 100), (900, 700)).unwrap();
     /// transformer_def.set_resizing_to((256, 256)).unwrap();
     ///
     /// let processor = ImageFrameTransformerProcessor::new(transformer_def).unwrap();
     /// ```
-    pub fn new(transformer_definition: ImageFrameTransformerDefinition) -> Result<Self, FeagiDataProcessingError> {
+    pub fn new(transformer_definition: ImageFrameTransformer) -> Result<Self, FeagiDataProcessingError> {
         Ok(ImageFrameTransformerProcessor{
             cached: IOTypeData::ImageFrame(ImageFrame::from_image_frame_properties(&transformer_definition.get_output_image_properties())?),
             transformer_definition,

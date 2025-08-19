@@ -15,19 +15,21 @@
 //! ```rust
 //! use feagi_core_data_structures_and_processing::io_processing::{
 //!     StreamCacheProcessor, 
-//!     processors::LinearScaleTo0And1
+//!     processors::LinearScaleTo0And1Processor
 //! };
 //!
 //! // Create a processor that scales values from [0, 100] to [0, 1]
-//! let processor = LinearScaleTo0And1::new(0.0, 100.0, 50.0).unwrap();
-//! 
+//! let processor = LinearScaleTo0And1Processor::new(0.0, 100.0, 50.0).unwrap();
+//!
 //! // Processors can be chained together using ProcessorRunner
 //! ```
 
 mod stream_cache_processor_trait;
 mod processor_runner;
 pub mod processors;
+mod verify_stream_cache_processor_chain;
 
 pub use stream_cache_processor_trait::StreamCacheProcessor;
 pub(crate) use processor_runner::ProcessorRunner;
+pub(crate) use verify_stream_cache_processor_chain::*;
 

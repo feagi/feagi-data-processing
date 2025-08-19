@@ -33,19 +33,19 @@ use crate::io_data::ImageFrame;
 /// # Example
 ///
 /// ```rust
-/// use feagi_core_data_structures_and_processing::io_data::{ImageFrameTransformerDefinition};
+/// use feagi_core_data_structures_and_processing::io_data::{ImageFrameTransformer};
 /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ColorSpace, ColorChannelLayout, ImageFrameProperties};
 ///
 /// let input_props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
-/// let mut transformer = ImageFrameTransformerDefinition::new(input_props);
+/// let mut transformer = ImageFrameTransformer::new(input_props);
 ///
 /// // Configure the transformation pipeline
 /// transformer.set_cropping_from((100, 100), (540, 380)).unwrap();
 /// transformer.set_resizing_to((224, 224)).unwrap();
-/// transformer.set_conversion_to_grayscale().unwrap();
+/// transformer.set_conversion_to_grayscale(true).unwrap();
 /// ```
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct ImageFrameTransformerDefinition {
+pub struct ImageFrameTransformer {
     /// Properties that the input image must match (resolution, color space, channel layout)
     input_image_properties: ImageFrameProperties,
     /// Optional cropping region defined by corner points
@@ -62,7 +62,7 @@ pub struct ImageFrameTransformerDefinition {
     convert_to_grayscale: bool,
 }
 
-impl std::fmt::Display for ImageFrameTransformerDefinition {
+impl std::fmt::Display for ImageFrameTransformer {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let initial = format!("Expecting {}.", self.input_image_properties);
         let mut steps: String = match (self.cropping_from, self.final_resize_xy_to) {
@@ -93,7 +93,7 @@ impl std::fmt::Display for ImageFrameTransformerDefinition {
     }
 }
 
-impl ImageFrameTransformerDefinition {
+impl ImageFrameTransformer {
     
     /// Creates a new image transformer definition with specified input requirements.
     ///
@@ -113,13 +113,13 @@ impl ImageFrameTransformerDefinition {
     ///
     /// ```rust
     /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
-    /// use feagi_core_data_structures_and_processing::io_data::ImageFrameTransformerDefinition;
+    /// use feagi_core_data_structures_and_processing::io_data::ImageFrameTransformer;
     ///
     /// let props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB);
-    /// let transformer = ImageFrameTransformerDefinition::new(props.unwrap());
+    /// let transformer = ImageFrameTransformer::new(props.unwrap());
     /// ```
-    pub fn new(input_image_properties: ImageFrameProperties) -> ImageFrameTransformerDefinition {
-        ImageFrameTransformerDefinition {
+    pub fn new(input_image_properties: ImageFrameProperties) -> ImageFrameTransformer {
+        ImageFrameTransformer {
             input_image_properties,
             cropping_from: None,
             final_resize_xy_to: None,
@@ -128,6 +128,25 @@ impl ImageFrameTransformerDefinition {
             convert_color_space_to: None,
             convert_to_grayscale: false,
         }
+    }
+
+    pub fn new_from_input_output_properties(input: &ImageFrameProperties, output: &ImageFrameProperties) -> Result<Self, FeagiDataProcessingError> {
+        let mut definition = ImageFrameTransformer::new(input.clone());
+        if output.get_expected_color_channel_layout() != input.get_expected_color_channel_layout() {
+            if output.get_expected_color_channel_layout() == ColorChannelLayout::GrayScale && input.get_expected_color_channel_layout() == ColorChannelLayout::RGB {
+                // supported
+                definition.convert_to_grayscale = true;
+            }
+            // unsupported
+            return Err(IODataError::InvalidParameters("Given Color Conversion not possible!". into()). into())
+        }
+        if output.get_expected_xy_resolution() != input.get_expected_xy_resolution() {
+            definition.set_resizing_to(output.get_expected_xy_resolution());
+        }
+        if output.get_expected_color_space() != output.get_expected_color_space() {
+            definition.set_color_space_to(&output.get_expected_color_space());
+        }
+        Ok(definition)
     }
 
     /// Returns the required input image properties.
@@ -210,13 +229,13 @@ impl ImageFrameTransformerDefinition {
     pub fn process_image(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataProcessingError> {
         match self {
             // Do literally nothing, just copy the data
-            ImageFrameTransformerDefinition {
+            ImageFrameTransformer {
                 input_image_properties,
                 cropping_from: None,
                 final_resize_xy_to: None,
                 convert_color_space_to: None,
                 multiply_brightness_by: None,
-                change_contrast_by:None,
+                change_contrast_by: None,
                 convert_to_grayscale: false
             } => {
                 *destination = source.clone();
@@ -224,7 +243,7 @@ impl ImageFrameTransformerDefinition {
             }
 
             // Only cropping
-            ImageFrameTransformerDefinition {
+            ImageFrameTransformer {
                 input_image_properties,
                 cropping_from: Some(cropping_from),
                 final_resize_xy_to: None,
@@ -237,7 +256,7 @@ impl ImageFrameTransformerDefinition {
             }
 
             // Only resizing
-            ImageFrameTransformerDefinition {
+            ImageFrameTransformer {
                 input_image_properties,
                 cropping_from: None,
                 final_resize_xy_to: Some(final_resize_xy_to),
@@ -250,7 +269,7 @@ impl ImageFrameTransformerDefinition {
             }
 
             // Only grayscaling
-            ImageFrameTransformerDefinition {
+            ImageFrameTransformer {
                 input_image_properties,
                 cropping_from: None,
                 final_resize_xy_to: None,
@@ -263,7 +282,7 @@ impl ImageFrameTransformerDefinition {
             }
 
             // Cropping, Resizing
-            ImageFrameTransformerDefinition {
+            ImageFrameTransformer {
                 input_image_properties,
                 cropping_from: Some(cropping_from),
                 final_resize_xy_to: Some(final_resize_xy_to),
@@ -276,7 +295,7 @@ impl ImageFrameTransformerDefinition {
             }
 
             // Cropping, Resizing, Grayscaling (the most common with segmentation vision)
-            ImageFrameTransformerDefinition {
+            ImageFrameTransformer {
                 input_image_properties,
                 cropping_from: Some(cropping_from),
                 final_resize_xy_to: Some(final_resize_xy_to),
@@ -287,7 +306,7 @@ impl ImageFrameTransformerDefinition {
             } => {
                 crop_and_resize_and_grayscale(source, destination, cropping_from, final_resize_xy_to, self.input_image_properties.get_expected_color_space())
             }
-            
+
             // If no fast path, use this slower universal one
             _ => {
                 // This function is much slower, There may be some optimization work possible, but ensure the most common step combinations have an accelerated path
@@ -350,8 +369,6 @@ impl ImageFrameTransformerDefinition {
     }
 
     //region set settings
-    // TODO create clear all, clear individual settings
-
     // TODO safety bound checks!
 
     /// Sets the cropping region for the transformation pipeline.
@@ -367,9 +384,9 @@ impl ImageFrameTransformerDefinition {
     ///
     /// # Returns
     ///
-    /// * `Ok(&Self)` - Reference to self for method chaining
+    /// * `Ok(&mut Self)` - Reference to self for method chaining
     /// * `Err(FeagiDataProcessingError)` - If the crop region is invalid
-    pub fn set_cropping_from(&mut self, lower_left_xy_point_inclusive: (usize, usize), upper_right_xy_point_exclusive: (usize, usize)) -> Result<&Self, FeagiDataProcessingError> {
+    pub fn set_cropping_from(&mut self, lower_left_xy_point_inclusive: (usize, usize), upper_right_xy_point_exclusive: (usize, usize)) -> Result<&mut Self, FeagiDataProcessingError> {
         let corner_points = CornerPoints::new_from_cartesian(lower_left_xy_point_inclusive, upper_right_xy_point_exclusive, self.input_image_properties.get_expected_xy_resolution())?;
         self.cropping_from = Some(corner_points);
         Ok(self)
@@ -386,9 +403,9 @@ impl ImageFrameTransformerDefinition {
     ///
     /// # Returns
     ///
-    /// * `Ok(&Self)` - Reference to self for method chaining
+    /// * `Ok(&mut Self)` - Reference to self for method chaining
     /// * `Err(FeagiDataProcessingError)` - If the resolution is invalid
-    pub fn set_resizing_to(&mut self, new_xy_resolution: (usize, usize)) -> Result<&Self, FeagiDataProcessingError> {
+    pub fn set_resizing_to(&mut self, new_xy_resolution: (usize, usize)) -> Result<&mut Self, FeagiDataProcessingError> {
         self.final_resize_xy_to = Some(new_xy_resolution);
         Ok(self)
     }
@@ -405,10 +422,15 @@ impl ImageFrameTransformerDefinition {
     ///
     /// # Returns
     ///
-    /// * `Ok(&Self)` - Reference to self for method chaining
+    /// * `Ok(&mut Self)` - Reference to self for method chaining
     /// * `Err(FeagiDataProcessingError)` - If the multiplier is invalid
-    pub fn set_brightness_multiplier(&mut self, brightness_multiplier: f32) -> Result<&Self, FeagiDataProcessingError> {
-        self.multiply_brightness_by = Some(brightness_multiplier);
+    pub fn set_brightness_multiplier(&mut self, brightness_multiplier: f32) -> Result<&mut Self, FeagiDataProcessingError> {
+        if brightness_multiplier == 1.0 {
+            self.multiply_brightness_by = None;
+        }
+        else {
+            self.multiply_brightness_by = Some(brightness_multiplier);
+        }
         Ok(self)
     }
 
@@ -423,10 +445,15 @@ impl ImageFrameTransformerDefinition {
     ///
     /// # Returns
     ///
-    /// * `Ok(&Self)` - Reference to self for method chaining
+    /// * `Ok(&mut Self)` - Reference to self for method chaining
     /// * `Err(FeagiDataProcessingError)` - If the contrast factor is invalid
-    pub fn set_contrast_change(&mut self, contrast_change: f32) -> Result<&Self, FeagiDataProcessingError> {
-        self.change_contrast_by = Some(contrast_change);
+    pub fn set_contrast_change(&mut self, contrast_change: f32) -> Result<&mut Self, FeagiDataProcessingError> {
+        if contrast_change == 1.0 {
+            self.change_contrast_by = None;
+        }
+        else {
+            self.change_contrast_by = Some(contrast_change);
+        }
         Ok(self)
     }
 
@@ -442,40 +469,144 @@ impl ImageFrameTransformerDefinition {
     ///
     /// # Returns
     ///
-    /// * `Ok(&Self)` - Reference to self for method chaining
+    /// * `Ok(&mut Self)` - Reference to self for method chaining
     /// * `Err(FeagiDataProcessingError)` - If the conversion is not supported
-    pub fn set_color_space_to(&mut self, color_space: ColorSpace) -> Result<&Self, FeagiDataProcessingError> {
-        self.convert_color_space_to = Some(color_space);
+    pub fn set_color_space_to(&mut self, color_space: &ColorSpace) -> Result<&mut Self, FeagiDataProcessingError> {
+        if color_space == &self.input_image_properties.get_expected_color_space() {
+            self.convert_color_space_to = None;
+        }
+        else {
+            self.convert_color_space_to = Some(*color_space);
+        }
         Ok(self)
     }
 
-    /// Enables grayscale conversion for the transformation pipeline.
-    ///
-    /// Configures the transformer to convert RGB or RGBA images to grayscale as
-    /// the final step in the transformation pipeline. This operation uses standard
-    /// luminance weights appropriate for the configured color space.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(&Self)` - Reference to self for method chaining
-    /// * `Err(FeagiDataProcessingError)` - If the input image is already grayscale or unsupported
-    ///
-    /// # Notes
-    ///
-    /// - Only works with RGB and RGBA input images
-    /// - Cannot be applied to images that are already grayscale
-    /// - Uses different luminance weights depending on the color space (Linear vs Gamma)
-    pub fn set_conversion_to_grayscale(&mut self) -> Result<&Self, FeagiDataProcessingError> {
-        if self.input_image_properties.get_expected_color_channel_layout() == ColorChannelLayout::GrayScale {
-            return Err(IODataError::InvalidParameters("Image is already Grayscale!".into()).into())
-        }
-        
+
+    pub fn set_conversion_to_grayscale(&mut self, convert_to_grayscale: bool) -> Result<&mut Self, FeagiDataProcessingError> {
         if self.input_image_properties.get_expected_color_channel_layout() == ColorChannelLayout::RG {
             return Err(FeagiDataProcessingError::NotImplemented)
         }
-        self.convert_to_grayscale = true;
+        self.convert_to_grayscale = convert_to_grayscale;
         Ok(self)
     }
+
+    //region clear settings
+
+    /// Clears all transformation settings, resetting to default state.
+    ///
+    /// Removes all configured transformations (cropping, resizing, brightness, contrast,
+    /// color space conversion, and grayscale conversion), returning the transformer to
+    /// its initial state where only the input properties are preserved.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use feagi_core_data_structures_and_processing::io_data::ImageFrameTransformer;
+    /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
+    ///
+    /// let props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
+    /// let mut transformer = ImageFrameTransformer::new(props);
+    ///
+    /// // Configure some transformations
+    /// transformer.set_resizing_to((224, 224)).unwrap();
+    /// transformer.set_conversion_to_grayscale(true).unwrap();
+    ///
+    /// // Clear all transformations
+    /// transformer.clear_all_transformations();
+    /// ```
+    pub fn clear_all_transformations(&mut self) -> &Self {
+        self.cropping_from = None;
+        self.final_resize_xy_to = None;
+        self.convert_color_space_to = None;
+        self.multiply_brightness_by = None;
+        self.change_contrast_by = None;
+        self.convert_to_grayscale = false;
+        self
+    }
+
+    /// Clears the cropping transformation.
+    ///
+    /// Removes the configured cropping region, causing the transformer to process
+    /// the entire input image without cropping.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_cropping(&mut self) -> &Self {
+        self.cropping_from = None;
+        self
+    }
+
+    /// Clears the resizing transformation.
+    ///
+    /// Removes the configured target resolution, causing the transformer to preserve
+    /// the original image dimensions (after any cropping).
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_resizing(&mut self) -> &Self {
+        self.final_resize_xy_to = None;
+        self
+    }
+
+    /// Clears the brightness adjustment.
+    ///
+    /// Removes the configured brightness multiplier, causing the transformer to
+    /// preserve the original image brightness.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_brightness_adjustment(&mut self) -> &Self {
+        self.multiply_brightness_by = None;
+        self
+    }
+
+    /// Clears the contrast adjustment.
+    ///
+    /// Removes the configured contrast modification, causing the transformer to
+    /// preserve the original image contrast.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_contrast_adjustment(&mut self) -> &Self {
+        self.change_contrast_by = None;
+        self
+    }
+
+    /// Clears the color space conversion.
+    ///
+    /// Removes the configured target color space, causing the transformer to
+    /// preserve the original color space.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_color_space_conversion(&mut self) -> &Self {
+        self.convert_color_space_to = None;
+        self
+    }
+
+    /// Clears the grayscale conversion.
+    ///
+    /// Disables grayscale conversion, causing the transformer to preserve the
+    /// original color channels.
+    ///
+    /// # Returns
+    ///
+    /// Reference to self for method chaining.
+    pub fn clear_grayscale_conversion(&mut self) -> &Self {
+        self.convert_to_grayscale = false;
+        self
+    }
+
+    //endregion
 
     //endregion
     

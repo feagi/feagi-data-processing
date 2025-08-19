@@ -10,7 +10,7 @@ use ndarray::Array3;
 use super::image_frame::ImageFrame;
 use crate::error::{FeagiDataProcessingError};
 use super::descriptors::*;
-use crate::genomic_structures::{CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex};
+use crate::genomic_structures::{CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SensorCorticalType};
 use crate::io_data::image::descriptors::ImageFrameProperties;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPArrays};
 
@@ -58,10 +58,7 @@ pub struct SegmentedImageFrame {
     lower_middle: ImageFrame,
     /// Center segment of the vision frame (typically higher resolution)
     center: ImageFrame,
-    /// Resolution of the original source frame that was loaded into this
-    previous_imported_internal_yx_resolution: (usize, usize), // All imported frames need to match this
-    /// The cropping points to use for the source, cached, assuming the source resolution is the same
-    previous_cropping_points_for_source_from_segment: Option<SegmentedVisionFrameSourceCroppingPointGrouping>
+
 }
 
 impl std::fmt::Display for SegmentedImageFrame {
@@ -72,6 +69,64 @@ impl std::fmt::Display for SegmentedImageFrame {
 
 impl SegmentedImageFrame {
 
+    /// Creates a predefined set of cortical areas for segmented vision processing.
+    ///
+    /// This utility method generates 9 cortical areas arranged in a 3x3 grid pattern
+    /// for processing segmented vision data. Each segment processes a different region
+    /// of the visual field, allowing for spatial attention and region-specific processing.
+    ///
+    /// # Arguments
+    /// * `camera_index` - The grouping index for this camera system (0-255)
+    ///
+    /// # Returns
+    /// Array of 9 CorticalID values arranged as:
+    /// ```text
+    /// [6] Top-Left     [7] Top-Middle     [8] Top-Togjt
+    /// [3] Middle-Left  [4] Center         [5] Middle-Right
+    /// [0] Bottom-Left  [1] Bottom-Middle  [2] Bottom-Right
+    /// ```
+    ///
+    /// # ImageCamera Segmentation
+    /// - **Center**: Primary focus area for detailed processing
+    /// - **Surrounding segments**: Peripheral vision areas for context and motion detection
+    ///
+    /// # Example
+    /// ```rust
+    /// // Create vision segments for camera 0
+    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalGroupingIndex, CorticalID};
+    /// use feagi_core_data_structures_and_processing::io_data::SegmentedImageFrame;
+    /// let color_segments = SegmentedImageFrame::create_ordered_cortical_ids_for_segmented_vision(
+    ///     CorticalGroupingIndex::from(0),
+    /// );
+
+    pub fn create_ordered_cortical_ids_for_segmented_vision(camera_index: CorticalGroupingIndex) -> [CorticalID; 9] {
+        [
+            SensorCorticalType::ImageCameraBottomLeft.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraBottomMiddle.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraBottomRight.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraMiddleLeft.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraCenter.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraMiddleRight.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraTopLeft.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraTopMiddle.to_cortical_id(camera_index),
+            SensorCorticalType::ImageCameraTopRight.to_cortical_id(camera_index),
+        ]
+    }
+
+    pub fn create_ordered_cortical_types_for_segmented_vision() -> [CorticalType; 9] {
+        [
+            SensorCorticalType::ImageCameraBottomLeft.into(),
+            SensorCorticalType::ImageCameraBottomMiddle.into(),
+            SensorCorticalType::ImageCameraBottomRight.into(),
+            SensorCorticalType::ImageCameraMiddleLeft.into(),
+            SensorCorticalType::ImageCameraCenter.into(),
+            SensorCorticalType::ImageCameraMiddleRight.into(),
+            SensorCorticalType::ImageCameraTopLeft.into(),
+            SensorCorticalType::ImageCameraTopMiddle.into(),
+            SensorCorticalType::ImageCameraTopRight.into(),
+        ]
+    }
+    
     //region common constructors
     
     /// Creates a new SegmentedVisionFrame with specified resolutions and color properties.
@@ -92,50 +147,40 @@ impl SegmentedImageFrame {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrame) if all segments were created successfully
     /// - Err(DataProcessingError) if any segment creation fails
-    pub fn new(segment_resolutions: &SegmentedFrameTargetResolutions, segment_color_channels: &ColorChannelLayout,
-               segment_color_space: &ColorSpace, input_frames_source_width_height: (usize, usize)) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
+    pub fn new(segment_resolutions: &SegmentedFrameTargetResolutions, segment_color_space: &ColorSpace, center_color_channels: &ColorChannelLayout, peripheral_color_channels: &ColorChannelLayout) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
         Ok(SegmentedImageFrame {
-            lower_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_left)?,
-            middle_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_left)?,
-            upper_left: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_left)?,
-            upper_middle: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_middle)?,
-            upper_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.upper_right)?,
-            middle_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.middle_right)?,
-            lower_right: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_right)?,
-            lower_middle: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.lower_middle)?,
-            center: ImageFrame::new(&segment_color_channels, &segment_color_space, &segment_resolutions.center)?,
-            previous_imported_internal_yx_resolution: (input_frames_source_width_height.1, input_frames_source_width_height.0),
-            previous_cropping_points_for_source_from_segment: None,
+            lower_left: ImageFrame::new(peripheral_color_channels, &segment_color_space, &segment_resolutions.lower_left)?,
+            middle_left: ImageFrame::new(peripheral_color_channels, &segment_color_space, &segment_resolutions.middle_left)?,
+            upper_left: ImageFrame::new(peripheral_color_channels, &segment_color_space, &segment_resolutions.upper_left)?,
+            upper_middle: ImageFrame::new(peripheral_color_channels, &segment_color_space, &segment_resolutions.upper_middle)?,
+            upper_right: ImageFrame::new(peripheral_color_channels, &segment_color_space, &segment_resolutions.upper_right)?,
+            middle_right: ImageFrame::new(peripheral_color_channels, &segment_color_space, &segment_resolutions.middle_right)?,
+            lower_right: ImageFrame::new(peripheral_color_channels, &segment_color_space, &segment_resolutions.lower_right)?,
+            lower_middle: ImageFrame::new(peripheral_color_channels, &segment_color_space, &segment_resolutions.lower_middle)?,
+            center: ImageFrame::new(center_color_channels, &segment_color_space, &segment_resolutions.center)?,
         })
+    }
+    
+    pub fn from_segmented_image_frame_properties(properties: &SegmentedImageFrameProperties) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
+        Self::new(
+            properties.get_expected_resolutions(),
+            properties.get_color_space(),
+            properties.get_center_color_channel(),
+            properties.get_peripheral_color_channels()
+        )
     }
     
     //endregion
     
     //region get properties
     
-    /// Returns the properties of all nine image frame segments.
-    ///
-    /// Provides the image properties (resolution, color space, channel layout) for each
-    /// of the nine segments in the standard cortical ordering: center, lower_left, 
-    /// middle_left, upper_left, upper_middle, upper_right, middle_right, lower_right, 
-    /// lower_middle.
-    ///
-    /// # Returns
-    ///
-    /// An array of 9 ImageFrameProperties, one for each segment in cortical order.
-    pub fn get_image_frame_properties(&self) -> [ImageFrameProperties; 9] {
-        // return in same order as cortical IDs
-        [
-            self.lower_left.get_image_frame_properties(),
-            self.lower_middle.get_image_frame_properties(),
-            self.lower_right.get_image_frame_properties(),
-            self.middle_left.get_image_frame_properties(),
-            self.center.get_image_frame_properties(),
-            self.middle_right.get_image_frame_properties(),
-            self.upper_left.get_image_frame_properties(),
-            self.upper_middle.get_image_frame_properties(),
-            self.upper_right.get_image_frame_properties(),
-        ]
+    pub fn get_segmented_image_frame_properties(&self) -> SegmentedImageFrameProperties {
+        SegmentedImageFrameProperties::new(
+            &self.get_segmented_frame_target_resolutions(),
+            self.center.get_channel_layout(),
+            self.lower_right.get_channel_layout(), // all peripherals should be the same
+            self.get_color_space()
+        )
     }
     
     /// Returns the color space used by all segments in this frame.
@@ -171,6 +216,20 @@ impl SegmentedImageFrame {
         self.lower_left.get_channel_layout() // All peripherals should be the same
     }
     
+    pub fn get_segmented_frame_target_resolutions(&self) -> SegmentedFrameTargetResolutions {
+        SegmentedFrameTargetResolutions::new(
+            self.lower_left.get_cartesian_width_height(),
+            self.middle_left.get_cartesian_width_height(),
+            self.upper_left.get_cartesian_width_height(),
+            self.upper_middle.get_cartesian_width_height(),
+            self.upper_right.get_cartesian_width_height(),
+            self.middle_right.get_cartesian_width_height(),
+            self.lower_right.get_cartesian_width_height(),
+            self.lower_middle.get_cartesian_width_height(),
+            self.center.get_cartesian_width_height(),
+        ).unwrap()
+    }
+    
     /// Returns references to the internal pixel data arrays for all nine segments.
     ///
     /// Provides direct access to the underlying 3D arrays containing pixel data
@@ -193,6 +252,18 @@ impl SegmentedImageFrame {
             self.upper_right.get_internal_data(),
         ]
     }
+
+    pub fn get_ordered_image_frame_references(&self) -> [&ImageFrame; 9] {
+        [&self.center, &self.lower_left, &self.middle_left, &self.upper_left, &self.upper_middle,
+            &self.upper_right, &self.middle_right, &self.lower_right,
+            &self.lower_middle]
+    }
+
+    pub fn get_mut_ordered_image_frame_references(&mut self) -> [&mut ImageFrame; 9] {
+        [&mut self.center, &mut self.lower_left, &mut self.middle_left, &mut self.upper_left, &mut self.upper_middle,
+            &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,
+            &mut self.lower_middle]
+    }
     
     pub(crate) fn get_image_internal_data_mut(&mut self) -> [&mut Array3<f32>; 9] {
         // return in same order as cortical IDs
@@ -212,70 +283,10 @@ impl SegmentedImageFrame {
     //endregion
     
     //region neuron export
-    /// Exports all segments as new cortical mapped neuron data.
-    ///
-    /// Converts the pixel data from all nine image segments into neuron data format
-    /// suitable for FEAGI processing. Creates a new CorticalMappedXYZPNeuronData container
-    /// with the appropriate cortical IDs and spatial mappings.
-    ///
-    /// # Arguments
-    ///
-    /// * `camera_index` - The cortical grouping index for the camera/vision system
-    /// * `channel_index` - The channel index within the cortical IO system
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(CorticalMappedXYZPNeuronData)` - Successfully created neuron data
-    /// * `Err(FeagiDataProcessingError)` - If the conversion fails
-    pub fn export_as_new_cortical_mapped_neuron_data(&mut self, camera_index: CorticalGroupingIndex, channel_index: CorticalIOChannelIndex) -> Result<CorticalMappedXYZPNeuronData, FeagiDataProcessingError> {
-
-        let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
-        
-        let cortical_ids: [CorticalID; 9] = CorticalID::create_ordered_cortical_areas_for_segmented_vision(camera_index);
-        
-        let mut output: CorticalMappedXYZPNeuronData = CorticalMappedXYZPNeuronData::new();
-        
+    pub fn write_as_neuron_xyzp_data(&self, write_target: &mut CorticalMappedXYZPNeuronData, channel_index: CorticalIOChannelIndex, ordered_cortical_ids: &[CorticalID; 9]) -> Result<(), FeagiDataProcessingError> {
+        let ordered_refs: [&ImageFrame; 9] = self.get_ordered_image_frame_references();
         for index in 0..9 {
-            let max_neurons = ordered_refs[index].get_max_capacity_neuron_count();
-            let mut data: NeuronXYZPArrays = NeuronXYZPArrays::with_capacity(max_neurons);
-            ordered_refs[index].write_xyzp_neuron_arrays(&mut data, channel_index)?;
-            output.insert(cortical_ids[index].clone(), data);
-        }
-        
-        Ok(output)
-    }
-    
-    /// Exports neuron data from all segments into an existing cortical-mapped data structure.
-    /// 
-    /// This method is similar to `export_as_new_cortical_mapped_neuron_data` but writes
-    /// the neuron data into pre-existing NeuronXYCPArrays structures. This is more efficient
-    /// when the cortical data structure is being reused across multiple frames.
-    /// 
-    /// # Arguments
-    /// 
-    /// * `ordered_cortical_ids` - An array of 9 cortical IDs in the expected order:
-    ///   [center, lower_left, middle_left, upper_left, upper_middle, upper_right, middle_right, lower_right, lower_middle]
-    /// * `all_mapped_neuron_data` - The existing cortical-mapped data structure to write into
-    /// 
-    /// # Returns
-    /// 
-    /// A Result containing either:
-    /// - Ok(()) if all segments were exported successfully
-    /// - Err(DataProcessingError) if any cortical ID is not found or conversion fails
-    pub fn inplace_export_cortical_mapped_neuron_data(&mut self, ordered_cortical_ids: &[CorticalID; 9], all_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData, channel_index: CorticalIOChannelIndex) -> Result<(), FeagiDataProcessingError> {
-        let ordered_refs: [&mut ImageFrame; 9] = self.get_ordered_image_frame_references();
-        
-        for index in 0..9 {
-            let cortical_id = &ordered_cortical_ids[index];
-            let mapped_neuron_data = all_mapped_neuron_data.get_neurons_of_mut(cortical_id);
-            match mapped_neuron_data { 
-                None => {
-                    return Err(FeagiDataProcessingError::InternalError("Unable to find cortical area to unwrap!".into())); // TODO specific error?
-                }
-                Some(mapped_data) => {
-                    ordered_refs[index].write_xyzp_neuron_arrays(mapped_data, channel_index)?;
-                }
-            }
+            ordered_refs[index].write_as_neuron_xyzp_data(write_target,ordered_cortical_ids[index], channel_index)?;
         }
         Ok(())
     }
@@ -283,21 +294,7 @@ impl SegmentedImageFrame {
     //endregion
     
     //region internal functions
-    
-    /// Returns mutable references to all nine image frames in the standard order.
-    /// 
-    /// This internal helper method provides ordered access to the image frame segments
-    /// for operations that need to process all segments uniformly.
-    /// 
-    /// # Returns
-    /// 
-    /// An array of mutable references to the nine ImageFrame segments in the order:
-    /// [center, lower_left, middle_left, upper_left, upper_middle, upper_right, middle_right, lower_right, lower_middle]
-    fn get_ordered_image_frame_references(&mut self) -> [&mut ImageFrame; 9] {
-        [&mut self.center, &mut self.lower_left, &mut self.middle_left,
-            &mut self.upper_left, &mut self.upper_middle, &mut self.upper_right, &mut self.middle_right, &mut self.lower_right,
-            &mut self.lower_middle]
-    }
+
     
     //endregion
     

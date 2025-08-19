@@ -44,8 +44,10 @@ mod image_frame;
 mod f32_split_sign_divided;
 mod f32_psp_bidirectional;
 mod f32_linear;
+mod segmented_image_frame;
 
 pub(crate) use image_frame::{ImageFrameNeuronXYZPEncoder};
 pub(crate) use f32_split_sign_divided::{F32SplitSignDividedNeuronXYZPEncoder};
 pub(crate) use f32_psp_bidirectional::{F32PSPBidirectionalNeuronXYZPEncoder};
 pub(crate) use f32_linear::{F32LinearNeuronXYZPEncoder};
+pub(crate) use segmented_image_frame::{SegmentedImageFrameNeuronXYZPEncoder};

@@ -1,6 +1,8 @@
 use crate::error::FeagiDataProcessingError;
 use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, SingleChannelDimensions};
 use crate::io_data::{IOTypeData, IOTypeVariant};
+use crate::io_processing::processors::LinearScaleTo0And1Processor;
+use crate::io_processing::StreamCacheProcessor;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPArrays};
 use crate::neuron_data::xyzp::coders::NeuronXYZPEncoder;
 pub(crate) struct F32PSPBidirectionalNeuronXYZPEncoder {
@@ -36,10 +38,14 @@ impl NeuronXYZPEncoder for F32PSPBidirectionalNeuronXYZPEncoder {
 }
 
 impl F32PSPBidirectionalNeuronXYZPEncoder {
-    pub fn new(cortical_write_target: CorticalID, channel_dimensions: SingleChannelDimensions) -> Self {
-        F32PSPBidirectionalNeuronXYZPEncoder {
-            channel_dimensions,
+
+    pub const CHANNEL_X_LENGTH: u32 = 2;
+    pub const CHANNEL_Y_LENGTH: u32 = 1;
+    
+    pub fn new(cortical_write_target: CorticalID, z_resolution: u32) -> Result<Self, FeagiDataProcessingError> {
+        Ok(F32PSPBidirectionalNeuronXYZPEncoder {
+            channel_dimensions: SingleChannelDimensions::new(Self::CHANNEL_X_LENGTH, Self::CHANNEL_Y_LENGTH, z_resolution)?,
             cortical_write_target
-        }
+        })
     }
 }

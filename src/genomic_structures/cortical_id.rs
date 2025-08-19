@@ -260,49 +260,6 @@ impl CorticalID {
     pub fn new_motor_cortical_area_id(output_type: MotorCorticalType, output_index: CorticalGroupingIndex) -> Result<Self, FeagiDataProcessingError> {
         Ok(output_type.to_cortical_id(output_index))
     }
-
-    /// Creates a predefined set of cortical areas for segmented vision processing.
-    ///
-    /// This utility method generates 9 cortical areas arranged in a 3x3 grid pattern
-    /// for processing segmented vision data. Each segment processes a different region
-    /// of the visual field, allowing for spatial attention and region-specific processing.
-    ///
-    /// # Arguments
-    /// * `camera_index` - The grouping index for this camera system (0-255)
-    ///
-    /// # Returns
-    /// Array of 9 CorticalID values arranged as:
-    /// ```text
-    /// [6] Top-Left     [7] Top-Middle     [8] Top-Togjt
-    /// [3] Middle-Left  [4] Center         [5] Middle-Right
-    /// [0] Bottom-Left  [1] Bottom-Middle  [2] Bottom-Right
-    /// ```
-    ///
-    /// # ImageCamera Segmentation
-    /// - **Center**: Primary focus area for detailed processing
-    /// - **Surrounding segments**: Peripheral vision areas for context and motion detection
-    ///
-    /// # Example
-    /// ```rust
-    /// // Create vision segments for camera 0
-    /// use feagi_core_data_structures_and_processing::genomic_structures::{CorticalGroupingIndex, CorticalID};
-    /// let color_segments = CorticalID::create_ordered_cortical_areas_for_segmented_vision(
-    ///     CorticalGroupingIndex::from(0),
-    /// );
-
-    pub fn create_ordered_cortical_areas_for_segmented_vision(camera_index: CorticalGroupingIndex) -> [CorticalID; 9] {
-        [
-            SensorCorticalType::ImageCameraBottomLeft.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraBottomMiddle.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraBottomRight.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraMiddleLeft.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraCenter.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraMiddleRight.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraTopLeft.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraTopMiddle.to_cortical_id(camera_index),
-            SensorCorticalType::ImageCameraTopRight.to_cortical_id(camera_index),
-        ]
-    }
     
     /// Creates a cortical ID from a 6-byte array.
     ///
@@ -340,7 +297,7 @@ impl CorticalID {
         Self::verify_input_ascii(&as_string)?;
         Self::verify_allowed_characters(&as_string)?;
         
-        let _ = CorticalType::get_type_from_bytes(bytes)?; // if type is invalid, error
+        let _ = CorticalType::try_get_type_from_bytes(bytes)?; // if type is invalid, error
         Ok(CorticalID {bytes: *bytes})
     }
 
@@ -383,7 +340,7 @@ impl CorticalID {
         Self::verify_allowed_characters(&string)?;
         
         let bytes: [u8; CorticalID::CORTICAL_ID_LENGTH] = string.as_bytes().try_into().unwrap();
-        let _ = CorticalType::get_type_from_bytes(&bytes)?; // if type is invalid, error
+        let _ = CorticalType::try_get_type_from_bytes(&bytes)?; // if type is invalid, error
         Ok(CorticalID {bytes })
     }
     
@@ -481,7 +438,7 @@ impl CorticalID {
     /// This method will never panic as the cortical ID is validated during creation
     /// to ensure it always corresponds to a valid cortical type.
     pub fn get_cortical_type(&self) -> CorticalType {
-        CorticalType::get_type_from_bytes(&self.bytes).unwrap() // will never error
+        CorticalType::try_get_type_from_bytes(&self.bytes).unwrap() // will never error
     }
     
     /// Validates that the input string has the correct length for a cortical ID.

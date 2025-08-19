@@ -28,8 +28,10 @@ mod image_frame;
 mod segmented_image_frame;
 
 pub mod descriptors;
-mod image_frame_transformer_definition;
+mod image_frame_transformer;
+mod image_frame_segmentator;
 
 pub use segmented_image_frame::SegmentedImageFrame;
 pub use image_frame::ImageFrame;
-pub use image_frame_transformer_definition::ImageFrameTransformerDefinition;
+pub use image_frame_transformer::ImageFrameTransformer;
+pub use image_frame_segmentator::ImageFrameSegmentator;
