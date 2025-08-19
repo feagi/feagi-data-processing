@@ -189,7 +189,6 @@ impl SegmentedImageFrameProperties {
 
 //endregion
 
-
 //region Segmented Frame Target Resolutions
 /// Target resolutions for each of the nine segments in a segmented vision frame
 ///

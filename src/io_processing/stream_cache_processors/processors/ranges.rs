@@ -97,6 +97,7 @@ impl LinearScaleTo0And1Processor {
     }
 }
 
+
 /// A stream processor that linearly scales input float values to the range [-1, 1].
 ///
 /// This processor takes float values within a specified input range [lower_bound, upper_bound]
@@ -110,7 +111,7 @@ impl LinearScaleTo0And1Processor {
 /// let mut processor = LinearScaleToM1And1::new(0.0, 100.0, 50.0).unwrap();
 /// // Input 50.0 would map to 0.0 in the output range
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone)] // TODO name Processor
 pub struct LinearScaleToM1And1 {
     previous_value: IOTypeData,
     lower: f32,

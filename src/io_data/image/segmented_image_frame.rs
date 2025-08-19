@@ -147,7 +147,8 @@ impl SegmentedImageFrame {
     /// A Result containing either:
     /// - Ok(SegmentedVisionFrame) if all segments were created successfully
     /// - Err(DataProcessingError) if any segment creation fails
-    pub fn new(segment_resolutions: &SegmentedFrameTargetResolutions, segment_color_space: &ColorSpace, center_color_channels: &ColorChannelLayout, peripheral_color_channels: &ColorChannelLayout) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
+    pub fn new(segment_resolutions: &SegmentedFrameTargetResolutions, segment_color_space: &ColorSpace, 
+               center_color_channels: &ColorChannelLayout, peripheral_color_channels: &ColorChannelLayout) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
         Ok(SegmentedImageFrame {
             lower_left: ImageFrame::new(peripheral_color_channels, &segment_color_space, &segment_resolutions.lower_left)?,
             middle_left: ImageFrame::new(peripheral_color_channels, &segment_color_space, &segment_resolutions.middle_left)?,
