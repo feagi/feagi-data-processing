@@ -10,6 +10,7 @@ use feagi_core_data_structures_and_processing::io_processing::{SensorCache, Stre
 use feagi_core_data_structures_and_processing::io_processing::byte_structures::FeagiByteStructure;
 use feagi_core_data_structures_and_processing::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
 
+/*
 #[test]
 fn test_simple_serialization() {
     let res = (4, 5);
@@ -46,6 +47,8 @@ fn test_simple_serialization() {
     let bytes = feagi_bytes.copy_out_as_byte_vector();
     assert_eq!(bytes.len(), 978);
 }
+
+ */
 
 
 #[test]

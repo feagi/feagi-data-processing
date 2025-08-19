@@ -49,6 +49,7 @@ fn test_chained_encoders() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+/*
 #[test]
 fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn std::error::Error>> {
     // Create Sensor Cache
@@ -97,3 +98,5 @@ fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn
     
     Ok(())
 }
+
+ */

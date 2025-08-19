@@ -7,3 +7,5 @@ mod caches;
 pub use callback_manager::{CallBackManager, CallbackSubscriberID};
 
 pub use stream_cache_processors::{StreamCacheProcessor, processors};
+
+pub use caches::SensorCache;

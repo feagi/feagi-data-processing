@@ -45,7 +45,7 @@ use crate::io_processing::StreamCacheProcessor;
 /// let input_props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
 /// let mut transformer_def = ImageFrameTransformer::new(input_props);
 /// transformer_def.set_resizing_to((224, 224)).unwrap();
-/// transformer_def.set_conversion_to_grayscale().unwrap();
+/// transformer_def.set_conversion_to_grayscale(true).unwrap();
 ///
 /// let processor = ImageFrameTransformerProcessor::new(transformer_def).unwrap();
 /// ```
