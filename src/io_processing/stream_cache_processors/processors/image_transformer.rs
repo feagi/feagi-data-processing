@@ -49,7 +49,7 @@ use crate::io_processing::StreamCacheProcessor;
 ///
 /// let processor = ImageFrameTransformerProcessor::new(transformer_def).unwrap();
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageFrameTransformerProcessor {
     /// The transformation configuration defining which operations to apply and their parameters
     transformer_definition: ImageFrameTransformer,

@@ -5,7 +5,7 @@ use crate::io_data::image_descriptors::{ImageFrameProperties, GazeProperties, Se
 use crate::io_data::{IOTypeData, IOTypeVariant, ImageFrame, ImageFrameSegmentator, SegmentedImageFrame};
 use crate::io_processing::StreamCacheProcessor;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageFrameSegmentatorProcessor {
     input_image_properties: ImageFrameProperties,
     output_image_properties: SegmentedImageFrameProperties,
