@@ -9,6 +9,7 @@ use std::cmp::PartialEq;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::{ImageFrame, SegmentedImageFrame};
 use crate::io_data::image::descriptors::ImageFrameProperties;
+use crate::io_data::image_descriptors::SegmentedImageFrameProperties;
 //region IOTypeVariant
 
 /// Type identifiers for all supported I/O data types in FEAGI.
@@ -45,7 +46,7 @@ pub enum IOTypeVariant {
     F32Normalized0To1,
     F32NormalizedM1To1,
     ImageFrame(Option<ImageFrameProperties>),
-    SegmentedImageFrame(Option<[ImageFrameProperties; 9]>),
+    SegmentedImageFrame(Option<SegmentedImageFrameProperties>),
 }
 
 impl IOTypeVariant {
@@ -90,8 +91,7 @@ impl std::fmt::Display for IOTypeVariant {
                 let s: String = match segment_properties {
                     None => "No Requirements".to_string(),
                     Some(properties) => {
-                        format!("[Lower Left: {}, Lower Middle: {}, Lower Right: {}, Middle Left: {}, Middle Middle: {}, Middle Right: {}, Upper Left: {}, Upper Middle: {}, Upper Right: {}]", 
-                                properties[0].to_string(), properties[1].to_string(), properties[2].to_string(), properties[3].to_string(), properties[4].to_string(), properties[5].to_string(), properties[6].to_string(), properties[7].to_string(), properties[8].to_string())
+                        format!("SegmentedImageFrame({})", "TODO") // TODO
                     }
                 };
                 write!(f, "SegmentedImageFrame({})", s)
@@ -107,7 +107,7 @@ impl From<IOTypeData> for IOTypeVariant {
             IOTypeData::F32Normalized0To1(_) => IOTypeVariant::F32Normalized0To1,
             IOTypeData::F32NormalizedM1To1(_) => IOTypeVariant::F32NormalizedM1To1,
             IOTypeData::ImageFrame(image) => IOTypeVariant::ImageFrame(Some(image.get_image_frame_properties())),
-            IOTypeData::SegmentedImageFrame(segments) => IOTypeVariant::SegmentedImageFrame(Some(segments.get_image_frame_properties())),
+            IOTypeData::SegmentedImageFrame(segments) => IOTypeVariant::SegmentedImageFrame(Some(segments.get_segmented_image_frame_properties())),
         }
     }
 }
@@ -119,7 +119,7 @@ impl From<&IOTypeData> for IOTypeVariant {
             IOTypeData::F32Normalized0To1(_) => IOTypeVariant::F32Normalized0To1,
             IOTypeData::F32NormalizedM1To1(_) => IOTypeVariant::F32NormalizedM1To1,
             IOTypeData::ImageFrame(image) => IOTypeVariant::ImageFrame(Some(image.get_image_frame_properties())),
-            IOTypeData::SegmentedImageFrame(segments) => IOTypeVariant::SegmentedImageFrame(Some(segments.get_image_frame_properties())),
+            IOTypeData::SegmentedImageFrame(segments) => IOTypeVariant::SegmentedImageFrame(Some(segments.get_segmented_image_frame_properties())),
         }
     }
 }

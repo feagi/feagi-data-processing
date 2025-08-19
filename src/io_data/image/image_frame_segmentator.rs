@@ -2,7 +2,7 @@ use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::io_data::image_descriptors::{ColorChannelLayout, ColorSpace, GazeProperties, ImageFrameProperties, SegmentedImageFrameProperties};
 use crate::io_data::{ImageFrame, ImageFrameTransformer, SegmentedImageFrame};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageFrameSegmentator {
     input_properties: ImageFrameProperties,
     output_properties: SegmentedImageFrameProperties,

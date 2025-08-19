@@ -1,14 +1,14 @@
 use std::fmt::Display;
 use std::time::Instant;
 use crate::error::FeagiDataProcessingError;
-use crate::io_data::image_descriptors::{ImageFrameProperties, GazeProperties};
+use crate::io_data::image_descriptors::{ImageFrameProperties, GazeProperties, SegmentedImageFrameProperties};
 use crate::io_data::{IOTypeData, IOTypeVariant, ImageFrame, ImageFrameSegmentator, SegmentedImageFrame};
 use crate::io_processing::StreamCacheProcessor;
 
 #[derive(Debug)]
 pub struct ImageFrameSegmentatorProcessor {
     input_image_properties: ImageFrameProperties,
-    output_image_properties: [ImageFrameProperties; 9],
+    output_image_properties: SegmentedImageFrameProperties,
     image_segmentator: ImageFrameSegmentator,
     cached: IOTypeData
 }
@@ -33,10 +33,24 @@ impl StreamCacheProcessor for ImageFrameSegmentatorProcessor {
     fn process_new_input(&mut self, value: &IOTypeData, time_of_input: Instant) -> Result<&IOTypeData, FeagiDataProcessingError> {
 
         let read_from: &ImageFrame = value.try_into()?;
-        let write_to: &mut SegmentedImageFrame = self.cached.try_into()?;
+        let write_to: &mut SegmentedImageFrame = (&mut self.cached).try_into()?;
         
         self.image_segmentator.segment_image(read_from, write_to)?;
         Ok(self.get_most_recent_output())
+    }
+}
+
+impl ImageFrameSegmentatorProcessor {
+    pub fn new(input_image_properties: ImageFrameProperties, output_image_properties: SegmentedImageFrameProperties, image_segmentator: ImageFrameSegmentator) -> Self {
+        let cached: SegmentedImageFrame = SegmentedImageFrame::from_segmented_image_frame_properties(&output_image_properties).unwrap();
+
+        ImageFrameSegmentatorProcessor{
+            input_image_properties,
+            output_image_properties,
+            image_segmentator,
+            cached: cached.into()
+        }
+        
     }
 }
 

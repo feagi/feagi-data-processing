@@ -1,14 +1,15 @@
+
 use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SensorCorticalType, SingleChannelDimensions};
-use crate::io_data::image_descriptors::{ImageFrameProperties, GazeProperties};
-use crate::io_data::{ImageFrame, ImageFrameTransformer};
+use crate::io_data::image_descriptors::{ImageFrameProperties, GazeProperties, SegmentedImageFrameProperties};
+use crate::io_data::{ImageFrame, ImageFrameSegmentator, ImageFrameTransformer, SegmentedImageFrame};
 use crate::io_processing::caches::hashmap_helpers::{FullChannelCacheKey, CorticalAreaMetadataKey, AccessAgentLookupKey};
-use crate::io_processing::processors::{ImageFrameTransformerProcessor, LinearScaleTo0And1Processor};
+use crate::io_processing::processors::{IdentitySegmentedImageFrameProcessor, ImageFrameSegmentatorProcessor, ImageFrameTransformerProcessor, LinearScaleTo0And1Processor};
 use crate::io_processing::sensory_channel_stream_cache::SensoryChannelStreamCache;
 use crate::io_processing::StreamCacheProcessor;
 use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
-use crate::neuron_data::xyzp::encoders::{F32LinearNeuronXYZPEncoder, ImageFrameNeuronXYZPEncoder};
+use crate::neuron_data::xyzp::encoders::{F32LinearNeuronXYZPEncoder, ImageFrameNeuronXYZPEncoder, SegmentedImageFrameNeuronXYZPEncoder};
 
 pub struct SensorCache {
     channel_caches: HashMap<FullChannelCacheKey, SensoryChannelStreamCache>, // (cortical type, grouping index, channel) -> sensory data cache, the main lookup
@@ -64,10 +65,12 @@ impl SensorCache {
     pub fn register_cortical_group_for_image_camera_with_peripheral(&mut self, cortical_group: CorticalGroupingIndex,
                                                                     number_of_channels: usize, allow_stale_data: bool,
                                                                     input_image_properties: ImageFrameProperties,
+                                                                    output_image_properties: SegmentedImageFrameProperties,
                                                                     segmentation_center_properties: GazeProperties) -> Result<(), FeagiDataProcessingError> {
-
+        
+        let sensor_cortical_type = SensorCorticalType::ImageCameraCenter;
         self.verify_number_channels(number_of_channels)?;
-        let cortical_ids = CorticalID::create_ordered_cortical_areas_for_segmented_vision(cortical_group);
+        let cortical_ids = SegmentedImageFrame::create_ordered_cortical_ids_for_segmented_vision(cortical_group);
         for cortical_id in &cortical_ids {
             let cortical_type = cortical_id.get_cortical_type();
             let cortical_metadata = CorticalAreaMetadataKey::new(cortical_type, cortical_group);
@@ -76,8 +79,15 @@ impl SensorCache {
             }
         }; // ensure no cortical ID is used already
         
+        let segmentator = ImageFrameSegmentator::new(input_image_properties, output_image_properties, segmentation_center_properties)?;
+        let neuron_encoder = Box::new(SegmentedImageFrameNeuronXYZPEncoder::new(cortical_ids, output_image_properties)?);
+        let mut processors: Vec<Vec<Box<dyn StreamCacheProcessor + Sync + Send>>> = Vec::with_capacity(number_of_channels);
+        for i in 0..number_of_channels {
+            processors.push(vec![Box::new(ImageFrameSegmentatorProcessor::new(input_image_properties, output_image_properties, segmentator.clone()))]);
+        };
         
-        
+        self.register_cortical_area_and_channels(sensor_cortical_type, cortical_group, neuron_encoder, processors, allow_stale_data)?;
+        Ok(())
 
 
     }

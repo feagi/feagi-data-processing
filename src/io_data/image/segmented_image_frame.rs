@@ -161,6 +161,15 @@ impl SegmentedImageFrame {
         })
     }
     
+    pub fn from_segmented_image_frame_properties(properties: &SegmentedImageFrameProperties) -> Result<SegmentedImageFrame, FeagiDataProcessingError> {
+        Self::new(
+            properties.get_expected_resolutions(),
+            properties.get_color_space(),
+            properties.get_center_color_channel(),
+            properties.get_peripheral_color_channels()
+        )
+    }
+    
     //endregion
     
     //region get properties

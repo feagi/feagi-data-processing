@@ -156,7 +156,7 @@ impl IdentitySegmentedImageFrameProcessor {
     /// * `Ok(IdentitySegmentedImageFrameProcessor)` - A new processor instance
     pub fn new(initial_segmented_image: SegmentedImageFrame) -> Result<Self, FeagiDataProcessingError> {
         Ok(IdentitySegmentedImageFrameProcessor{
-            expected_segmented_image_variant: IOTypeVariant::SegmentedImageFrame(Some(initial_segmented_image.get_image_frame_properties())),
+            expected_segmented_image_variant: IOTypeVariant::SegmentedImageFrame(Some(initial_segmented_image.get_segmented_image_frame_properties())),
             previous_value: IOTypeData::SegmentedImageFrame(initial_segmented_image),
         })
     }
