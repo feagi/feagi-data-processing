@@ -1,4 +1,3 @@
-
 use std::collections::HashMap;
 use crate::error::{FeagiDataProcessingError, IODataError};
 use crate::genomic_structures::{AgentDeviceIndex, CorticalGroupingIndex, CorticalID, CorticalIOChannelIndex, CorticalType, SensorCorticalType, SingleChannelDimensions};

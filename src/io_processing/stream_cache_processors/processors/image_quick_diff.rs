@@ -43,7 +43,7 @@ use crate::io_processing::StreamCacheProcessor;
 /// let threshold = 0.1; // 10% difference threshold
 /// let diff_processor = ImageFrameQuickDiffProcessor::new(props, threshold).unwrap();
 /// ```
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageFrameQuickDiffProcessor {
     /// The output buffer containing the computed difference image
     diff_cache: IOTypeData, // Image Frame
