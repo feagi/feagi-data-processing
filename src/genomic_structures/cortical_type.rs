@@ -50,6 +50,14 @@ macro_rules! define_io_cortical_types {
 
         impl $cortical_io_type_enum_name {
 
+            pub fn list_all_sensor_types() -> Vec<$cortical_io_type_enum_name> {
+                let mut output: Vec<$cortical_io_type_enum_name> = Vec::new();
+                    $(
+                        output.push($cortical_io_type_enum_name::$cortical_type_key_name);
+                    )*
+                output
+            }
+            
             // Does no cortical ID checking
             pub(crate) fn get_type_from_bytes(id: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<CorticalType, FeagiDataProcessingError> {
                 let mut id_0: [u8; CorticalID::CORTICAL_ID_LENGTH] = id.clone();
@@ -95,6 +103,8 @@ macro_rules! define_io_cortical_types {
                     ),*
                 }
             }
+            
+
             
         }
     }
