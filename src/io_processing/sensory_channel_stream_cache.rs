@@ -15,7 +15,7 @@ use crate::neuron_data::xyzp::{NeuronXYZPEncoder};
 /// Per-channel cache for sensory input data streams.
 ///
 /// `SensoryChannelStreamCache` manages the buffering and processing of sensory
-/// data for a single I/O channel. It applies a chain of stream processors to
+/// data for a single I/O channel. It applies a chain of stream processing to
 /// incoming data and tracks when values were last updated
 ///
 /// # Key Features
@@ -38,12 +38,12 @@ impl SensoryChannelStreamCache {
     /// Creates a new sensory channel stream cache with specified processing chain.
     ///
     /// Initializes a cache for a specific I/O channel with a configurable chain
-    /// of stream processors. The processors are applied sequentially to incoming
+    /// of stream processing. The processing are applied sequentially to incoming
     /// data before it's made available to the neural system.
     ///
     /// # Arguments
     ///
-    /// * `cache_processors` - Vector of processors to apply to incoming data in order
+    /// * `cache_processors` - Vector of processing to apply to incoming data in order
     /// * `channel` - The cortical I/O channel index this cache represents
     /// * `should_allow_sending_stale_data` - Whether to allow sending cached data
     ///   when no fresh updates are available
@@ -56,7 +56,7 @@ impl SensoryChannelStreamCache {
     /// # Errors
     ///
     /// Returns an error if the processor runner cannot be initialized with the
-    /// provided processors (e.g., incompatible data types between processors).
+    /// provided processing (e.g., incompatible data types between processing).
     pub fn new(cache_processors: Vec<Box<dyn StreamCacheProcessor + Sync + Send>>,
                channel: CorticalIOChannelIndex,
                should_allow_sending_stale_data: bool
@@ -73,7 +73,7 @@ impl SensoryChannelStreamCache {
     
     /// Updates the cache with a new sensor value and processes it through the chain.
     ///
-    /// Takes raw sensor data, applies all configured processors in sequence,
+    /// Takes raw sensor data, applies all configured processing in sequence,
     /// and updates the internal timestamp to mark when fresh data was received.
     /// The processed result becomes available through `get_most_recent_sensor_value()`.
     ///

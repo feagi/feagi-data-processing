@@ -2,7 +2,8 @@ use std::fmt;
 use crate::basic_components::DimensionRange;
 use crate::sensor_definition;
 use crate::FeagiDataError;
-use crate::genomic::{CorticalGroupIndex, CorticalID};
+use crate::genomic::{CorticalID};
+use crate::genomic::descriptors::CorticalGroupIndex;
 use crate::neurons::NeuronCoderType;
 
 macro_rules! define_io_cortical_types {

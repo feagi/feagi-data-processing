@@ -1,7 +1,7 @@
-//! Core trait definition for stream cache processors.
+//! Core trait definition for stream cache processing.
 //!
 //! This module defines the `StreamCacheProcessor` trait, which provides a unified interface
-//! for all data transformation processors in the FEAGI system. Processors implementing this
+//! for all data transformation processing in the FEAGI system. Processors implementing this
 //! trait can be chained together to create complex data processing pipelines.
 
 use std::fmt;
@@ -10,9 +10,9 @@ use std::time::Instant;
 use crate::error::FeagiDataProcessingError;
 use crate::io_data::{IOTypeData, IOTypeVariant};
 
-/// Core trait for stream cache processors that transform data in real-time pipelines.
+/// Core trait for stream cache processing that transform data in real-time pipelines.
 ///
-/// This trait defines the interface that all stream processors must implement to participate
+/// This trait defines the interface that all stream processing must implement to participate
 /// in FEAGI's data processing pipelines. Processors are stateful basic_components that can transform,
 /// filter, or aggregate incoming data streams.
 ///
@@ -20,7 +20,7 @@ use crate::io_data::{IOTypeData, IOTypeVariant};
 ///
 /// - **Type Safety**: Each processor declares its input and output data types
 /// - **Statefulness**: Processors maintain internal state and can reference previous values
-/// - **Thread Safety**: All processors must be `Sync + Send` for concurrent processing
+/// - **Thread Safety**: All processing must be `Sync + Send` for concurrent processing
 /// - **Chainable**: Processors can be linked together when output types match input types
 ///
 /// # Implementation Requirements
@@ -81,7 +81,7 @@ use crate::io_data::{IOTypeData, IOTypeVariant};
 pub trait StreamCacheProcessor: fmt::Display + Debug + Sync + Send {
     /// Returns the data type this processor expects as input.
     ///
-    /// This is used by `ProcessorRunner` to validate that processors can be chained
+    /// This is used by `ProcessorRunner` to validate that processing can be chained
     /// together correctly (output type of one matches input type of the next).
     fn get_input_data_type(&self) -> IOTypeVariant;
 

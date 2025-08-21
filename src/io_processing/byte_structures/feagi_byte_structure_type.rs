@@ -1,4 +1,4 @@
-//! Type identification for FEAGI byte structure formats.
+//! Type identification for FEAGI bytes structure formats.
 //!
 //! This module defines the `FeagiByteStructureType` enum, which provides standardized
 //! identifiers for different serialization formats supported by the FEAGI system.
@@ -8,16 +8,16 @@
 use std::fmt::{Display, Formatter};
 use crate::error::{FeagiBytesError, FeagiDataProcessingError};
 
-/// Enumeration of all supported FEAGI byte structure format types.
+/// Enumeration of all supported FEAGI bytes structure format types.
 /// 
 /// Each variant corresponds to a specific serialization format and is used
-/// as the first byte in the global header to identify the format type.
+/// as the first bytes in the global header to identify the format type.
 /// The discriminant values are explicitly specified to ensure stability
 /// across different compiler versions and targets.
 ///
 /// # Format Identification
 ///
-/// The type identifier is always stored as the first byte in any FEAGI byte structure,
+/// The type identifier is always stored as the first bytes in any FEAGI bytes structure,
 /// allowing immediate format detection without parsing the entire structure. This
 /// enables efficient routing to appropriate deserialization logic.
 ///
@@ -42,7 +42,7 @@ pub enum FeagiByteStructureType {
     /// Multi-structure container format.
     /// 
     /// A container format that can hold multiple different FEAGI structures
-    /// in a single serialized byte stream.
+    /// in a single serialized bytes stream.
     MultiStructHolder = 9,
     
     /// Binary format for neuron categorical XYZP data.
@@ -66,12 +66,12 @@ impl Display for FeagiByteStructureType {
 impl FeagiByteStructureType {
     /// Attempts to convert a numeric type identifier to a FeagiByteStructureType.
     ///
-    /// This function maps the numeric identifiers stored in byte structure headers
+    /// This function maps the numeric identifiers stored in bytes structure headers
     /// back to their corresponding enum variants. Used during deserialization to
     /// determine the appropriate format handling logic.
     ///
     /// # Arguments
-    /// * `value` - Numeric type identifier from a byte structure header
+    /// * `value` - Numeric type identifier from a bytes structure header
     ///
     /// # Returns
     /// * `Ok(FeagiByteStructureType)` - Successfully identified format type
@@ -90,25 +90,25 @@ impl FeagiByteStructureType {
         }
     }
 
-    /// Extracts the format type from the first byte of a byte array.
+    /// Extracts the format type from the first bytes of a bytes array.
     ///
-    /// This convenience method reads the type identifier directly from raw byte data,
+    /// This convenience method reads the type identifier directly from raw bytes data,
     /// performing the necessary validation and conversion. Commonly used during the
-    /// initial parsing of incoming byte structures.
+    /// initial parsing of incoming bytes structures.
     ///
     /// # Arguments
-    /// * `bytes` - Raw byte array containing a FEAGI byte structure
+    /// * `bytes` - Raw bytes array containing a FEAGI bytes structure
     ///
     /// # Returns
     /// * `Ok(FeagiByteStructureType)` - Successfully identified format type
-    /// * `Err(FeagiDataProcessingError)` - If the byte array is empty or contains an unknown type
+    /// * `Err(FeagiDataProcessingError)` - If the bytes array is empty or contains an unknown type
     ///
     /// # Requirements
-    /// The byte array must contain at least one byte. The first byte is interpreted
-    /// as the format type identifier according to the FEAGI byte structure standard.
+    /// The bytes array must contain at least one bytes. The first bytes is interpreted
+    /// as the format type identifier according to the FEAGI bytes structure standard.
     pub fn try_get_type_from_bytes(bytes: &[u8]) -> Result<FeagiByteStructureType, FeagiDataProcessingError> {
         if bytes.len() < 1 {
-            return Err(FeagiBytesError::UnableToDeserializeBytes("Cannot ascertain type of empty byte array!".into()).into())
+            return Err(FeagiBytesError::UnableToDeserializeBytes("Cannot ascertain type of empty bytes array!".into()).into())
         }
         FeagiByteStructureType::try_from(bytes[0])
     }

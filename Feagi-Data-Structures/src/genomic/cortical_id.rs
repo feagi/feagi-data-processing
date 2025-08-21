@@ -1,7 +1,7 @@
 use std::fmt;
 use crate::FeagiDataError;
 use crate::genomic::{CorticalType, CoreCorticalType, SensorCorticalType, MotorCorticalType};
-use crate::genomic::indexing::CorticalGroupIndex;
+use crate::genomic::descriptors::CorticalGroupIndex;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CorticalID {
@@ -12,7 +12,7 @@ impl CorticalID {
     /// The fixed length of all cortical identifiers in bytes.
     pub const CORTICAL_ID_LENGTH: usize = 6;
 
-    /// Alias for `CORTICAL_ID_LENGTH` for consistency with other byte-oriented APIs.
+    /// Alias for `CORTICAL_ID_LENGTH` for consistency with other bytes-oriented APIs.
     pub const NUMBER_OF_BYTES: usize = Self::CORTICAL_ID_LENGTH;
     
     //region Constructors
@@ -93,11 +93,11 @@ impl CorticalID {
 
     /// Returns the raw bytes of this cortical identifier.
     ///
-    /// Provides direct access to the underlying 6-byte array representation
+    /// Provides direct access to the underlying 6-bytes array representation
     /// of the cortical ID. Useful for serialization, hashing, or low-level operations.
     ///
     /// # Returns
-    /// Reference to the 6-byte array containing the ASCII characters
+    /// Reference to the 6-bytes array containing the ASCII characters
     pub fn as_bytes(&self) -> &[u8; CorticalID::CORTICAL_ID_LENGTH] {
         &self.bytes
     }
@@ -109,7 +109,7 @@ impl CorticalID {
     /// data structure or buffer.
     ///
     /// # Arguments
-    /// * `target` - Mutable reference to a 6-byte array to write to
+    /// * `target` - Mutable reference to a 6-bytes array to write to
     ///
     /// # Returns
     /// * `Ok(())` - Bytes successfully copied

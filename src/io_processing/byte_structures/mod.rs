@@ -1,26 +1,26 @@
-//! FEAGI byte structure serialization and deserialization framework.
+//! FEAGI bytes structure serialization and deserialization framework.
 //!
 //! This module provides a standardized binary format for serializing and deserializing
 //! various data structures used in FEAGI processing. The system supports multiple
 //! serialization formats and can handle both single structures and multi-structure
-//! containers within a unified byte stream.
+//! io_containers within a unified bytes stream.
 //!
 //! # Architecture
 //!
 //! The framework consists of three main basic_components:
 //!
 //! - **FeagiByteStructureType**: Enumeration of supported serialization formats
-//! - **FeagiByteStructure**: Core container for serialized byte data with validation
+//! - **FeagiByteStructure**: Core container for serialized bytes data with validation
 //! - **FeagiByteStructureCompatible**: Trait for types that can be serialized/deserialized
 //!
 //! # Binary Format
 //!
-//! All FEAGI byte structures follow a standardized header format:
+//! All FEAGI bytes structures follow a standardized header format:
 //! ```text
-//! [Type (1 byte)][Version (1 byte)][Format-specific data...]
+//! [Type (1 bytes)][Version (1 bytes)][Format-specific data...]
 //! ```
 //!
-//! Multi-structure containers add additional headers for indexing multiple structures.
+//! Multi-structure io_containers add additional headers for indexing multiple structures.
 //!
 //! # Supported Formats
 //!

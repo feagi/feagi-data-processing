@@ -1,17 +1,17 @@
-//! JSON data structure with FEAGI byte structure compatibility.
+//! JSON data structure with FEAGI bytes structure compatibility.
 //!
 //! This module provides the `JsonStructure` type, which wraps JSON data and implements
 //! the `FeagiByteStructureCompatible` trait for seamless integration with the FEAGI
-//! byte structure serialization system. This allows JSON data to be stored, transmitted,
+//! bytes structure serialization system. This allows JSON data to be stored, transmitted,
 //! and processed alongside other FEAGI data types.
 
 use serde_json;
 use crate::io_processing::byte_structures::{FeagiByteStructureType, FeagiByteStructure, FeagiByteStructureCompatible};
 use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
 
-/// JSON data structure compatible with FEAGI byte structure serialization.
+/// JSON data structure compatible with FEAGI bytes structure serialization.
 ///
-/// `JsonStructure` wraps a `serde_json::Value` and provides FEAGI byte structure
+/// `JsonStructure` wraps a `serde_json::Value` and provides FEAGI bytes structure
 /// compatibility, allowing JSON data to be serialized, transmitted, and stored
 /// using the same infrastructure as other FEAGI data types.
 ///
@@ -20,14 +20,14 @@ use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
 /// - **Byte Structure Compatibility**: Implements `FeagiByteStructureCompatible` for
 ///   seamless integration with FEAGI serialization systems
 /// - **JSON Validation**: Ensures JSON data is well-formed during construction
-/// - **UTF-8 Encoding**: Uses UTF-8 encoding for string representation in byte structures
+/// - **UTF-8 Encoding**: Uses UTF-8 encoding for string representation in bytes structures
 /// - **Flexible Input**: Accepts JSON from strings or `serde_json::Value` objects
 ///
 /// # Serialization Format
 ///
-/// The byte structure format consists of:
+/// The bytes structure format consists of:
 /// ```text
-/// [Type=1 (1 byte)][Version=1 (1 byte)][JSON UTF-8 bytes...]
+/// [Type=1 (1 bytes)][Version=1 (1 bytes)][JSON UTF-8 bytes...]
 /// ```
 ///
 /// # Usage Examples
@@ -107,7 +107,7 @@ impl FeagiByteStructureCompatible for FeagiJSON {
         let bytes = feagi_byte_structure.borrow_data_as_slice();
         
         if bytes.len() < FeagiByteStructure::GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES {
-            return Err(FeagiBytesError::UnableToDeserializeBytes("JSON byte structure too short to contain global header".into()).into());
+            return Err(FeagiBytesError::UnableToDeserializeBytes("JSON bytes structure too short to contain global header".into()).into());
         }
         
         // Extract JSON data (everything after the global header)
@@ -130,10 +130,10 @@ impl std::fmt::Display for FeagiJSON {
 }
 
 impl FeagiJSON {
-    /// The FEAGI byte structure type identifier for JSON data.
+    /// The FEAGI bytes structure type identifier for JSON data.
     const BYTE_STRUCTURE_TYPE: FeagiByteStructureType = FeagiByteStructureType::JSON;
     
-    /// The current version of the JSON byte structure format.
+    /// The current version of the JSON bytes structure format.
     const BYTE_STRUCT_VERSION: u8 = 1;
     
     /// Creates a JsonStructure from a JSON string with validation.

@@ -47,8 +47,8 @@
 //! Common in sensor data processing and cortical area management.
 //!
 //! ## Byte Processing Errors ([`FeagiBytesError`])  
-//! Used for serialization/deserialization failures, byte validation errors, and incompatible
-//! byte structure usage. Critical for network communication and data persistence.
+//! Used for serialization/deserialization failures, bytes validation errors, and incompatible
+//! bytes structure usage. Critical for network communication and data persistence.
 //!
 //! ## Device Errors ([`IODeviceError`])
 //! Used for sensor input validation failures, motor callback errors, and invalid motor data
@@ -122,8 +122,8 @@ pub enum FeagiDataProcessingError {
     
     /// Byte processing and serialization errors.
     ///
-    /// Wraps [`FeagiBytesError`] for issues with byte validation, serialization,
-    /// deserialization, and incompatible byte structure usage.
+    /// Wraps [`FeagiBytesError`] for issues with bytes validation, serialization,
+    /// deserialization, and incompatible bytes structure usage.
     FeagiBytes(FeagiBytesError),
     
     /// Hardware device and I/O errors.
@@ -258,7 +258,7 @@ pub enum IODataError{
     /// Common cases include:
     /// - Modifying immutable sensor data
     /// - Invalid transformations on neuron data structures
-    /// - Attempting to resize fixed-size data containers
+    /// - Attempting to resize fixed-size data io_containers
     InvalidInplaceOperation(String),
 }
 
@@ -271,10 +271,10 @@ impl fmt::Display for IODataError {
     }
 }
 
-/// Errors related to byte processing, serialization, and deserialization.
+/// Errors related to bytes processing, serialization, and deserialization.
 ///
-/// This error type covers issues that occur during byte-level operations, including
-/// validation of byte structures, serialization to binary formats, and deserialization
+/// This error type covers issues that occur during bytes-level operations, including
+/// validation of bytes structures, serialization to binary formats, and deserialization
 /// from network or storage sources. Critical for network communication and data persistence.
 ///
 /// # Examples
@@ -290,19 +290,19 @@ impl fmt::Display for IODataError {
 /// ```
 #[derive(Debug)]
 pub enum FeagiBytesError {
-    /// Failed to validate byte structure or format.
+    /// Failed to validate bytes structure or format.
     ///
-    /// This variant is used when byte data doesn't conform to expected formats,
+    /// This variant is used when bytes data doesn't conform to expected formats,
     /// has invalid headers, or fails validation.
     ///
     /// Common cases include:
     /// - Invalid magic bytes or headers
     /// - Checksum validation failures  
-    /// - Corrupted byte sequences
+    /// - Corrupted bytes sequences
     /// - Unsupported format versions
     UnableToValidateBytes(String),
     
-    /// Failed to serialize data to byte format.
+    /// Failed to serialize data to bytes format.
     ///
     /// This variant is used when data structures cannot be converted to their
     /// binary representation due to format limitations or data constraints.
@@ -313,7 +313,7 @@ pub enum FeagiBytesError {
     /// - Memory allocation failures during serialization
     UnableToSerializeBytes(String),
     
-    /// Failed to deserialize data from byte format.
+    /// Failed to deserialize data from bytes format.
     ///
     /// This variant is used when binary data cannot be converted back to
     /// data structures due to format issues or data corruption.
@@ -325,13 +325,13 @@ pub enum FeagiBytesError {
     /// - Invalid data structure relationships
     UnableToDeserializeBytes(String),
     
-    /// Incompatible usage of byte structures.
+    /// Incompatible usage of bytes structures.
     ///
-    /// This variant is used when byte structures are used in contexts they
+    /// This variant is used when bytes structures are used in contexts they
     /// weren't designed for, or when operations are performed on incompatible formats.
     ///
     /// Common cases include:
-    /// - Using sensor byte format for motor data
+    /// - Using sensor bytes format for motor data
     /// - Mixing different protocol versions
     /// - Operating on wrong endianness
     IncompatibleByteUse(String),
@@ -343,7 +343,7 @@ impl fmt::Display for FeagiBytesError {
             FeagiBytesError::UnableToValidateBytes(e) => write!(f, "Unable to validate bytes: {}", e),
             FeagiBytesError::UnableToSerializeBytes(e) => write!(f, "Unable to serialize bytes: {}", e),
             FeagiBytesError::UnableToDeserializeBytes(e) => write!(f, "Unable to deserialize bytes: {}", e),
-            FeagiBytesError::IncompatibleByteUse(e) => write!(f, "Incorrect of byte structure: {}", e),
+            FeagiBytesError::IncompatibleByteUse(e) => write!(f, "Incorrect of bytes structure: {}", e),
         }
     }
 }

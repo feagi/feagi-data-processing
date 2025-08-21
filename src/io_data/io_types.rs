@@ -2,7 +2,7 @@
 //!
 //! This module defines the fundamental data types used throughout the FEAGI system
 //! for representing different kinds of input and output data. It provides both
-//! type identifiers (IOTypeVariant) and typed data containers (IOTypeData) to 
+//! type identifiers (IOTypeVariant) and typed data io_containers (IOTypeData) to 
 //! allow functions to pass various data types while keeping Rust's type system happy
 
 use std::cmp::PartialEq;
@@ -162,7 +162,7 @@ impl From<&IOTypeData> for IOTypeVariant {
 ///
 /// # Usage in Processing Pipelines
 ///
-/// Stream cache processors receive and emit IOTypeData, allowing for type-safe
+/// Stream cache processing receive and emit IOTypeData, allowing for type-safe
 /// data transformation pipelines with runtime type checking.
 ///
 /// # Example

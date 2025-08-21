@@ -1,7 +1,7 @@
-//! Test for sensor cache with stream processors and FEAGI byte structure encoding.
+//! Test for sensor cache with stream processing and FEAGI bytes structure encoding.
 //!
 //! This test demonstrates creating a proximity sensor with rolling window and range
-//! processors, processing sensor data, and encoding to FEAGI byte structures.
+//! processing, processing sensor data, and encoding to FEAGI bytes structures.
 
 use feagi_core_data_structures_and_processing::genomic_structures::{CorticalGroupingIndex, SensorCorticalType, SingleChannelDimensions};
 use feagi_core_data_structures_and_processing::io_data::IOTypeData;
@@ -27,7 +27,7 @@ fn test_chained_encoders() -> Result<(), Box<dyn std::error::Error>> {
 
     // In here, lets try manually running the data through without the help of higher level structures, just to ensure the math is fine in here
     {
-        // Verify the processors handle the correct data types
+        // Verify the processing handle the correct data types
         assert_eq!(range_processor.get_input_data_type(), rolling_window_processor.get_output_data_type());
 
         // Create the input sensor value (25.0)
@@ -100,7 +100,7 @@ fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn
         SingleChannelDimensions::new(1, 1, 10)?
     )?;
 
-    // register channel 2 on cortical area with chained cache processors
+    // register channel 2 on cortical area with chained cache processing
     _ = sensor_cache.register_single_channel(
         SensorCorticalType::Proximity,
         1.into(),
@@ -123,14 +123,14 @@ fn test_sensor_cache_with_stream_processors_and_encoding() -> Result<(), Box<dyn
     // Verify the neural data was created
     assert!(cortical_neuron_data.len() == 1, "Cortical neuron data should not be empty after encoding");
 
-    // Encode to FEAGI byte structure
+    // Encode to FEAGI bytes structure
     let byte_structure = cortical_neuron_data.as_new_feagi_byte_structure()?;
     
     // Convert to raw bytes
     let raw_bytes = byte_structure.copy_out_as_byte_vector();
     
     // Verify we got some bytes
-    assert!(!raw_bytes.is_empty(), "Should have non-empty byte representation");
+    assert!(!raw_bytes.is_empty(), "Should have non-empty bytes representation");
     println!("Encoded to {} bytes", raw_bytes.len());
     
     Ok(())

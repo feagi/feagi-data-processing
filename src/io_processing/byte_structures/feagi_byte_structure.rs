@@ -1,8 +1,8 @@
-//! Core implementation of the FEAGI byte structure container.
+//! Core implementation of the FEAGI bytes structure container.
 //!
 //! This module provides the main `FeagiByteStructure` type, which serves as a validated
 //! container for serialized FEAGI data. It handles both single structures and multi-structure
-//! containers, providing comprehensive validation, parsing, and manipulation capabilities.
+//! io_containers, providing comprehensive validation, parsing, and manipulation capabilities.
 
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
@@ -11,15 +11,15 @@ use crate::neuron_data::xyzp::CorticalMappedXYZPNeuronData;
 use super::FeagiByteStructureType;
 use super::FeagiByteStructureCompatible;
 
-/// Core container for validated FEAGI byte structure data.
+/// Core container for validated FEAGI bytes structure data.
 ///
 /// `FeagiByteStructure` is the central type for handling serialized FEAGI data structures.
-/// It provides a validated wrapper around raw byte data, ensuring format compliance and
+/// It provides a validated wrapper around raw bytes data, ensuring format compliance and
 /// offering high-level operations for manipulation and extraction.
 ///
 /// # Key Features
 ///
-/// - **Format Validation**: Ensures byte data conforms to FEAGI standards
+/// - **Format Validation**: Ensures bytes data conforms to FEAGI standards
 /// - **Type Safety**: Validates structure types and versions before operations
 /// - **Multi-Structure Support**: Can contain and manage multiple structures in one container
 /// - **Zero-Copy Operations**: Provides efficient access to internal data without unnecessary copying
@@ -53,19 +53,19 @@ impl FeagiByteStructure {
     /// Size of the global header (type + version) in bytes.
     pub const GLOBAL_BYTE_HEADER_BYTE_SIZE_IN_BYTES: usize = 2;
     
-    /// Minimum byte length required for a valid FEAGI byte structure.
+    /// Minimum bytes length required for a valid FEAGI bytes structure.
     pub const MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID: usize = 4;
     
-    /// Size of the structure count field in multi-structure containers.
+    /// Size of the structure count field in multi-structure io_containers.
     pub const MULTISTRUCT_STRUCT_COUNT_BYTE_SIZE: usize = 1;
     
-    /// Size of each structure's header entry in multi-structure containers (start position + length).
+    /// Size of each structure's header entry in multi-structure io_containers (start position + length).
     pub const MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES: usize = 8;
 
     /// Currently supported version for JSON format structures.
     pub const SUPPORTED_VERSION_JSON: u8 = 1;
     
-    /// Currently supported version for multi-structure containers.
+    /// Currently supported version for multi-structure io_containers.
     pub const SUPPORTED_VERSION_MULTI_STRUCT: u8 = 1;
     
     /// Currently supported version for neuron XYZP format structures.
@@ -73,17 +73,17 @@ impl FeagiByteStructure {
     
     //region Constructors
     
-    /// Creates a new FeagiByteStructure from raw byte data with full validation.
+    /// Creates a new FeagiByteStructure from raw bytes data with full validation.
     ///
-    /// This is the primary constructor that validates the provided byte data against
+    /// This is the primary constructor that validates the provided bytes data against
     /// FEAGI format requirements. It performs comprehensive checks to ensure the data
-    /// represents a valid byte structure before creating the container.
+    /// represents a valid bytes structure before creating the container.
     ///
     /// # Arguments
-    /// * `bytes` - Raw byte data containing a serialized FEAGI structure
+    /// * `bytes` - Raw bytes data containing a serialized FEAGI structure
     ///
     /// # Returns
-    /// * `Ok(FeagiByteStructure)` - Validated byte structure ready for use
+    /// * `Ok(FeagiByteStructure)` - Validated bytes structure ready for use
     /// * `Err(FeagiDataProcessingError)` - If validation fails due to:
     ///   - Insufficient data length (< 4 bytes minimum)
     ///   - Invalid structure type identifier
@@ -92,8 +92,8 @@ impl FeagiByteStructure {
     ///
     /// # Validation Performed
     /// - Minimum length check (at least 4 bytes)
-    /// - Valid structure type identifier (byte 0)
-    /// - Non-zero version number (byte 1)
+    /// - Valid structure type identifier (bytes 0)
+    /// - Non-zero version number (bytes 1)
     /// - Additional format-specific validations may be added
     ///
     /// # Example
@@ -115,7 +115,7 @@ impl FeagiByteStructure {
     
     /// Creates a multi-structure container from exactly two existing structures.
     ///
-    /// This convenience method combines two FEAGI byte structures into a single
+    /// This convenience method combines two FEAGI bytes structures into a single
     /// multi-structure container. It's optimized for the common case of combining
     /// two structures and delegates to the general multi-structure creation logic.
     ///
@@ -139,7 +139,7 @@ impl FeagiByteStructure {
     
     /// Creates a multi-structure container from multiple existing structures.
     ///
-    /// This method combines any number of FEAGI byte structures into a single
+    /// This method combines any number of FEAGI bytes structures into a single
     /// multi-structure container. It automatically flattens any input multi-structures
     /// to avoid nesting and enforces reasonable limits on container size.
     ///
@@ -165,7 +165,7 @@ impl FeagiByteStructure {
     pub fn create_from_multiple_existing(existing: Vec<&FeagiByteStructure>) -> Result<FeagiByteStructure, FeagiDataProcessingError> {
         
         if existing.is_empty() {
-            return Err(IODataError::InvalidParameters("You must specify at least one byte structure to put into a multistruct!".into()).into());
+            return Err(IODataError::InvalidParameters("You must specify at least one bytes structure to put into a multistruct!".into()).into());
         }
         
         if existing.len() == 1 {
@@ -196,13 +196,13 @@ impl FeagiByteStructure {
     ///
     /// This convenience constructor takes any object implementing the
     /// `FeagiByteStructureCompatible` trait and converts it to a validated
-    /// byte structure. Useful for serializing custom types.
+    /// bytes structure. Useful for serializing custom types.
     ///
     /// # Arguments
     /// * `object` - Boxed object implementing FeagiByteStructureCompatible
     ///
     /// # Returns
-    /// * `Ok(FeagiByteStructure)` - Validated byte structure containing the serialized object
+    /// * `Ok(FeagiByteStructure)` - Validated bytes structure containing the serialized object
     /// * `Err(FeagiDataProcessingError)` - If serialization or validation fails
     pub fn create_from_compatible(object: Box<dyn FeagiByteStructureCompatible>) -> Result<FeagiByteStructure, FeagiDataProcessingError> {
         // Essentially just an alias
@@ -234,9 +234,9 @@ impl FeagiByteStructure {
     
     // NOTE: These functions have safety checks as they can be called externally
     
-    /// Returns the format type of this byte structure.
+    /// Returns the format type of this bytes structure.
     ///
-    /// Extracts and validates the format type identifier from the first byte
+    /// Extracts and validates the format type identifier from the first bytes
     /// of the structure. This is used to determine how to interpret the
     /// remaining data in the structure.
     ///
@@ -245,14 +245,14 @@ impl FeagiByteStructure {
     /// * `Err(FeagiDataProcessingError)` - If the structure is empty or contains an invalid type
     pub fn try_get_structure_type(&self) -> Result<FeagiByteStructureType, FeagiDataProcessingError> {
         if self.bytes.len() == 0 {
-            return Err(FeagiDataProcessingError::InternalError("Empty byte structure!".to_string())); // This shouldn't be possible as this struct should be checked before being created
+            return Err(FeagiDataProcessingError::InternalError("Empty bytes structure!".to_string())); // This shouldn't be possible as this struct should be checked before being created
         }
         FeagiByteStructureType::try_from(self.bytes[0])
     }
     
-    /// Returns the format version of this byte structure.
+    /// Returns the format version of this bytes structure.
     ///
-    /// Extracts the version number from the second byte of the structure.
+    /// Extracts the version number from the second bytes of the structure.
     /// Version numbers allow for format evolution while maintaining compatibility.
     ///
     /// # Returns
@@ -265,10 +265,10 @@ impl FeagiByteStructure {
         Ok(self.bytes[1])
     }
     
-    /// Checks if this byte structure is a multi-structure container.
+    /// Checks if this bytes structure is a multi-structure container.
     ///
-    /// Multi-structure containers can hold multiple individual FEAGI structures
-    /// in a single byte stream, each with its own format type and data.
+    /// Multi-structure io_containers can hold multiple individual FEAGI structures
+    /// in a single bytes stream, each with its own format type and data.
     ///
     /// # Returns
     /// * `Ok(true)` - This is a multi-structure container
@@ -278,9 +278,9 @@ impl FeagiByteStructure {
         Ok(FeagiByteStructureType::MultiStructHolder == self.try_get_structure_type()?)
     }
     
-    /// Returns the number of individual structures contained in this byte structure.
+    /// Returns the number of individual structures contained in this bytes structure.
     ///
-    /// For single structures, this always returns 1. For multi-structure containers,
+    /// For single structures, this always returns 1. For multi-structure io_containers,
     /// this returns the number of individual structures contained within.
     ///
     /// # Returns
@@ -323,12 +323,12 @@ impl FeagiByteStructure {
         )?)
     }
     
-    /// Extracts the original object from a single (non-multi-structure) byte structure.
+    /// Extracts the original object from a single (non-multi-structure) bytes structure.
     ///
     /// This method deserializes the contained data back to its original object form
     /// using the appropriate deserialization logic based on the structure's format type.
     /// Only works with single structures - use `copy_out_single_object_from_multistruct()`
-    /// for multi-structure containers.
+    /// for multi-structure io_containers.
     ///
     /// # Returns
     /// * `Ok(Box<dyn FeagiByteStructureCompatible>)` - The deserialized original object
@@ -365,7 +365,7 @@ impl FeagiByteStructure {
     }
     
     pub fn copy_out_single_object_from_multistruct(&self, index: usize) -> Result<Box<dyn FeagiByteStructureCompatible>, FeagiDataProcessingError> {
-        // TODO this method is slow, we should have a dedicated create from byte slice for FeagiByteStructureCompatible
+        // TODO this method is slow, we should have a dedicated create from bytes slice for FeagiByteStructureCompatible
         if !self.is_multistruct()? {
             return Err(FeagiBytesError::UnableToDeserializeBytes("Cannot deserialize this object as a multistruct when it is not!".into()).into())
         }
@@ -386,7 +386,7 @@ impl FeagiByteStructure {
     fn verify_valid_multistruct_internal_count(&self) -> Result<(), FeagiDataProcessingError> {
         let len = self.bytes.len();
         if len < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
-            return Err(FeagiDataProcessingError::InternalError("byte structure too short!".into()))
+            return Err(FeagiDataProcessingError::InternalError("bytes structure too short!".into()))
         }
         if self.bytes[0] != FeagiByteStructureType::MultiStructHolder as u8 { // faster header check
             return Err(FeagiBytesError::UnableToValidateBytes("Byte structure is not identified as a multistruct!".into()).into())
@@ -436,46 +436,46 @@ impl FeagiByteStructure {
     
     //region Borrow Data
 
-    /// Returns a read-only reference to the internal byte data.
+    /// Returns a read-only reference to the internal bytes data.
     ///
-    /// Provides direct access to the underlying byte array for reading.
+    /// Provides direct access to the underlying bytes array for reading.
     /// Useful for efficient transmission or when you need to work with
-    /// the raw byte format directly.
+    /// the raw bytes format directly.
     ///
     /// # Returns
-    /// Read-only slice containing the complete byte structure data
+    /// Read-only slice containing the complete bytes structure data
     pub fn borrow_data_as_slice(&self) -> &[u8] {
         &self.bytes
     }
 
-    /// Returns a mutable reference to the internal byte data.
+    /// Returns a mutable reference to the internal bytes data.
     ///
-    /// Provides direct write access to the underlying byte array.
+    /// Provides direct write access to the underlying bytes array.
     /// **Caution**: Modifying the data directly can invalidate the structure
     /// and cause deserialization failures. Use with care.
     ///
     /// # Returns
-    /// Mutable slice for direct byte manipulation
+    /// Mutable slice for direct bytes manipulation
     ///
     /// # Safety
     /// Direct modification bypasses validation. Ensure any changes maintain
-    /// proper FEAGI byte structure format compliance.
+    /// proper FEAGI bytes structure format compliance.
     pub fn borrow_data_as_mut_slice(&mut self) -> &mut [u8] {
         &mut self.bytes
     }
 
-    /// Returns a mutable reference to the internal byte vector.
+    /// Returns a mutable reference to the internal bytes vector.
     ///
     /// Provides full access to the underlying Vec<u8> for advanced operations
     /// like resizing or bulk modifications. **Caution**: Direct modifications
     /// can break format compliance.
     ///
     /// # Returns
-    /// Mutable reference to the internal byte vector
+    /// Mutable reference to the internal bytes vector
     ///
     /// # Safety
     /// Direct vector manipulation bypasses all validation. Only use when you
-    /// understand the FEAGI byte structure format requirements.
+    /// understand the FEAGI bytes structure format requirements.
     pub fn borrow_data_as_mut_vec(&mut self) -> &mut Vec<u8> {
         &mut self.bytes
     }
@@ -514,7 +514,7 @@ impl FeagiByteStructure {
     //endregion
     
     //region Internals
-    // WARNING: Most of these functions do not check for byte structure validity, be cautious
+    // WARNING: Most of these functions do not check for bytes structure validity, be cautious
 
     fn build_multistruct_from_slices(all_slices: Vec<&[u8]>) -> FeagiByteStructure {
         // NOTE: does not check if internal slices are sensible
@@ -594,19 +594,19 @@ impl FeagiByteStructure {
     
 }
 
-/// Extracts the version number from raw byte data without full validation.
+/// Extracts the version number from raw bytes data without full validation.
 ///
-/// This utility function reads the version number from the second byte of raw
-/// byte data that represents a FEAGI byte structure. It performs minimal validation
+/// This utility function reads the version number from the second bytes of raw
+/// bytes data that represents a FEAGI bytes structure. It performs minimal validation
 /// (length check only) and is useful when you need just the version without
 /// creating a full FeagiByteStructure instance.
 ///
 /// # Arguments
-/// * `bytes` - Raw byte data containing a FEAGI byte structure
+/// * `bytes` - Raw bytes data containing a FEAGI bytes structure
 ///
 /// # Returns
 /// * `Ok(u8)` - The version number from the structure header
-/// * `Err(FeagiDataProcessingError)` - If the byte array is too short to contain a valid header
+/// * `Err(FeagiDataProcessingError)` - If the bytes array is too short to contain a valid header
 ///
 /// # Performance
 /// This function is more efficient than creating a full FeagiByteStructure when you

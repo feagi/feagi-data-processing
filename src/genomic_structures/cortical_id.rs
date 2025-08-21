@@ -102,10 +102,10 @@ impl CorticalID {
     /// The fixed length of all cortical identifiers in bytes.
     pub const CORTICAL_ID_LENGTH: usize = 6;
 
-    /// Alias for `CORTICAL_ID_LENGTH` for consistency with other byte-oriented APIs.
+    /// Alias for `CORTICAL_ID_LENGTH` for consistency with other bytes-oriented APIs.
     ///
     /// This constant provides the same value as `CORTICAL_ID_LENGTH` but with
-    /// naming that's consistent with other structures that expose byte sizes.
+    /// naming that's consistent with other structures that expose bytes sizes.
     pub const NUMBER_OF_BYTES: usize = Self::CORTICAL_ID_LENGTH;
     
     /// Creates a new custom cortical area identifier.
@@ -261,14 +261,14 @@ impl CorticalID {
         Ok(output_type.to_cortical_id(output_index))
     }
     
-    /// Creates a cortical ID from a 6-byte array.
+    /// Creates a cortical ID from a 6-bytes array.
     ///
     /// This method constructs a `CorticalID` from raw bytes, validating that they
     /// represent a valid ASCII cortical identifier. The bytes must form a valid
     /// cortical type and follow the format constraints.
     ///
     /// # Arguments
-    /// * `bytes` - Reference to a 6-byte array containing ASCII characters
+    /// * `bytes` - Reference to a 6-bytes array containing ASCII characters
     ///
     /// # Returns
     /// * `Ok(CorticalID)` - Valid cortical identifier
@@ -380,11 +380,11 @@ impl CorticalID {
     
     /// Returns the raw bytes of this cortical identifier.
     ///
-    /// Provides direct access to the underlying 6-byte array representation
+    /// Provides direct access to the underlying 6-bytes array representation
     /// of the cortical ID. Useful for serialization, hashing, or low-level operations.
     ///
     /// # Returns
-    /// Reference to the 6-byte array containing the ASCII characters
+    /// Reference to the 6-bytes array containing the ASCII characters
     pub fn as_bytes(&self) -> &[u8; CorticalID::CORTICAL_ID_LENGTH] {
         &self.bytes
     }
@@ -396,7 +396,7 @@ impl CorticalID {
     /// data structure or buffer.
     ///
     /// # Arguments
-    /// * `target` - Mutable reference to a 6-byte array to write to
+    /// * `target` - Mutable reference to a 6-bytes array to write to
     ///
     /// # Returns
     /// * `Ok(())` - Bytes successfully copied
@@ -407,7 +407,7 @@ impl CorticalID {
 
     /// Returns the cortical identifier as a readable ASCII string.
     ///
-    /// Converts the internal byte representation back to a 6-character ASCII string.
+    /// Converts the internal bytes representation back to a 6-character ASCII string.
     /// This is the primary method for getting a human-readable representation of
     /// the cortical ID.
     ///
@@ -514,7 +514,7 @@ impl CorticalID {
 }
 
 
-/// Converts a 6-byte array to a UTF-8 string without validation.
+/// Converts a 6-bytes array to a UTF-8 string without validation.
 ///
 /// # Safety
 /// This function assumes that the bytes represent valid UTF-8/ASCII characters.
@@ -522,7 +522,7 @@ impl CorticalID {
 /// the CorticalID creation process, which ensures ASCII compliance.
 ///
 /// # Arguments
-/// * `bytes` - Reference to a 6-byte array containing valid ASCII characters
+/// * `bytes` - Reference to a 6-bytes array containing valid ASCII characters
 ///
 /// # Returns
 /// A String containing the UTF-8 representation of the bytes

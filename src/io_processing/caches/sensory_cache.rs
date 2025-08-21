@@ -248,7 +248,7 @@ impl SensorCache {
                                            neuron_encoder: Box<dyn NeuronXYZPEncoder + Sync + Send>,
                                            mut initial_processor_chains: Vec<Vec<Box<dyn StreamCacheProcessor + Sync + Send>>>,
                                            allow_stale_data: bool) -> Result<(), FeagiDataProcessingError> {
-        // NOTE: initial_processor_chains is a vector of vectors, meaning each channel gets a vector of processors
+        // NOTE: initial_processor_chains is a vector of vectors, meaning each channel gets a vector of processing
         
         let number_supported_channels = initial_processor_chains.len() as u32;
         let cortical_type = sensor_cortical_type.into();

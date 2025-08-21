@@ -9,7 +9,7 @@ pub fn verify_sensor_chain(cache_processors: &Vec<Box<dyn StreamCacheProcessor +
         return Err(IODataError::InvalidParameters("Processor Runner cannot have 0 Cache Processors!".into()).into())
     }
 
-    // Ensure data can pass between processors
+    // Ensure data can pass between processing
     for processer_index in 0..number_of_processors - 1  {
         let first = &cache_processors[processer_index];
         let second = &cache_processors[processer_index + 1];

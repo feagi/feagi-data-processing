@@ -1,7 +1,7 @@
-//! Range scaling processors for normalizing float values to specific ranges.
+//! Range scaling processing for normalizing float values to specific ranges.
 //!
-//! This module provides processors that linearly scale input float values from a specified 
-//! input range to normalized output ranges. These processors are commonly used to normalize
+//! This module provides processing that linearly scale input float values from a specified 
+//! input range to normalized output ranges. These processing are commonly used to normalize
 //! sensor data or other continuous values for FEAGI processing.
 
 use std::fmt::{Display, Formatter};

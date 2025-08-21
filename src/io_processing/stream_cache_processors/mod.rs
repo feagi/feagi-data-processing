@@ -1,21 +1,21 @@
-//! Stream cache processors for real-time data transformation in FEAGI.
+//! Stream cache processing for real-time data transformation in FEAGI.
 //!
 //! This module provides a framework for processing streaming data through a pipeline
-//! of transformations. The system allows chaining multiple processors together to
+//! of transformations. The system allows chaining multiple processing together to
 //! create complex data processing workflows.
 //!
 //! # Architecture
 //!
-//! - **StreamCacheProcessor trait**: Defines the interface that all processors must implement
-//! - **ProcessorRunner**: Orchestrates execution of a chain of processors, ensuring type compatibility
-//! - **processors module**: Contains concrete implementations of various processor types
+//! - **StreamCacheProcessor trait**: Defines the interface that all processing must implement
+//! - **ProcessorRunner**: Orchestrates execution of a chain of processing, ensuring type compatibility
+//! - **processing module**: Contains concrete implementations of various processor types
 //!
 //! # Usage
 //!
 //! ```rust
 //! use feagi_core_data_structures_and_processing::io_processing::{
 //!     StreamCacheProcessor, 
-//!     processors::LinearScaleTo0And1Processor
+//!     processing::LinearScaleTo0And1Processor
 //! };
 //!
 //! // Create a processor that scales values from [0, 100] to [0, 1]

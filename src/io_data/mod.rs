@@ -12,7 +12,7 @@
 //! - **IOTypeVariant**: Type identifiers without values for type checking and classification
 //! - **ImageFrame**: Single image/frame data with processing capabilities
 //! - **SegmentedImageFrame**: Multi-segment vision frames for peripheral vision simulation
-//! - **JsonStructure**: JSON data with FEAGI byte structure compatibility
+//! - **JsonStructure**: JSON data with FEAGI bytes structure compatibility
 //!
 //! # Type Safety and Validation
 //!
@@ -27,7 +27,7 @@
 //! The typical data flow involves:
 //! 1. **Input**: Raw data from sensors, files, or network sources
 //! 2. **Validation**: Type checking and range validation during construction
-//! 3. **Processing**: Stream cache processors transform data between types
+//! 3. **Processing**: Stream cache processing transform data between types
 //! 4. **Neural encoding**: Conversion to neural representations for FEAGI processing
 //! 5. **Output**: Serialization for storage, transmission, or motor control
 //!

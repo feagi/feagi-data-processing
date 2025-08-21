@@ -1,7 +1,7 @@
-//! Rolling window processors for temporal smoothing of data streams.
+//! Rolling window processing for temporal smoothing of data streams.
 //!
-//! This module provides processors that maintain a sliding window of recent values
-//! and compute statistics (like averages) over that window. These processors are
+//! This module provides processing that maintain a sliding window of recent values
+//! and compute statistics (like averages) over that window. These processing are
 //! useful for smoothing noisy sensor data or computing temporal aggregations.
 
 use std::fmt::{Display, Formatter};

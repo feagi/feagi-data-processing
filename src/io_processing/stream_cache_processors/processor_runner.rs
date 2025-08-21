@@ -1,8 +1,8 @@
-//! Processor runner for orchestrating chains of stream cache processors.
+//! Processor runner for orchestrating chains of stream cache processing.
 //!
 //! This module provides the `ProcessorRunner` struct, which validates and executes
 //! chains of `StreamCacheProcessor` instances. It ensures type compatibility between
-//! processors and manages the flow of data through the processing pipeline.
+//! processing and manages the flow of data through the processing pipeline.
 
 use std::time::Instant;
 use crate::error::{FeagiDataProcessingError, IODataError};
@@ -10,17 +10,17 @@ use crate::io_data::{IOTypeData, IOTypeVariant};
 use crate::io_processing::stream_cache_processors::verify_stream_cache_processor_chain::verify_sensor_chain;
 use crate::io_processing::StreamCacheProcessor;
 
-/// Orchestrates execution of a chain of stream cache processors.
+/// Orchestrates execution of a chain of stream cache processing.
 ///
-/// `ProcessorRunner` validates that a sequence of processors can be chained together
+/// `ProcessorRunner` validates that a sequence of processing can be chained together
 /// (ensuring output types match subsequent input types) and provides a unified interface
 /// for processing data through the entire pipeline.
 ///
 /// # Key Features
 ///
-/// - **Type Validation**: Ensures processors are compatible before execution
-/// - **Pipeline Execution**: Runs data through all processors in sequence
-/// - **Error Handling**: Provides clear error messages for incompatible processors
+/// - **Type Validation**: Ensures processing are compatible before execution
+/// - **Pipeline Execution**: Runs data through all processing in sequence
+/// - **Error Handling**: Provides clear error messages for incompatible processing
 /// - **Performance**: Uses efficient borrowing patterns to avoid unnecessary clones
 #[derive(Debug)]
 pub(crate) struct ProcessorRunner {
@@ -30,25 +30,25 @@ pub(crate) struct ProcessorRunner {
 }
 
 impl ProcessorRunner {
-    /// Creates a new ProcessorRunner with a validated chain of processors.
+    /// Creates a new ProcessorRunner with a validated chain of processing.
     ///
     /// This constructor performs comprehensive validation to ensure the processor chain
     /// is valid and can execute successfully:
     /// - Checks that at least one processor is provided
-    /// - Validates type compatibility between adjacent processors
+    /// - Validates type compatibility between adjacent processing
     /// - Determines the overall input and output types for the pipeline
     ///
     /// # Arguments
-    /// * `cache_processors` - Vector of processors to chain together (must be non-empty)
+    /// * `cache_processors` - Vector of processing to chain together (must be non-empty)
     ///
     /// # Returns
     /// * `Ok(ProcessorRunner)` - A validated processor runner ready for execution
     /// * `Err(FeagiDataProcessingError)` - If validation fails:
     ///   - Empty processor list
-    ///   - Type incompatibility between adjacent processors
+    ///   - Type incompatibility between adjacent processing
     ///
     /// # Type Compatibility Rules
-    /// For processors to be compatible in a chain, each processor's output type
+    /// For processing to be compatible in a chain, each processor's output type
     /// must exactly match the next processor's input type:
     /// ```text
     /// Processor A: Input(F32) -> Output(F32Normalized0To1)
@@ -71,7 +71,7 @@ impl ProcessorRunner {
     /// Processes new input data through the entire processor chain.
     ///
     /// Takes input data, validates it matches the expected input type, then runs it
-    /// sequentially through all processors in the chain. Each processor's output
+    /// sequentially through all processing in the chain. Each processor's output
     /// becomes the input for the next processor.
     ///
     /// # Arguments
@@ -92,7 +92,7 @@ impl ProcessorRunner {
     ///
     /// # Performance Notes
     /// Uses `split_at_mut` to avoid borrowing conflicts when accessing processor outputs
-    /// while mutating subsequent processors in the chain.
+    /// while mutating subsequent processing in the chain.
     pub fn update_value(&mut self, new_value: &IOTypeData, time_of_update: Instant) -> Result<&IOTypeData, FeagiDataProcessingError> {
         if IOTypeVariant::from(new_value) != self.input_type {
             return Err(IODataError::InvalidParameters(format!("Expected Input data type of {} but received {}!", self.input_type.to_string(), new_value.to_string())).into());
@@ -103,7 +103,7 @@ impl ProcessorRunner {
         // Process the first processor with the input value
         self.cache_processors[0].process_new_input(new_value, time_of_update)?;
         
-        // Process subsequent processors using split_at_mut to avoid borrowing conflicts
+        // Process subsequent processing using split_at_mut to avoid borrowing conflicts
         for i in 1..self.cache_processors.len() {
             let (left, right) = self.cache_processors.split_at_mut(i);
             let previous_output = left[i - 1].get_most_recent_output(); 

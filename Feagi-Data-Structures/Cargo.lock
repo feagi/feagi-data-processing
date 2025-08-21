@@ -3,15 +3,6 @@
 version = 4
 
 [[package]]
-name = "Feagi-Data-Structures"
-version = "0.0.1-beta.1"
-dependencies = [
- "byteorder",
- "ndarray",
- "serde_json",
-]
-
-[[package]]
 name = "autocfg"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -22,6 +13,15 @@ name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
+
+[[package]]
+name = "feagi_data_structures"
+version = "0.0.1-beta.1"
+dependencies = [
+ "byteorder",
+ "ndarray",
+ "serde_json",
+]
 
 [[package]]
 name = "itoa"

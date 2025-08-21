@@ -68,7 +68,7 @@
 ///
 /// The structure is optimized for memory efficiency:
 /// - Total size: 16 bytes (3 × 4 bytes for coordinates + 4 bytes for potential)
-/// - No padding due to uniform 4-byte field alignment
+/// - No padding due to uniform 4-bytes field alignment
 /// - Suitable for large arrays and high-performance processing
 #[derive(Clone, Debug, PartialEq)]
 pub struct NeuronXYZP {

@@ -72,7 +72,7 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
     fn overwrite_feagi_byte_structure_slice(&self, slice: &mut [u8]) -> Result<usize, FeagiDataProcessingError> {
         
         if self.mappings.len() == 0 {
-            return Err(FeagiBytesError::UnableToSerializeBytes("Cannot generate a byte structure export with an empty cortical mappings object!".into()).into())
+            return Err(FeagiBytesError::UnableToSerializeBytes("Cannot generate a bytes structure export with an empty cortical mappings object!".into()).into())
         }
         
         let num_bytes_needed: usize = self.max_number_bytes_needed();
@@ -157,13 +157,13 @@ impl FeagiByteStructureCompatible for CorticalMappedXYZPNeuronData {
             }
             
             if bytes_length % NeuronXYZP::NUMBER_BYTES_PER_NEURON != 0 {
-                return Err(FeagiBytesError::UnableToSerializeBytes("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input byte array must be divisible by 16!".into()).into());
+                return Err(FeagiBytesError::UnableToSerializeBytes("As NeuronXYCPArrays contains 4 internal arrays of equal length, each of elements of 4 bytes each (uint32 and float), the input bytes array must be divisible by 16!".into()).into());
             }
             let x_end = bytes_length / 4; // q1
             let y_end = bytes_length / 2; // q2
             let z_end = x_end * 3; // q3
 
-            // Create vectors using byte order to avoid alignment issues
+            // Create vectors using bytes order to avoid alignment issues
             let num_neurons = bytes_length / NeuronXYZP::NUMBER_BYTES_PER_NEURON;
             let mut x_coords: Vec<u32> = Vec::with_capacity(num_neurons);
             let mut y_coords: Vec<u32> = Vec::with_capacity(num_neurons);

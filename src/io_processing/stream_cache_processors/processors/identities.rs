@@ -1,6 +1,6 @@
-//! Identity processors that pass data through unchanged.
+//! Identity processing that pass data through unchanged.
 //!
-//! This module provides "pass-through" processors that implement the StreamCacheProcessor
+//! This module provides "pass-through" processing that implement the StreamCacheProcessor
 //! interface but don't modify the data in any way. As at least 1 processor is required when
 //! adding channels, these are useful if the user does not wish to transform the data
 

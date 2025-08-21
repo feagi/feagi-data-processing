@@ -1,3 +1,4 @@
-mod coder_type;
+mod neuron_coder_type;
+pub mod xyzp;
 
-pub(crate) use coder_type::NeuronCoderType;
+pub(crate) use neuron_coder_type::NeuronCoderType;

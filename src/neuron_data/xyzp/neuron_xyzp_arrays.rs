@@ -55,7 +55,7 @@ use crate::neuron_data::xyzp::NeuronXYZP;
 /// # Binary Serialization
 /// The structure supports efficient binary serialization with a fixed format:
 /// - Each neuron uses exactly 16 bytes (4 bytes each for X, Y, Z, P)
-/// - Little-endian byte order for cross-platform compatibility
+/// - Little-endian bytes order for cross-platform compatibility
 /// - Compact format optimized for network transmission
 #[derive(Clone,Debug)]
 pub struct NeuronXYZPArrays {
@@ -605,13 +605,13 @@ impl NeuronXYZPArrays {
         (&self.x, &self.y, &self.z, &self.p)
     }
 
-    /// Writes the neural data to a byte buffer.
+    /// Writes the neural data to a bytes buffer.
     ///
     /// The data is written in the following order: all x values, all y values, all z values, all p values.
-    /// Each value is written using little-endian byte order.
+    /// Each value is written using little-endian bytes order.
     ///
     /// # Arguments
-    /// * `bytes_to_write_to` - The byte buffer to write the data to
+    /// * `bytes_to_write_to` - The bytes buffer to write the data to
     ///
     /// # Returns
     /// * `Result<(), NeuronError>` - Success or an error if the buffer size is incorrect

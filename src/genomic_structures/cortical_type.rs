@@ -187,14 +187,14 @@ impl fmt::Display for CorticalType {
 
 impl CorticalType {
     
-    /// Determines the cortical type from a cortical ID's byte representation.
+    /// Determines the cortical type from a cortical ID's bytes representation.
     ///
-    /// Analyzes the first byte of a cortical ID to determine which type category
+    /// Analyzes the first bytes of a cortical ID to determine which type category
     /// it belongs to, then delegates to the appropriate subtype parser for
     /// detailed classification.
     ///
     /// # Arguments
-    /// * `bytes` - 6-byte array representing a cortical ID
+    /// * `bytes` - 6-bytes array representing a cortical ID
     ///
     /// # Returns
     /// * `Ok(CorticalType)` - Successfully identified cortical type

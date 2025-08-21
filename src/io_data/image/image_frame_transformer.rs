@@ -626,7 +626,7 @@ impl ImageFrameTransformer {
     
 }
 
-//region source destination processors
+//region source destination processing
 
 fn crop(source: &ImageFrame, destination: &mut ImageFrame, crop_from: &CornerPoints, number_output_color_channels: usize) -> Result<(), FeagiDataProcessingError> {
     let mut destination_data = destination.get_internal_data_mut();

@@ -1,4 +1,4 @@
-//! Trait definition for types that can be serialized to and from FEAGI byte structures.
+//! Trait definition for types that can be serialized to and from FEAGI bytes structures.
 //!
 //! This module defines the `FeagiByteStructureCompatible` trait, which provides a standardized
 //! interface for converting Rust types to and from the FEAGI binary serialization format.
@@ -6,7 +6,7 @@
 use crate::error::{FeagiBytesError, FeagiDataProcessingError};
 use super::{FeagiByteStructure, FeagiByteStructureType};
 
-/// Trait for types that can be serialized to and deserialized from FEAGI byte structures.
+/// Trait for types that can be serialized to and deserialized from FEAGI bytes structures.
 ///
 /// This trait enables seamless conversion between Rust types and the FEAGI binary format,
 /// providing both serialization (to bytes) and deserialization (from bytes) capabilities.
@@ -16,52 +16,52 @@ use super::{FeagiByteStructure, FeagiByteStructureType};
 /// # Core Capabilities
 ///
 /// - **Type Identity**: Each implementation declares its format type and version
-/// - **Serialization**: Convert Rust objects to FEAGI byte format
-/// - **Deserialization**: Create Rust objects from FEAGI byte format
+/// - **Serialization**: Convert Rust objects to FEAGI bytes format
+/// - **Deserialization**: Create Rust objects from FEAGI bytes format
 /// - **Size Estimation**: Calculate required buffer sizes for efficient allocation
 /// - **Validation**: Ensure sufficient buffer space before serialization
 ///
 /// # Serialization Format
 ///
-/// All compatible types must follow the FEAGI byte structure format:
+/// All compatible types must follow the FEAGI bytes structure format:
 /// ```text
-/// [Type ID (1 byte)][Version (1 byte)][Type-specific payload...]
+/// [Type ID (1 bytes)][Version (1 bytes)][Type-specific payload...]
 /// ```
 ///
 /// # Implementation Requirements
 ///
 /// Implementors must provide:
 /// - Format type and version identification
-/// - Serialization logic that writes to a provided byte slice
-/// - Deserialization logic that reconstructs objects from byte structures
+/// - Serialization logic that writes to a provided bytes slice
+/// - Deserialization logic that reconstructs objects from bytes structures
 /// - Accurate size estimation for buffer allocation
 /// 
 /// # Thread Safety
 ///
-/// Implementations should be thread-safe, as byte structures may be
+/// Implementations should be thread-safe, as bytes structures may be
 /// processed concurrently in multi-threaded FEAGI environments.
 pub trait FeagiByteStructureCompatible {
 
-    /// Returns the FEAGI byte structure type identifier for this implementation.
+    /// Returns the FEAGI bytes structure type identifier for this implementation.
     ///
-    /// This identifier is used as the first byte in the serialized format to
-    /// indicate what type of data structure is contained in the byte stream.
+    /// This identifier is used as the first bytes in the serialized format to
+    /// indicate what type of data structure is contained in the bytes stream.
     fn get_type(&self) -> FeagiByteStructureType;
 
     /// Returns the version number for this implementation's serialization format.
     ///
     /// Version numbers allow for format evolution while maintaining backward
-    /// compatibility. This value is stored as the second byte in the serialized format.
+    /// compatibility. This value is stored as the second bytes in the serialized format.
     fn get_version(&self) -> u8;
 
-    /// Serializes this object into the provided byte slice.
+    /// Serializes this object into the provided bytes slice.
     ///
-    /// Writes the complete FEAGI byte structure representation (including header)
+    /// Writes the complete FEAGI bytes structure representation (including header)
     /// into the provided mutable slice. The implementation should write the type
     /// identifier, version, and all object data.
     ///
     /// # Arguments
-    /// * `slice` - Mutable byte slice to write into (must have sufficient capacity)
+    /// * `slice` - Mutable bytes slice to write into (must have sufficient capacity)
     ///
     /// # Returns
     /// * `Ok(usize)` - Number of bytes actually written to the slice
@@ -76,33 +76,33 @@ pub trait FeagiByteStructureCompatible {
     /// Returns the maximum number of bytes needed to serialize this object.
     ///
     /// This should return the worst-case buffer size needed for serialization,
-    /// including the 2-byte header (type + version) plus all object data.
+    /// including the 2-bytes header (type + version) plus all object data.
     /// Used for efficient buffer allocation.
     ///
     /// # Returns
-    /// Maximum byte count needed for complete serialization (including header)
+    /// Maximum bytes count needed for complete serialization (including header)
     fn max_number_bytes_needed(&self) -> usize;
 
-    /// Creates a new instance of this type from a FEAGI byte structure.
+    /// Creates a new instance of this type from a FEAGI bytes structure.
     ///
-    /// Deserializes a complete object from the provided byte structure,
+    /// Deserializes a complete object from the provided bytes structure,
     /// validating the format and reconstructing the original object state.
     ///
     /// # Arguments
-    /// * `feagi_byte_structure` - Source byte structure containing serialized data
+    /// * `feagi_byte_structure` - Source bytes structure containing serialized data
     ///
     /// # Returns
     /// * `Ok(Self)` - Successfully deserialized object
     /// * `Err(FeagiDataProcessingError)` - If deserialization fails due to:
     ///   - Invalid format or corrupted data
     ///   - Type/version mismatch
-    ///   - Insufficient data in the byte structure
+    ///   - Insufficient data in the bytes structure
     ///
     /// # Implementation Notes
     /// - Should handle any format-specific validation requirements
     fn new_from_feagi_byte_structure(feagi_byte_structure: &FeagiByteStructure) -> Result<Self, FeagiDataProcessingError> where Self: Sized;
 
-    /// Validates that a byte slice has sufficient space for serialization.
+    /// Validates that a bytes slice has sufficient space for serialization.
     ///
     /// This helper method checks if the provided slice can accommodate the
     /// complete serialized representation of this object. Should be called
@@ -129,7 +129,7 @@ pub trait FeagiByteStructureCompatible {
     /// 3. Creates and validates a FeagiByteStructure from the result
     ///
     /// # Returns
-    /// * `Ok(FeagiByteStructure)` - Complete byte structure ready for transmission/storage
+    /// * `Ok(FeagiByteStructure)` - Complete bytes structure ready for transmission/storage
     /// * `Err(FeagiDataProcessingError)` - If serialization or validation fails
     ///
     /// # Performance Notes
