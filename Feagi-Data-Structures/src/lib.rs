@@ -1,5 +1,4 @@
 mod basic_components;
-mod image;
 mod byte;
 mod templates;
 mod error;

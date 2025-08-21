@@ -69,7 +69,7 @@ macro_rules! define_io_cortical_types {
 
             }
 
-            pub fn to_cortical_id(&self, index: CorticalGroupingIndex) -> CorticalID {
+            pub fn to_cortical_id(&self, index: CorticalGroupIndex) -> CorticalID {
                 let (high, low) = u8_to_hex_char_u8(index.0);
                 let mut output: [u8; CorticalID::CORTICAL_ID_LENGTH] =  match self {
                     $(
@@ -80,8 +80,16 @@ macro_rules! define_io_cortical_types {
                 output[5] = low;
                 CorticalID {bytes: output} // skip safety checks, we know this is fine
             }
+            
+            pub fn get_snake_case(&self) -> &str {
+                match self {
+                    $(
+                        Self::$cortical_type_key_name => $snake_case_identifier
+                    ),*
+                }
+            }
 
-            pub fn get_channel_dimension_range(&self) -> SingleChannelDimensionRange {
+            pub fn get_channel_dimension_range(&self) -> DimensionRange {
                 match self {
                     $(
                         Self::$cortical_type_key_name => $channel_dimension_range.unwrap()
@@ -89,10 +97,10 @@ macro_rules! define_io_cortical_types {
                 }
             }
             
-            pub fn get_coder_type(&self) -> Result<NeuronCoderVariantType, FeagiDataError> {
+            pub(crate) fn get_coder_type(&self) -> Option<NeuronCoderType> {
                 match self {
                     $(
-                        Self::$cortical_type_key_name => Ok($default_coder_type)
+                        Self::$cortical_type_key_name => $default_coder_type
                     ),*
                 }
             }
@@ -123,7 +131,13 @@ impl CorticalType {
             b'_' => CoreCorticalType::get_type_from_bytes(bytes),
             b'i' => SensorCorticalType::get_type_from_bytes(bytes),
             b'o' => MotorCorticalType::get_type_from_bytes(bytes),
-            _ => Err(handle_byte_id_mapping_fail(bytes))
+            _ => {
+                let as_string = String::from_utf8(bytes.to_vec());
+                if as_string.is_err() {
+                    return Err(FeagiDataError::DeserializationError("Unable to parse cortical ID bytes as ASCII!".into()));
+                }
+                Err(FeagiDataError::BadParameter(format!("Invalid cortical ID '{}'!", as_string.unwrap())).into())
+            }
         }
 
     }
@@ -145,7 +159,7 @@ impl CorticalType {
 
     }
     
-    pub fn try_get_channel_size_boundaries(&self) -> Result<SingleChannelDimensionRange, FeagiDataError> {
+    pub fn try_get_channel_size_boundaries(&self) -> Result<DimensionRange, FeagiDataError> {
         match self {
             Self::Custom => Err(FeagiDataError::BadParameter("Custom Cortical Areas do not have channels!".into())),
             Self::Memory => Err(FeagiDataError::BadParameter("Memory Cortical Areas do not have channels!".into())),
@@ -297,7 +311,7 @@ define_io_cortical_types!{
             snake_case_identifier: "rotary_motor",
             base_ascii: b"omot00",
             channel_dimension_range: DimensionRange::new(1..2, 1..2, 1..u32::MAX),
-            default_coder_type: NeuronCoderType::F32NormalizedM1To1_SplitSignDivided,
+            default_coder_type: Some(NeuronCoderType::F32NormalizedM1To1_SplitSignDivided),
         },
     }    
 }
