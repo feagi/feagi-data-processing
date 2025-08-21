@@ -13,7 +13,7 @@ use crate::io_data::{IOTypeData, IOTypeVariant};
 /// Core trait for stream cache processors that transform data in real-time pipelines.
 ///
 /// This trait defines the interface that all stream processors must implement to participate
-/// in FEAGI's data processing pipelines. Processors are stateful components that can transform,
+/// in FEAGI's data processing pipelines. Processors are stateful basic_components that can transform,
 /// filter, or aggregate incoming data streams.
 ///
 /// # Design Principles

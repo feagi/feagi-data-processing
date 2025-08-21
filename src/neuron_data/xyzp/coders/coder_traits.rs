@@ -128,7 +128,7 @@ pub trait NeuronXYZPDecoder {
     ///
     /// This method specifies which [`IOTypeVariant`] this decoder will
     /// generate from neuron data. The type system uses this for validation
-    /// and compatibility checking with downstream processing components.
+    /// and compatibility checking with downstream processing basic_components.
     ///
     /// # Returns
     /// The [`IOTypeVariant`] that this decoder produces

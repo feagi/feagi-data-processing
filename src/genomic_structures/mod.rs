@@ -5,7 +5,7 @@
 //!
 //! # Architecture Overview
 //!
-//! The genomic structures system consists of several interconnected components:
+//! The genomic structures system consists of several interconnected basic_components:
 //!
 //! - **CorticalID**: Unique identifiers for cortical areas with format validation
 //! - **CorticalType**: Classification system for different types of cortical areas

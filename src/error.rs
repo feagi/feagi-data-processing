@@ -568,7 +568,7 @@ pub enum CommandAndControlError {
     /// Invalid command parameter or command structure.
     ///
     /// This variant is used when command parameters are outside valid ranges,
-    /// have invalid formats, or reference non-existent system components.
+    /// have invalid formats, or reference non-existent system basic_components.
     ///
     /// Common cases include:
     /// - Unknown command types or operations

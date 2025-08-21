@@ -111,7 +111,7 @@ impl CorticalID {
     /// Creates a new custom cortical area identifier.
     ///
     /// Custom cortical areas are user-defined processing areas that start with 'c'.
-    /// They allow for flexible neural processing components beyond the standard
+    /// They allow for flexible neural processing basic_components beyond the standard
     /// sensor, motor, and core types.
     ///
     /// # Arguments
@@ -187,7 +187,7 @@ impl CorticalID {
 
     /// Creates a core cortical area identifier from a core type.
     ///
-    /// Core cortical areas are essential system components with predefined identifiers.
+    /// Core cortical areas are essential system basic_components with predefined identifiers.
     /// They handle fundamental system operations like power management and termination.
     ///
     /// # Arguments
@@ -440,6 +440,18 @@ impl CorticalID {
     pub fn get_cortical_type(&self) -> CorticalType {
         CorticalType::try_get_type_from_bytes(&self.bytes).unwrap() // will never error
     }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     /// Validates that the input string has the correct length for a cortical ID.
     ///

@@ -7,7 +7,7 @@
 //!
 //! # Architecture
 //!
-//! The framework consists of three main components:
+//! The framework consists of three main basic_components:
 //!
 //! - **FeagiByteStructureType**: Enumeration of supported serialization formats
 //! - **FeagiByteStructure**: Core container for serialized byte data with validation

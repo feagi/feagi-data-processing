@@ -1,0 +1,11 @@
+[package]
+name = "Feagi-Data-Structures"
+version = "0.0.1-beta.1"
+edition = "2024"
+license = "Apache-2.0"
+description = "A library for FEAGI libraries to use to describe data"
+
+[dependencies]
+ndarray = "0.16.1"
+byteorder = "1.5.0"
+serde_json = "1.0.140"

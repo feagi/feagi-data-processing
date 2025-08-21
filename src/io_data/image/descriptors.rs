@@ -78,7 +78,7 @@ impl ImageFrameProperties {
     ///
     /// # Arguments
     ///
-    /// * `image_frame` - The image frame to verify against these properties
+    /// * `image` - The image frame to verify against these properties
     ///
     /// # Returns
     ///
