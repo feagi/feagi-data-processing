@@ -9,20 +9,7 @@
 //! - **StreamCacheProcessor trait**: Defines the interface that all processing must implement
 //! - **ProcessorRunner**: Orchestrates execution of a chain of processing, ensuring type compatibility
 //! - **processing module**: Contains concrete implementations of various processor types
-//!
-//! # Usage
-//!
-//! ```rust
-//! use feagi_core_data_structures_and_processing::io_processing::{
-//!     StreamCacheProcessor, 
-//!     processing::LinearScaleTo0And1Processor
-//! };
-//!
-//! // Create a processor that scales values from [0, 100] to [0, 1]
-//! let processor = LinearScaleTo0And1Processor::new(0.0, 100.0, 50.0).unwrap();
-//!
-//! // Processors can be chained together using ProcessorRunner
-//! ```
+
 
 mod stream_cache_processor_trait;
 mod processor_runner;
