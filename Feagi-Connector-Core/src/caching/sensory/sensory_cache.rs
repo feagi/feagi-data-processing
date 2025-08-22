@@ -41,7 +41,7 @@ macro_rules! define_cortical_group_registration {
         )*
     };
     
-    // Generate function for any sensor type (simplified approach)
+        // Generate function for any sensor type (simplified approach)
     (@generate_function_if_needed $cortical_type:ident, $snake_case_id:expr, $default_coder_type:expr) => {
         paste::paste! {
             #[doc = "Register cortical group for " $snake_case_id " sensor type"]
@@ -53,20 +53,154 @@ macro_rules! define_cortical_group_registration {
                 lower_bound: f32,
                 upper_bound: f32) -> Result<(), FeagiDataError> {
                 
-
-                // For now, all generated functions use the F32Normalized0To1_Linear implementation
-                // TODO: Implement proper coder type-specific logic based on $default_coder_type
-                self.register_cortical_area_f32_normalized_0_to_1_linear(
-                    SensorCorticalType::$cortical_type,
+                // Generate code based on the default_coder_type
+                define_cortical_group_registration!(@generate_implementation_for_coder_type 
+                    $cortical_type, 
                     cortical_group, 
                     number_of_channels,
-                    neuron_resolution, 
+                    allow_stale_data,
+                    neuron_resolution,
                     lower_bound,
-                    upper_bound, 
-                    allow_stale_data
+                    upper_bound,
+                    $default_coder_type
                 )
             }
         }
+    };
+    
+    // Implementation generator based on coder type - match statement skeleton
+    (@generate_implementation_for_coder_type 
+        $cortical_type:ident, 
+        $cortical_group:ident, 
+        $number_of_channels:ident,
+        $allow_stale_data:ident,
+        $neuron_resolution:ident,
+        $lower_bound:ident,
+        $upper_bound:ident,
+        Some(NeuronCoderType::F32Normalized0To1_Linear)
+    ) => {
+        // Implementation for F32Normalized0To1_Linear
+        self.register_cortical_area_f32_normalized_0_to_1_linear(
+            SensorCorticalType::$cortical_type,
+            $cortical_group, 
+            $number_of_channels,
+            $neuron_resolution, 
+            $lower_bound,
+            $upper_bound, 
+            $allow_stale_data
+        )
+    };
+    
+    (@generate_implementation_for_coder_type 
+        $cortical_type:ident, 
+        $cortical_group:ident, 
+        $number_of_channels:ident,
+        $allow_stale_data:ident,
+        $neuron_resolution:ident,
+        $lower_bound:ident,
+        $upper_bound:ident,
+        Some(NeuronCoderType::F32NormalizedM1To1_PSPBidirectional)
+    ) => {
+        // Implementation for F32NormalizedM1To1_PSPBidirectional
+        // TODO: Create register_cortical_area_f32_normalized_m1_to_1_psp_bidirectional function
+        // For now, fallback to F32Normalized0To1_Linear
+        self.register_cortical_area_f32_normalized_0_to_1_linear(
+            SensorCorticalType::$cortical_type,
+            $cortical_group, 
+            $number_of_channels,
+            $neuron_resolution, 
+            $lower_bound,
+            $upper_bound, 
+            $allow_stale_data
+        )
+    };
+    
+    (@generate_implementation_for_coder_type 
+        $cortical_type:ident, 
+        $cortical_group:ident, 
+        $number_of_channels:ident,
+        $allow_stale_data:ident,
+        $neuron_resolution:ident,
+        $lower_bound:ident,
+        $upper_bound:ident,
+        Some(NeuronCoderType::F32NormalizedM1To1_SplitSignDivided)
+    ) => {
+        // Implementation for F32NormalizedM1To1_SplitSignDivided
+        // TODO: Create register_cortical_area_f32_normalized_m1_to_1_split_sign_divided function
+        // For now, fallback to F32Normalized0To1_Linear
+        self.register_cortical_area_f32_normalized_0_to_1_linear(
+            SensorCorticalType::$cortical_type,
+            $cortical_group, 
+            $number_of_channels,
+            $neuron_resolution, 
+            $lower_bound,
+            $upper_bound, 
+            $allow_stale_data
+        )
+    };
+    
+    (@generate_implementation_for_coder_type 
+        $cortical_type:ident, 
+        $cortical_group:ident, 
+        $number_of_channels:ident,
+        $allow_stale_data:ident,
+        $neuron_resolution:ident,
+        $lower_bound:ident,
+        $upper_bound:ident,
+        Some(NeuronCoderType::ImageFrame)
+    ) => {
+        // Implementation for ImageFrame
+        // TODO: Need different parameters for image frame registration (input/output properties)
+        // For now, fallback to F32Normalized0To1_Linear (this will likely need refactoring)
+        self.register_cortical_area_f32_normalized_0_to_1_linear(
+            SensorCorticalType::$cortical_type,
+            $cortical_group, 
+            $number_of_channels,
+            $neuron_resolution, 
+            $lower_bound,
+            $upper_bound, 
+            $allow_stale_data
+        )
+    };
+    
+    (@generate_implementation_for_coder_type 
+        $cortical_type:ident, 
+        $cortical_group:ident, 
+        $number_of_channels:ident,
+        $allow_stale_data:ident,
+        $neuron_resolution:ident,
+        $lower_bound:ident,
+        $upper_bound:ident,
+        Some(NeuronCoderType::SegmentedImageFrame)
+    ) => {
+        // Implementation for SegmentedImageFrame
+        // TODO: Need different parameters for segmented image frame registration
+        // For now, fallback to F32Normalized0To1_Linear (this will likely need refactoring)
+        self.register_cortical_area_f32_normalized_0_to_1_linear(
+            SensorCorticalType::$cortical_type,
+            $cortical_group, 
+            $number_of_channels,
+            $neuron_resolution, 
+            $lower_bound,
+            $upper_bound, 
+            $allow_stale_data
+        )
+    };
+    
+    // Fallback for None or unhandled cases
+    (@generate_implementation_for_coder_type 
+        $cortical_type:ident, 
+        $cortical_group:ident, 
+        $number_of_channels:ident,
+        $allow_stale_data:ident,
+        $neuron_resolution:ident,
+        $lower_bound:ident,
+        $upper_bound:ident,
+        $default_coder_type:expr
+    ) => {
+        // Fallback implementation for None or unhandled coder types
+        // Could add compile-time error or warning here
+        compile_error!(concat!("Unhandled default_coder_type: ", stringify!($default_coder_type)));
     };
 }
 
