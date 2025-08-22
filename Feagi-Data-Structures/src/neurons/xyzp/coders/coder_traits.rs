@@ -35,7 +35,7 @@ use crate::wrapped_io_data::{WrappedIOType, WrappedIOData};
 /// # Thread Safety
 /// All encoder implementations must be `Sync + Send` for use in multi-threaded
 /// neural simulation environments.
-pub(crate) trait NeuronXYZPEncoder {
+pub trait NeuronXYZPEncoder {
     /// Returns the I/O data type this encoder can process.
     ///
     /// This method specifies which [`IOTypeVariant`] this encoder is designed

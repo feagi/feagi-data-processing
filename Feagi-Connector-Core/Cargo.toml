@@ -1,6 +1,11 @@
 [package]
 name = "Feagi-Connector-Core"
-version = "0.1.0"
-edition = "2024"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Adds Caching and Processing systems that are used by Feagi Connector"
+
 
 [dependencies]
+ndarray = { workspace = true }
+feagi_data_structures = { path = "../Feagi-Data-Structures", package = "Feagi-Data-Structures" }

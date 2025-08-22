@@ -316,6 +316,10 @@ aspects of data. This index addresses individual channels within a
 specific cortical area for fine-grained data routing."
 );
 
+define_index!(AgentDeviceIndex, u32,
+"An index for a specific channel on a specific cortical group (or multiple). An alternate way to refer to channels"
+);
+
 define_nonzero_count!(CorticalChannelCount, u32, "The number of Cortical Channels. Cannot be zero."
 );
 

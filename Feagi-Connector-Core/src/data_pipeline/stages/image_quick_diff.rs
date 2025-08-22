@@ -8,10 +8,12 @@
 use std::fmt::Display;
 use std::time::Instant;
 use ndarray::{Array3, Zip};
-use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::io_data::{IOTypeData, IOTypeVariant, ImageFrame};
-use crate::io_data::image_descriptors::ImageFrameProperties;
-use crate::io_processing::StreamCacheProcessor;
+use feagi_data_structures::data::image_descriptors::ImageFrameProperties;
+use feagi_data_structures::data::ImageFrame;
+use feagi_data_structures::FeagiDataError;
+use feagi_data_structures::wrapped_io_data::{WrappedIOData, WrappedIOType};
+use crate::data_pipeline::stream_cache_processor_trait::StreamCacheStage;
+
 
 /// A stream processor that computes pixel-wise differences between consecutive image frames.
 ///
@@ -32,25 +34,14 @@ use crate::io_processing::StreamCacheProcessor;
 /// - **Change Detection**: Detect significant changes in static scenes  
 /// - **Noise Filtering**: Filter out small variations while preserving significant changes
 /// - **Event Triggering**: Generate events when visual changes exceed thresholds
-///
-/// # Example
-///
-/// ```rust
-/// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
-/// use feagi_core_data_structures_and_processing::io_processing::processors::ImageFrameQuickDiffProcessor;
-///
-/// let props = ImageFrameProperties::new((640, 480), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
-/// let threshold = 0.1; // 10% difference threshold
-/// let diff_processor = ImageFrameQuickDiffProcessor::new(props, threshold).unwrap();
-/// ```
 #[derive(Debug, Clone)]
-pub struct ImageFrameQuickDiffProcessor {
+pub struct ImageFrameQuickDiffStage {
     /// The output buffer containing the computed difference image
-    diff_cache: IOTypeData, // Image Frame
+    diff_cache: WrappedIOData, // Image Frame
     /// First internal buffer for alternating frame storage
-    cached_a: IOTypeData, // Image Frame
+    cached_a: WrappedIOData, // Image Frame
     /// Second internal buffer for alternating frame storage
-    cached_b: IOTypeData, // Image Frame
+    cached_b: WrappedIOData, // Image Frame
     /// Properties that input images must match (resolution, color space, channels)
     input_definition: ImageFrameProperties,
     /// Flag indicating which buffer to use for the next comparison
@@ -59,26 +50,26 @@ pub struct ImageFrameQuickDiffProcessor {
     threshold: f32,
 }
 
-impl Display for ImageFrameQuickDiffProcessor {
+impl Display for ImageFrameQuickDiffStage {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "ImageFrameQuickDiffProcessor()")
     }
 }
 
-impl StreamCacheProcessor for ImageFrameQuickDiffProcessor {
-    fn get_input_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::ImageFrame(Some(self.input_definition))
+impl StreamCacheStage for ImageFrameQuickDiffStage {
+    fn get_input_data_type(&self) -> WrappedIOType {
+        WrappedIOType::ImageFrame(Some(self.input_definition))
     }
 
-    fn get_output_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::ImageFrame(Some(self.input_definition))
+    fn get_output_data_type(&self) -> WrappedIOType {
+        WrappedIOType::ImageFrame(Some(self.input_definition))
     }
 
-    fn get_most_recent_output(&self) -> &IOTypeData {
+    fn get_most_recent_output(&self) -> &WrappedIOData {
         &self.diff_cache
     }
 
-    fn process_new_input(&mut self, value: &IOTypeData, _time_of_input: Instant) -> Result<&IOTypeData, FeagiDataProcessingError> {
+    fn process_new_input(&mut self, value: &WrappedIOData, _time_of_input: Instant) -> Result<&WrappedIOData, FeagiDataError> {
         if self.is_diffing_against_b {
             self.cached_a = value.clone();
             quick_diff(&self.cached_a, &self.cached_b, &mut self.diff_cache, self.threshold);
@@ -92,7 +83,7 @@ impl StreamCacheProcessor for ImageFrameQuickDiffProcessor {
     }
 }
 
-impl ImageFrameQuickDiffProcessor {
+impl ImageFrameQuickDiffStage {
     /// Creates a new ImageFrameQuickDiffProcessor with specified properties and threshold.
     ///
     /// Initializes the processor with three internal image buffers (two for alternating storage
@@ -107,27 +98,17 @@ impl ImageFrameQuickDiffProcessor {
     /// # Returns
     ///
     /// * `Ok(ImageFrameQuickDiffProcessor)` - Successfully created processor
-    /// * `Err(FeagiDataProcessingError)` - If threshold is negative or image creation fails
-    ///
-    /// # Example
-    ///
-    /// ```rust
-    /// use feagi_core_data_structures_and_processing::io_data::image_descriptors::{ImageFrameProperties, ColorSpace, ColorChannelLayout};
-    /// use feagi_core_data_structures_and_processing::io_processing::processors::ImageFrameQuickDiffProcessor;
-    ///
-    /// let props = ImageFrameProperties::new((320, 240), ColorSpace::Linear, ColorChannelLayout::RGB).unwrap();
-    /// let processor = ImageFrameQuickDiffProcessor::new(props, 0.05).unwrap();
-    /// ```
-    pub fn new(image_properties: ImageFrameProperties, threshold: f32) -> Result<Self, FeagiDataProcessingError> {
+    /// * `Err(FeagiDataError)` - If threshold is negative or image creation fails
+    pub fn new(image_properties: ImageFrameProperties, threshold: f32) -> Result<Self, FeagiDataError> {
         if threshold < 0.0 {
-            return Err(IODataError::InvalidParameters("Threshold must be positive!".into()).into());
+            return Err(FeagiDataError::BadParameters("Threshold must be positive!".into()).into());
         }
         
         let cache_image = ImageFrame::from_image_frame_properties(&image_properties)?;
-        Ok(ImageFrameQuickDiffProcessor {
-            diff_cache: IOTypeData::ImageFrame(cache_image.clone()),
-            cached_a: IOTypeData::ImageFrame(cache_image.clone()), // Image Frame
-            cached_b: IOTypeData::ImageFrame(cache_image.clone()), // Image Frame
+        Ok(ImageFrameQuickDiffStage {
+            diff_cache: WrappedIOData::ImageFrame(cache_image.clone()),
+            cached_a: WrappedIOData::ImageFrame(cache_image.clone()), // Image Frame
+            cached_b: WrappedIOData::ImageFrame(cache_image.clone()), // Image Frame
             input_definition: image_properties,
             is_diffing_against_b: false,
             threshold,
@@ -162,13 +143,13 @@ impl ImageFrameQuickDiffProcessor {
 /// # Returns
 ///
 /// * `Ok(())` - If the difference computation was successful
-/// * `Err(FeagiDataProcessingError)` - If type conversion or data access fails
+/// * `Err(FeagiDataError)` - If type conversion or data access fails
 ///
 /// # Performance
 ///
 /// This function uses ndarray's parallel iteration capabilities for efficient
 /// pixel-wise operations across potentially large image arrays.
-fn quick_diff(source: &IOTypeData, source_diffing: &IOTypeData, diff_overwriting: &mut IOTypeData, threshold: f32) -> Result<(), FeagiDataProcessingError> {
+fn quick_diff(source: &WrappedIOData, source_diffing: &WrappedIOData, diff_overwriting: &mut WrappedIOData, threshold: f32) -> Result<(), FeagiDataError> {
     let read_from: &ImageFrame = source.try_into()?;
     let source_diff_from: &ImageFrame = source_diffing.try_into()?;
     let write_to: &mut ImageFrame = diff_overwriting.try_into()?;

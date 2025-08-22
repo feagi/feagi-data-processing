@@ -236,12 +236,12 @@ impl ImageFrame {
     /// Returns a mutable reference to the internal pixel data array.
     ///
     /// Provides mutable access to the underlying 3D array containing the pixel data.
-    /// This method is restricted to crate-internal use to maintain data integrity.
+    /// Be cautious when using this as you can easily set the data to an invalid state!
     ///
     /// # Returns
     ///
     /// A mutable reference to the Array3<f32> containing the raw pixel data.
-    pub(crate) fn get_internal_data_mut(&mut self) -> &mut Array3<f32> {
+    pub fn get_internal_data_mut(&mut self) -> &mut Array3<f32> {
         &mut self.pixels
     }
 

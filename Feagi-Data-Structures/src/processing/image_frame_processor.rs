@@ -4,7 +4,7 @@ use crate::data::image_descriptors::{ColorChannelLayout, ColorSpace, CornerPoint
 use crate::data::ImageFrame;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub struct ImageFrameTransformer {
+pub struct ImageFrameProcessor {
     /// Properties that the input image must match (resolution, color space, channel layout)
     input_image_properties: ImageFrameProperties,
     /// Optional cropping region defined by corner points
@@ -21,7 +21,7 @@ pub struct ImageFrameTransformer {
     convert_to_grayscale: bool,
 }
 
-impl std::fmt::Display for ImageFrameTransformer {
+impl std::fmt::Display for ImageFrameProcessor {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let initial = format!("Expecting {}.", self.input_image_properties);
         let mut steps: String = match (self.cropping_from, self.final_resize_xy_to) {
@@ -52,10 +52,10 @@ impl std::fmt::Display for ImageFrameTransformer {
     }
 }
 
-impl ImageFrameTransformer {
+impl ImageFrameProcessor {
     
-    pub fn new(input_image_properties: ImageFrameProperties) -> ImageFrameTransformer {
-        ImageFrameTransformer {
+    pub fn new(input_image_properties: ImageFrameProperties) -> ImageFrameProcessor {
+        ImageFrameProcessor {
             input_image_properties,
             cropping_from: None,
             final_resize_xy_to: None,
@@ -67,7 +67,7 @@ impl ImageFrameTransformer {
     }
 
     pub fn new_from_input_output_properties(input: &ImageFrameProperties, output: &ImageFrameProperties) -> Result<Self, FeagiDataError> {
-        let mut definition = ImageFrameTransformer::new(input.clone());
+        let mut definition = ImageFrameProcessor::new(input.clone());
         if output.get_color_channel_layout() != input.get_color_channel_layout() {
             if output.get_color_channel_layout() == ColorChannelLayout::GrayScale && input.get_color_channel_layout() == ColorChannelLayout::RGB {
                 // supported
@@ -118,7 +118,7 @@ impl ImageFrameTransformer {
     pub fn process_image(&self, source: &ImageFrame, destination: &mut ImageFrame) -> Result<(), FeagiDataError> {
         match self {
             // Do literally nothing, just copy the data
-            ImageFrameTransformer {
+            ImageFrameProcessor {
                 input_image_properties,
                 cropping_from: None,
                 final_resize_xy_to: None,
@@ -132,7 +132,7 @@ impl ImageFrameTransformer {
             }
 
             // Only cropping
-            ImageFrameTransformer {
+            ImageFrameProcessor {
                 input_image_properties,
                 cropping_from: Some(cropping_from),
                 final_resize_xy_to: None,
@@ -145,7 +145,7 @@ impl ImageFrameTransformer {
             }
 
             // Only resizing
-            ImageFrameTransformer {
+            ImageFrameProcessor {
                 input_image_properties,
                 cropping_from: None,
                 final_resize_xy_to: Some(final_resize_xy_to),
@@ -158,7 +158,7 @@ impl ImageFrameTransformer {
             }
 
             // Only grayscaling
-            ImageFrameTransformer {
+            ImageFrameProcessor {
                 input_image_properties,
                 cropping_from: None,
                 final_resize_xy_to: None,
@@ -171,7 +171,7 @@ impl ImageFrameTransformer {
             }
 
             // Cropping, Resizing
-            ImageFrameTransformer {
+            ImageFrameProcessor {
                 input_image_properties,
                 cropping_from: Some(cropping_from),
                 final_resize_xy_to: Some(final_resize_xy_to),
@@ -184,7 +184,7 @@ impl ImageFrameTransformer {
             }
 
             // Cropping, Resizing, Grayscaling (the most common with segmentation vision)
-            ImageFrameTransformer {
+            ImageFrameProcessor {
                 input_image_properties,
                 cropping_from: Some(cropping_from),
                 final_resize_xy_to: Some(final_resize_xy_to),

@@ -1,14 +1,8 @@
-//! Processor runner for orchestrating chains of stream cache processing.
-//!
-//! This module provides the `ProcessorRunner` struct, which validates and executes
-//! chains of `StreamCacheProcessor` instances. It ensures type compatibility between
-//! processing and manages the flow of data through the processing pipeline.
-
 use std::time::Instant;
-use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::io_data::{IOTypeData, IOTypeVariant};
-use crate::io_processing::stream_cache_processors::verify_stream_cache_processor_chain::verify_sensor_chain;
-use crate::io_processing::StreamCacheProcessor;
+use feagi_data_structures::FeagiDataError;
+use feagi_data_structures::wrapped_io_data::{WrappedIOData, WrappedIOType};
+use crate::data_pipeline::stream_cache_processor_trait::StreamCacheStage;
+use crate::data_pipeline::verify_stream_cache_processor_chain::verify_sensor_chain;
 
 /// Orchestrates execution of a chain of stream cache processing.
 ///
@@ -24,9 +18,9 @@ use crate::io_processing::StreamCacheProcessor;
 /// - **Performance**: Uses efficient borrowing patterns to avoid unnecessary clones
 #[derive(Debug)]
 pub(crate) struct ProcessorRunner {
-    input_type: IOTypeVariant,
-    output_type: IOTypeVariant,
-    cache_processors: Vec<Box<dyn StreamCacheProcessor + Sync + Send>>,
+    input_type: WrappedIOType,
+    output_type: WrappedIOType,
+    cache_processors: Vec<Box<dyn StreamCacheStage + Sync + Send>>,
 }
 
 impl ProcessorRunner {
@@ -57,7 +51,7 @@ impl ProcessorRunner {
     /// Processor A: Input(F32) -> Output(F32Normalized0To1)
     /// Processor B: Input(F32) -> Output(Bool)              ✗ Incompatible
     /// ```
-    pub fn new(cache_processors: Vec<Box<dyn StreamCacheProcessor + Sync + Send>>) -> Result<Self, FeagiDataProcessingError> {
+    pub fn new(cache_processors: Vec<Box<dyn StreamCacheStage + Sync + Send>>) -> Result<Self, FeagiDataError> {
 
         verify_sensor_chain(&cache_processors)?;
         
@@ -93,9 +87,9 @@ impl ProcessorRunner {
     /// # Performance Notes
     /// Uses `split_at_mut` to avoid borrowing conflicts when accessing processor outputs
     /// while mutating subsequent processing in the chain.
-    pub fn update_value(&mut self, new_value: &IOTypeData, time_of_update: Instant) -> Result<&IOTypeData, FeagiDataProcessingError> {
-        if IOTypeVariant::from(new_value) != self.input_type {
-            return Err(IODataError::InvalidParameters(format!("Expected Input data type of {} but received {}!", self.input_type.to_string(), new_value.to_string())).into());
+    pub fn update_value(&mut self, new_value: &WrappedIOData, time_of_update: Instant) -> Result<&WrappedIOData, FeagiDataError> {
+        if WrappedIOType::from(new_value) != self.input_type {
+            return Err(FeagiDataError::BadParameters(format!("Expected Input data type of {} but received {}!", self.input_type.to_string(), new_value.to_string())).into());
         }
 
         //TODO There has to be a better way to do this, but I keep running into limitations with mutating self.cache_processors
@@ -121,7 +115,7 @@ impl ProcessorRunner {
     ///
     /// # Returns
     /// Reference to the output data from the last processor in the chain.
-    pub fn get_most_recent_output(&self) -> &IOTypeData {
+    pub fn get_most_recent_output(&self) -> &WrappedIOData {
         self.cache_processors.last().unwrap().get_most_recent_output()
     }
     
@@ -129,7 +123,7 @@ impl ProcessorRunner {
     ///
     /// This is determined by the input type of the first processor in the chain.
     /// Used for validation before processing new input data.
-    pub fn get_input_data_type(&self) -> IOTypeVariant {
+    pub fn get_input_data_type(&self) -> WrappedIOType {
         self.input_type
     }
     
@@ -137,7 +131,7 @@ impl ProcessorRunner {
     ///
     /// This is determined by the output type of the last processor in the chain.
     /// Useful for understanding what type of data the pipeline will produce.
-    pub fn get_output_data_type(&self) -> IOTypeVariant {
+    pub fn get_output_data_type(&self) -> WrappedIOType {
         self.output_type
     }
 }

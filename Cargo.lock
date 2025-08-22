@@ -4,7 +4,11 @@ version = 4
 
 [[package]]
 name = "Feagi-Connector-Core"
-version = "0.1.0"
+version = "0.0.50-beta.10"
+dependencies = [
+ "Feagi-Data-Structures",
+ "ndarray",
+]
 
 [[package]]
 name = "Feagi-Data-Serialization"
@@ -12,7 +16,6 @@ version = "0.0.50-beta.10"
 dependencies = [
  "Feagi-Data-Structures",
  "byteorder",
- "ndarray",
  "serde_json",
 ]
 

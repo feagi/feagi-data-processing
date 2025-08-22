@@ -4,13 +4,11 @@
 //! in FEAGI's neural processing system.
 
 use std::time::{Instant};
-use crate::error::{FeagiDataProcessingError};
-use crate::genomic_structures::{CorticalIOChannelIndex};
-use crate::io_data::{IOTypeData, IOTypeVariant};
-use crate::io_processing::{StreamCacheProcessor};
-use crate::io_processing::stream_cache_processors::ProcessorRunner;
-use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData};
-use crate::neuron_data::xyzp::{NeuronXYZPEncoder};
+use feagi_data_structures::FeagiDataError;
+use feagi_data_structures::genomic::descriptors::CorticalChannelIndex;
+use feagi_data_structures::neurons::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
+use feagi_data_structures::wrapped_io_data::{WrappedIOData, WrappedIOType};
+use crate::data_pipeline::{ProcessorRunner, StreamCacheStage};
 
 /// Per-channel cache for sensory input data streams.
 ///
@@ -28,7 +26,7 @@ use crate::neuron_data::xyzp::{NeuronXYZPEncoder};
 #[derive(Debug)]
 pub(crate) struct SensoryChannelStreamCache { 
     processor_runner: ProcessorRunner,
-    channel: CorticalIOChannelIndex,
+    channel: CorticalChannelIndex,
     last_updated: Instant,
     should_allow_sending_stale_data: bool,
 }
@@ -57,10 +55,10 @@ impl SensoryChannelStreamCache {
     ///
     /// Returns an error if the processor runner cannot be initialized with the
     /// provided processing (e.g., incompatible data types between processing).
-    pub fn new(cache_processors: Vec<Box<dyn StreamCacheProcessor + Sync + Send>>,
-               channel: CorticalIOChannelIndex,
+    pub fn new(cache_processors: Vec<Box<dyn StreamCacheStage + Sync + Send>>,
+               channel: CorticalChannelIndex,
                should_allow_sending_stale_data: bool
-                ) -> Result<Self, FeagiDataProcessingError> {
+                ) -> Result<Self, FeagiDataError> {
         
         let processor_runner = ProcessorRunner::new(cache_processors)?;
         Ok(SensoryChannelStreamCache {
@@ -90,7 +88,7 @@ impl SensoryChannelStreamCache {
     ///
     /// Returns an error if any processor in the chain fails to handle the data,
     /// typically due to data type mismatches or processing-specific failures.
-    pub fn update_sensor_value(&mut self, value: IOTypeData) -> Result<(), FeagiDataProcessingError> {
+    pub fn update_sensor_value(&mut self, value: WrappedIOData) -> Result<(), FeagiDataError> {
         self.last_updated = Instant::now();
         _ = self.processor_runner.update_value(&value, Instant::now())?;
         Ok(())
@@ -127,7 +125,7 @@ impl SensoryChannelStreamCache {
     /// # Returns
     ///
     /// Reference to the most recent processed sensor data
-    pub fn get_most_recent_sensor_value(&self) -> &IOTypeData {
+    pub fn get_most_recent_sensor_value(&self) -> &WrappedIOData {
         self.processor_runner.get_most_recent_output()
     }
     
@@ -151,7 +149,7 @@ impl SensoryChannelStreamCache {
     ///
     /// Returns an error if the encoder cannot handle the data type or if
     /// the neural data structure cannot accommodate the encoded patterns.
-    pub fn encode_to_neurons(&self, cortical_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData, encoder: &Box<dyn NeuronXYZPEncoder + Sync + Send>) -> Result<(), FeagiDataProcessingError> {
+    pub fn encode_to_neurons(&self, cortical_mapped_neuron_data: &mut CorticalMappedXYZPNeuronData, encoder: &Box<dyn NeuronXYZPEncoder + Sync + Send>) -> Result<(), FeagiDataError> {
         encoder.write_neuron_data_single_channel(self.get_most_recent_sensor_value(), self.channel, cortical_mapped_neuron_data)
     }
     
@@ -164,7 +162,7 @@ impl SensoryChannelStreamCache {
     /// # Returns
     ///
     /// The `CorticalIOChannelIndex` for this cache
-    pub fn get_cortical_io_channel_index(&self) -> CorticalIOChannelIndex {
+    pub fn get_cortical_io_channel_index(&self) -> CorticalChannelIndex {
         self.channel
     }
 
@@ -177,7 +175,7 @@ impl SensoryChannelStreamCache {
     /// # Returns
     ///
     /// The `IOTypeVariant` that represents the expected input data type
-    pub fn get_input_data_type(&self) -> IOTypeVariant {
+    pub fn get_input_data_type(&self) -> WrappedIOType {
         self.processor_runner.get_input_data_type()
     }
 
@@ -190,7 +188,7 @@ impl SensoryChannelStreamCache {
     /// # Returns
     ///
     /// The `IOTypeVariant` that represents the output data type
-    pub fn get_output_data_type(&self) -> IOTypeVariant {
+    pub fn get_output_data_type(&self) -> WrappedIOType {
         self.processor_runner.get_output_data_type()
     }
 }

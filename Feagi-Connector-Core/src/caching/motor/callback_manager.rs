@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::io_data::{IOTypeData, IOTypeVariant};
+use feagi_data_structures::wrapped_io_data::{WrappedIOType, WrappedIOData};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct CallbackSubscriberID {
@@ -13,13 +13,13 @@ impl CallbackSubscriberID {
 }
 
 pub struct CallBackManager {
-    callbacks: HashMap<usize, Box<dyn Fn(&IOTypeData) + Send + Sync>>,
+    callbacks: HashMap<usize, Box<dyn Fn(&WrappedIOData) + Send + Sync>>,
     next_id: usize, // This will fail if more than 18,446,744,073,709,551,615 callbacks are registered (on 64bit). Too Bad!
-    data_type: IOTypeVariant,
+    data_type: WrappedIOType,
 }
 
 impl  CallBackManager {
-    pub fn new(data_type: IOTypeVariant) -> CallBackManager {
+    pub fn new(data_type: WrappedIOType) -> CallBackManager {
         Self {
             callbacks: HashMap::new(),
             next_id: 0,
@@ -27,7 +27,7 @@ impl  CallBackManager {
         }
     }
 
-    pub fn register(&mut self, callback:  Box<dyn Fn(&IOTypeData) + Send + Sync>) -> CallbackSubscriberID
+    pub fn register(&mut self, callback:  Box<dyn Fn(&WrappedIOData) + Send + Sync>) -> CallbackSubscriberID
     {
         let id = self.next_id;
         self.callbacks.insert(id, callback);
@@ -41,7 +41,7 @@ impl  CallBackManager {
     }
 
     /// Call all registered callbacks with a parameter
-    pub(crate) fn emit(&self, value: &IOTypeData) {
+    pub(crate) fn emit(&self, value: &WrappedIOData) {
         for cb in self.callbacks.values() {
             cb(value);
         }
