@@ -1,29 +1,28 @@
-use crate::error::FeagiDataProcessingError;
-use crate::genomic_structures::{CorticalID, CorticalIOChannelIndex, SingleChannelDimensions};
-use crate::io_data::{IOTypeData, IOTypeVariant};
-use crate::io_processing::processors::LinearScaleTo0And1Processor;
-use crate::io_processing::StreamCacheProcessor;
-use crate::neuron_data::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPArrays};
+use crate::FeagiDataError;
+use crate::genomic::CorticalID;
+use crate::genomic::descriptors::{CorticalChannelDimensions, CorticalChannelIndex};
+use crate::neurons::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPArrays};
+use crate::wrapped_io_data::{WrappedIOData, WrappedIOType};
 use super::super::{NeuronXYZPEncoder};
 
 pub(crate) struct F32LinearNeuronXYZPEncoder {
-    channel_dimensions: SingleChannelDimensions,
+    channel_dimensions: CorticalChannelDimensions,
     cortical_write_target: CorticalID,
     z_res: f32,
 }
 
 impl NeuronXYZPEncoder for F32LinearNeuronXYZPEncoder {
-    fn get_encodable_data_type(&self) -> IOTypeVariant {
-        IOTypeVariant::F32Normalized0To1
+    fn get_encodable_data_type(&self) -> WrappedIOType {
+        WrappedIOType::F32Normalized0To1
     }
 
-    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
+    fn write_neuron_data_single_channel(&self, wrapped_value: &WrappedIOData, cortical_channel: CorticalChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataError> {
         // We are not doing any sort of verification checks here, other than ensuring data types
         
         let value: f32 = wrapped_value.try_into()?;
         
         let z_dist: f32 = value * self.z_res;
-        let channel_offset: u32 = self.channel_dimensions.get_x() * *cortical_channel;
+        let channel_offset: u32 = self.channel_dimensions.x * *cortical_channel;
         let z_index: u32 = z_dist.floor() as u32;
         let neuron: NeuronXYZP = NeuronXYZP::new(
             channel_offset,
@@ -44,10 +43,10 @@ impl F32LinearNeuronXYZPEncoder {
     pub const CHANNEL_X_LENGTH: u32 = 1;
     pub const CHANNEL_Y_LENGTH: u32 = 1;
     
-    pub fn new(cortical_write_target: CorticalID, z_resolution: u32) -> Result<Self, FeagiDataProcessingError> {
+    pub fn new(cortical_write_target: CorticalID, z_resolution: u32) -> Result<Self, FeagiDataError> {
         
         Ok(F32LinearNeuronXYZPEncoder {
-            channel_dimensions: SingleChannelDimensions::new(Self::CHANNEL_X_LENGTH, Self::CHANNEL_Y_LENGTH, z_resolution)?,
+            channel_dimensions: CorticalChannelDimensions::new(Self::CHANNEL_X_LENGTH, Self::CHANNEL_Y_LENGTH, z_resolution)?,
             cortical_write_target,
             z_res: z_resolution as f32,
         })

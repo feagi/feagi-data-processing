@@ -258,7 +258,7 @@ pub enum IODataError{
     /// Common cases include:
     /// - Modifying immutable sensor data
     /// - Invalid transformations on neuron data structures
-    /// - Attempting to resize fixed-size data io_containers
+    /// - Attempting to resize fixed-size data wrapped_io_data
     InvalidInplaceOperation(String),
 }
 

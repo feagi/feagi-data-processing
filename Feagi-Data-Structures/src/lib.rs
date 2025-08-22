@@ -1,11 +1,13 @@
 pub mod basic_components;
 pub mod bytes;
-mod templates;
-mod error;
+pub mod data;
+pub mod wrapped_io_data;
 pub mod genomic;
 pub mod neurons;
-mod data;
-mod io_containers;
+mod templates;
+mod error;
+
+
 mod processing;
 
 pub use templates::*;

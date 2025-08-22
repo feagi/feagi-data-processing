@@ -3,7 +3,7 @@
 //! This module provides a standardized binary format for serializing and deserializing
 //! various data structures used in FEAGI processing. The system supports multiple
 //! serialization formats and can handle both single structures and multi-structure
-//! io_containers within a unified bytes stream.
+//! wrapped_io_data within a unified bytes stream.
 //!
 //! # Architecture
 //!
@@ -20,7 +20,7 @@
 //! [Type (1 bytes)][Version (1 bytes)][Format-specific data...]
 //! ```
 //!
-//! Multi-structure io_containers add additional headers for indexing multiple structures.
+//! Multi-structure wrapped_io_data add additional headers for indexing multiple structures.
 //!
 //! # Supported Formats
 //!

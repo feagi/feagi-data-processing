@@ -2,7 +2,7 @@
 //!
 //! This module defines the fundamental data types used throughout the FEAGI system
 //! for representing different kinds of input and output data. It provides both
-//! type identifiers (IOTypeVariant) and typed data io_containers (IOTypeData) to 
+//! type identifiers (IOTypeVariant) and typed data wrapped_io_data (IOTypeData) to 
 //! allow functions to pass various data types while keeping Rust's type system happy
 
 use std::cmp::PartialEq;

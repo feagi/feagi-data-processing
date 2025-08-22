@@ -11,6 +11,14 @@ macro_rules! define_index {
             Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord
         )]
         pub struct $name($inner);
+        
+        impl std::ops::Deref for $name {
+            type Target = $inner;
+            
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
 
         impl From<$inner> for $name {
             fn from(value: $inner) -> Self {

@@ -76,6 +76,6 @@ impl NeuronXYZP {
     /// }
     /// ```
     pub fn as_tuple(&self) -> (u32, u32, u32, f32) {
-        (self.cortical_coordinate.x(), self.cortical_coordinate.y(), self.cortical_coordinate.z(), self.potential)
+        (self.cortical_coordinate.x, self.cortical_coordinate.y, self.cortical_coordinate.z, self.potential)
     }
 }

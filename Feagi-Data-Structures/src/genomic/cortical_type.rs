@@ -71,7 +71,7 @@ macro_rules! define_io_cortical_types {
             }
 
             pub fn to_cortical_id(&self, index: CorticalGroupIndex) -> CorticalID {
-                let (high, low) = u8_to_hex_char_u8(index.0);
+                let (high, low) = u8_to_hex_char_u8(*index);
                 let mut output: [u8; CorticalID::CORTICAL_ID_LENGTH] =  match self {
                     $(
                         Self::$cortical_type_key_name => *$base_ascii

@@ -2,7 +2,7 @@
 //!
 //! This module provides the main `FeagiByteStructure` type, which serves as a validated
 //! container for serialized FEAGI data. It handles both single structures and multi-structure
-//! io_containers, providing comprehensive validation, parsing, and manipulation capabilities.
+//! wrapped_io_data, providing comprehensive validation, parsing, and manipulation capabilities.
 
 use byteorder::{ByteOrder, LittleEndian};
 use crate::error::{FeagiBytesError, FeagiDataProcessingError, IODataError};
@@ -56,16 +56,16 @@ impl FeagiByteStructure {
     /// Minimum bytes length required for a valid FEAGI bytes structure.
     pub const MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID: usize = 4;
     
-    /// Size of the structure count field in multi-structure io_containers.
+    /// Size of the structure count field in multi-structure wrapped_io_data.
     pub const MULTISTRUCT_STRUCT_COUNT_BYTE_SIZE: usize = 1;
     
-    /// Size of each structure's header entry in multi-structure io_containers (start position + length).
+    /// Size of each structure's header entry in multi-structure wrapped_io_data (start position + length).
     pub const MULTISTRUCT_PER_STRUCT_HEADER_SIZE_IN_BYTES: usize = 8;
 
     /// Currently supported version for JSON format structures.
     pub const SUPPORTED_VERSION_JSON: u8 = 1;
     
-    /// Currently supported version for multi-structure io_containers.
+    /// Currently supported version for multi-structure wrapped_io_data.
     pub const SUPPORTED_VERSION_MULTI_STRUCT: u8 = 1;
     
     /// Currently supported version for neuron XYZP format structures.
@@ -267,7 +267,7 @@ impl FeagiByteStructure {
     
     /// Checks if this bytes structure is a multi-structure container.
     ///
-    /// Multi-structure io_containers can hold multiple individual FEAGI structures
+    /// Multi-structure wrapped_io_data can hold multiple individual FEAGI structures
     /// in a single bytes stream, each with its own format type and data.
     ///
     /// # Returns
@@ -280,7 +280,7 @@ impl FeagiByteStructure {
     
     /// Returns the number of individual structures contained in this bytes structure.
     ///
-    /// For single structures, this always returns 1. For multi-structure io_containers,
+    /// For single structures, this always returns 1. For multi-structure wrapped_io_data,
     /// this returns the number of individual structures contained within.
     ///
     /// # Returns
@@ -328,7 +328,7 @@ impl FeagiByteStructure {
     /// This method deserializes the contained data back to its original object form
     /// using the appropriate deserialization logic based on the structure's format type.
     /// Only works with single structures - use `copy_out_single_object_from_multistruct()`
-    /// for multi-structure io_containers.
+    /// for multi-structure wrapped_io_data.
     ///
     /// # Returns
     /// * `Ok(Box<dyn FeagiByteStructureCompatible>)` - The deserialized original object

@@ -7,6 +7,9 @@
 
 use std::collections::HashMap;
 use crate::FeagiDataError;
+use crate::genomic::descriptors::CorticalChannelIndex;
+use crate::neurons::xyzp::CorticalMappedXYZPNeuronData;
+use crate::wrapped_io_data::{WrappedIOType, WrappedIOData};
 
 /// Trait for encoding external data into neural XYZP representations.
 ///
@@ -41,7 +44,7 @@ pub(crate) trait NeuronXYZPEncoder {
     ///
     /// # Returns
     /// The [`IOTypeVariant`] that this encoder can process
-    fn get_encodable_data_type(&self) -> IOTypeVariant;
+    fn get_encodable_data_type(&self) -> WrappedIOType;
 
     /// Encodes I/O data into neural activations for a single cortical channel.
     ///
@@ -63,7 +66,7 @@ pub(crate) trait NeuronXYZPEncoder {
     /// - Convert data values to appropriate neural coordinates (X, Y, Z)
     /// - Generate suitable potential (P) values for neural activation
     /// - Write results to the target cortical area using the specified channel
-    fn write_neuron_data_single_channel(&self, wrapped_value: &IOTypeData, cortical_channel: CorticalIOChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError>;
+    fn write_neuron_data_single_channel(&self, wrapped_value: &WrappedIOData, cortical_channel: CorticalChannelIndex, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataError>;
     
     /// Encodes multiple channels of data in a single operation.
     ///
@@ -85,7 +88,7 @@ pub(crate) trait NeuronXYZPEncoder {
     /// - Vectorized operations when processing many channels
     /// - Batch optimizations specific to the encoding algorithm
     /// - Shared computation that can be amortized across channels
-    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalIOChannelIndex, &IOTypeData>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataProcessingError> {
+    fn write_neuron_data_multi_channel(&self, channels_and_values: HashMap<CorticalChannelIndex, &WrappedIOData>, write_target: &mut CorticalMappedXYZPNeuronData) -> Result<(), FeagiDataError> {
         for (channel, values) in channels_and_values {
             self.write_neuron_data_single_channel(values, channel, write_target)?;
         };

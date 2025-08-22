@@ -4,8 +4,9 @@
 
 use std::cmp;
 use std::ops::RangeInclusive;
-use crate::basic_components::CartesianResolution;
 use crate::FeagiDataError;
+use crate::basic_components::CartesianResolution;
+use crate::data::{ImageFrame, SegmentedImageFrame};
 
 //region Image XY Resolution
 
@@ -277,9 +278,9 @@ impl ImageFrameProperties {
     /// - The color space doesn't match  
     /// - The channel layout doesn't match
     pub fn verify_image_frame_matches_properties(&self, image_frame: &ImageFrame) -> Result<(), FeagiDataError> {
-        if image_frame.get_cartesian_width_height() != self.image_resolution {
-            return Err(FeagiDataError::BadParameter(format!{"Expected resolution of {} but received an image with resolution of <{}, {}>!",
-                                                              self.image_resolution, image_frame.get_cartesian_width_height().0, image_frame.get_cartesian_width_height().1}).into())
+        if image_frame.get_xy_resolution() != self.image_resolution {
+            return Err(FeagiDataError::BadParameter(format!{"Expected resolution of {} but received an image with resolution of {}!",
+                                                              self.image_resolution, image_frame.get_xy_resolution()}).into())
         }
         if image_frame.get_color_space() != &self.color_space {
             return Err(FeagiDataError::BadParameter(format!("Expected color space of {}, but got image with color space of {}!", self.color_space.to_string(), self.color_space.to_string())).into())
