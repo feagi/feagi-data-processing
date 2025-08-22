@@ -41,11 +41,11 @@ macro_rules! define_cortical_group_registration {
         )*
     };
     
-        // Generate function with signature based on coder type
+    // Generate function with signature based on coder type
     (@generate_function_if_needed $cortical_type:ident, $snake_case_id:expr, $default_coder_type:expr) => {
-        define_cortical_group_registration!(@generate_function_with_signature 
-            $cortical_type, 
-            $snake_case_id, 
+        define_cortical_group_registration!(@generate_function_with_signature
+            $cortical_type,
+            $snake_case_id,
             $default_coder_type
         );
     };
@@ -183,12 +183,15 @@ macro_rules! define_cortical_group_registration {
     (@generate_function_with_signature $cortical_type:ident, $snake_case_id:expr, None) => {
         // None, Skip generating function for None coder types
     };
-    
+
+
+}
+
+/*
     (@generate_function_with_signature $cortical_type:ident, $snake_case_id:expr, $default_coder_type:expr) => {
         compile_error!(concat!("Unhandled default_coder_type for function signature: ", stringify!($default_coder_type)));
     };
-
-}
+ */
 
 pub struct SensorCache {
     channel_caches: HashMap<FullChannelCacheKey, SensoryChannelStreamCache>, // (cortical type, grouping index, channel) -> sensory data cache, the main lookup
