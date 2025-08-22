@@ -99,7 +99,7 @@ impl FeagiByteStructure {
     ///
     /// # Example
     /// ```rust
-    /// use feagi_data_structures::bytes::FeagiByteStructure;
+    /// use Feagi_Data_Structures::bytes::FeagiByteStructure;
     /// let raw_data = vec![1, 1, 123, 125]; // JSON format, version 1, "{}"
     /// let structure = FeagiByteStructure::create_from_bytes(raw_data).unwrap();
     /// ```

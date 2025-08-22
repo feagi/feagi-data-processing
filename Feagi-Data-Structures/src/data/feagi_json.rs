@@ -1,12 +1,5 @@
-//! JSON data structure with FEAGI bytes structure compatibility.
-//!
-//! This module provides the `JsonStructure` type, which wraps JSON data and implements
-//! the `FeagiByteStructureCompatible` trait for seamless integration with the FEAGI
-//! bytes structure serialization system. This allows JSON data to be stored, transmitted,
-//! and processed alongside other FEAGI data types.
-
 use serde_json;
-use crate::bytes::{FeagiByteStructureCompatible, FeagiByteStructureType, FeagiByteStructure};
+//use crate::bytes::{FeagiByteStructureCompatible, FeagiByteStructureType, FeagiByteStructure};
 use crate::FeagiDataError;
 
 
@@ -15,6 +8,32 @@ pub struct FeagiJSON {
     json: serde_json::Value,
 }
 
+impl FeagiJSON {
+    pub fn from_json_string(string: String) -> Result<FeagiJSON, FeagiDataError> {
+        match serde_json::from_str(&string) {
+            Ok(json_value) => Ok(FeagiJSON { json: json_value }),
+            Err(e) => Err(FeagiDataError::BadParameters(
+                format!("Failed to parse JSON string: {}", e)
+            ).into()),
+        }
+    }
+
+    pub fn from_json_value(value: serde_json::Value) -> FeagiJSON {
+        FeagiJSON { json: value }
+    }
+
+    pub fn borrow_json_value(&self) -> &serde_json::Value {
+        &self.json
+    }
+}
+
+impl std::fmt::Display for FeagiJSON {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.json)
+    }
+}
+
+/*
 impl FeagiByteStructureCompatible for FeagiJSON {
     fn get_type(&self) -> FeagiByteStructureType { Self::BYTE_STRUCTURE_TYPE }
 
@@ -77,33 +96,6 @@ impl FeagiByteStructureCompatible for FeagiJSON {
     }
 }
 
-impl std::fmt::Display for FeagiJSON {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.json)
-    }
-}
+ */
 
-impl FeagiJSON {
-    /// The FEAGI bytes structure type identifier for JSON data.
-    const BYTE_STRUCTURE_TYPE: FeagiByteStructureType = FeagiByteStructureType::JSON;
-    
-    /// The current version of the JSON bytes structure format.
-    const BYTE_STRUCT_VERSION: u8 = 1;
-    
-    pub fn from_json_string(string: String) -> Result<FeagiJSON, FeagiDataError> {
-        match serde_json::from_str(&string) {
-            Ok(json_value) => Ok(FeagiJSON { json: json_value }),
-            Err(e) => Err(FeagiDataError::BadParameters(
-                format!("Failed to parse JSON string: {}", e)
-            ).into()),
-        }
-    }
-    
-    pub fn from_json_value(value: serde_json::Value) -> FeagiJSON {
-        FeagiJSON { json: value }
-    }
-    
-    pub fn borrow_json_value(&self) -> &serde_json::Value {
-        &self.json
-    }
-}
+

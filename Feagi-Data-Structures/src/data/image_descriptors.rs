@@ -5,10 +5,47 @@
 use std::cmp;
 use std::ops::RangeInclusive;
 use crate::FeagiDataError;
-use crate::basic_components::CartesianResolution;
+use crate::basic_components::{CartesianResolution, FlatCoordinateU32};
 use crate::data::{ImageFrame, SegmentedImageFrame};
 
-//region Image XY Resolution
+//region Image XY
+
+#[repr(transparent)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+pub struct ImageXYPoint(FlatCoordinateU32);
+
+impl ImageXYPoint {
+    pub fn new(x: u32, y: u32) -> Self {
+        ImageXYPoint(FlatCoordinateU32::new(x, y))
+    }
+}
+
+impl std::ops::Deref for ImageXYPoint {
+    type Target = FlatCoordinateU32;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<FlatCoordinateU32> for ImageXYPoint {
+    fn from(x: FlatCoordinateU32) -> Self {
+        ImageXYPoint(x)
+    }
+}
+
+impl From<ImageXYPoint> for FlatCoordinateU32 {
+    fn from(x: ImageXYPoint) -> Self {
+        x.0
+    }
+}
+
+impl std::fmt::Display for ImageXYPoint {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "[{}, {}]", self.0, self.0)
+    }
+}
+
+
 
 /// Describes the resolution of the image (width and height)
 #[repr(transparent)]
@@ -394,6 +431,8 @@ pub struct CornerPoints {
     upper_right: (usize, usize),
 }
 
+// TODO move to ImageXYPoint
+
 impl CornerPoints {
     /// Creates a new CornerPoints instance from row-major coordinates.
     ///
@@ -436,20 +475,20 @@ impl CornerPoints {
     /// - Err(DataProcessingError) if the coordinates are invalid or out of bounds
     pub fn new_from_cartesian(
         left_lower_xy: (usize, usize), right_upper_xy: (usize, usize),
-        total_source_resolution_width_height: (usize, usize))
+        total_source_resolution: ImageXYResolution)
         -> Result<CornerPoints,  FeagiDataError> {
 
         if left_lower_xy.0 >= right_upper_xy.0 || left_lower_xy.1 >= right_upper_xy.1 {
             return Err(FeagiDataError::BadParameters("Given corner points do not enclose a valid area!".into()).into());
         }
 
-        if right_upper_xy.0 > total_source_resolution_width_height.0 || right_upper_xy.1 > total_source_resolution_width_height.1 {
+        if right_upper_xy.0 > total_source_resolution.width || right_upper_xy.1 > total_source_resolution.height {
             return Err(FeagiDataError::BadParameters("Corner bounds must be within the total resolution!".into()).into());
         }
 
         Ok(CornerPoints {
-            lower_left: (total_source_resolution_width_height.1 - left_lower_xy.1, left_lower_xy.0),
-            upper_right: (total_source_resolution_width_height.1 - right_upper_xy.1, right_upper_xy.0)
+            lower_left: (total_source_resolution.height - left_lower_xy.1, left_lower_xy.0),
+            upper_right: (total_source_resolution.height - right_upper_xy.1, right_upper_xy.0)
         })
     }
 
@@ -480,35 +519,17 @@ impl CornerPoints {
         (self.lower_left.0, self.upper_right.1)
     }
 
-    /// Gets the row major coordinates of the upper-left corner (Upper Inclusive, Left Inclusive)
-    ///
-    /// # Returns
-    ///
-    /// * `(usize, usize)` - Coordinate pair (y, x) for the upper-left corner
+
     pub fn upper_left_row_major(&self) -> (usize, usize) {
         (self.upper_right.0, self.lower_left.1)
     }
-
-    /// Checks if the defined region fits within a source frame of the given resolution
-    ///
-    /// # Arguments
-    ///
-    /// * `source_total_resolution` - The total resolution of the source frame as (width, height)
-    ///
-    /// # Returns
-    ///
-    /// * `bool` - True if the region fits within the given resolution, false otherwise
-    pub fn does_fit_in_frame_of_width_height(&self, width_height: (usize, usize)) -> bool {
-        self.upper_right.1 <= width_height.0 && self.lower_left.0 <= width_height.1
+    
+    pub fn does_fit_in_frame_of_width_height(&self, resolution: ImageXYResolution) -> bool {
+        self.upper_right.1 <= resolution.width && self.lower_left.1 <= resolution.height
     }
-
-    /// Calculates the dimensions of the area enclosed by the corner points
-    ///
-    /// # Returns
-    ///
-    /// * `(usize, usize)` - The dimensions as (width, height) of the enclosed area
-    pub fn enclosed_area_width_height(&self) -> (usize, usize) {
-        (self.upper_right.1 - self.lower_left.1, self.lower_left.0 - self.upper_right.0)
+    
+    pub fn enclosed_area_width_height(&self) -> ImageXYResolution {
+        ImageXYResolution::new(self.upper_right.1 - self.lower_left.1, self.lower_left.0 - self.upper_right.0).unwrap()
     }
 }
 
@@ -598,37 +619,37 @@ impl GazeProperties {
         GazeProperties::new_row_major_where_origin_top_left((0.5, 0.5), (0.5, 0.5)).unwrap()
     }
 
-    pub fn calculate_source_corner_points_for_segmented_video_frame(&self, source_frame_width_height: (usize, usize)) -> Result<[CornerPoints; 9], FeagiDataError> {
-        if source_frame_width_height.0 < 3 || source_frame_width_height.1 < 3 {
+    pub fn calculate_source_corner_points_for_segmented_video_frame(&self, source_frame_resolution: ImageXYResolution) -> Result<[CornerPoints; 9], FeagiDataError> {
+        if source_frame_resolution.width < 3 || source_frame_resolution.height < 3 {
             return Err(FeagiDataError::BadParameters("Source frame width and height must be at least 3!".into()).into())
         }
 
-        let center_corner_points = self.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;
+        let center_corner_points = self.calculate_pixel_coordinates_of_center_corners(source_frame_resolution)?;
         Ok([
-            CornerPoints::new_from_row_major((source_frame_width_height.1, 0), center_corner_points.lower_left_row_major())?,
-            CornerPoints::new_from_row_major((source_frame_width_height.1, center_corner_points.lower_left_row_major().1), center_corner_points.lower_right_row_major())?,
-            CornerPoints::new_from_row_major((source_frame_width_height.1, center_corner_points.upper_right_row_major().1), (center_corner_points.lower_left_row_major().1, source_frame_width_height.0))?,
+            CornerPoints::new_from_row_major((source_frame_resolution.height, 0), center_corner_points.lower_left_row_major())?,
+            CornerPoints::new_from_row_major((source_frame_resolution.height, center_corner_points.lower_left_row_major().1), center_corner_points.lower_right_row_major())?,
+            CornerPoints::new_from_row_major((source_frame_resolution.height, center_corner_points.upper_right_row_major().1), (center_corner_points.lower_left_row_major().1, source_frame_resolution.width))?,
             CornerPoints::new_from_row_major((center_corner_points.lower_left_row_major().0, 0), center_corner_points.upper_left_row_major())?,
             center_corner_points,
-            CornerPoints::new_from_row_major(center_corner_points.lower_right_row_major(), (center_corner_points.upper_right_row_major().0, source_frame_width_height.0))?,
+            CornerPoints::new_from_row_major(center_corner_points.lower_right_row_major(), (center_corner_points.upper_right_row_major().0, source_frame_resolution.width))?,
             CornerPoints::new_from_row_major((center_corner_points.upper_right_row_major().0, 0), (0, center_corner_points.lower_left_row_major().1))?,
             CornerPoints::new_from_row_major(center_corner_points.upper_left_row_major(), (0, center_corner_points.upper_right_row_major().1))?,
-            CornerPoints::new_from_row_major(center_corner_points.upper_right_row_major(), (0, source_frame_width_height.0))?,
+            CornerPoints::new_from_row_major(center_corner_points.upper_right_row_major(), (0, source_frame_resolution.width))?,
         ])
     }
 
-    fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_width_height: (usize, usize)) -> Result<CornerPoints, FeagiDataError> {
-        let source_frame_width_height_f: (f32, f32) = (source_frame_width_height.0 as f32, source_frame_width_height.1 as f32);
+    fn calculate_pixel_coordinates_of_center_corners(&self, source_frame_resolution: ImageXYResolution) -> Result<CornerPoints, FeagiDataError> {
+        let source_frame_width_height_f: (f32, f32) = (source_frame_resolution.width as f32, source_frame_resolution.height as f32);
         let center_size_normalized_half_yx: (f32, f32) = (self.modularity_normalized_yx.0 / 2.0, self.modularity_normalized_yx.1 / 2.0);
 
         // We use max / min to ensure that there is always a 1 pixel buffer along all edges for use in peripheral vision (since we cannot use a resolution of 0)
-        let bottom_pixel: usize = cmp::min(source_frame_width_height.0 - 1,
+        let bottom_pixel: usize = cmp::min(source_frame_resolution.width - 1,
                                            ((self.eccentricity_normalized_yx.0 + center_size_normalized_half_yx.0) * source_frame_width_height_f.1).ceil() as usize);
         let top_pixel: usize = cmp::max(1,
                                         (( self.eccentricity_normalized_yx.0 - center_size_normalized_half_yx.0) * source_frame_width_height_f.1).floor() as usize);
         let left_pixel: usize = cmp::max(1,
                                          ((self.eccentricity_normalized_yx.1 - center_size_normalized_half_yx.1) * source_frame_width_height_f.0).floor() as usize);
-        let right_pixel: usize = cmp::min(source_frame_width_height.0 - 1,
+        let right_pixel: usize = cmp::min(source_frame_resolution.width - 1,
                                           (( self.eccentricity_normalized_yx.1 + center_size_normalized_half_yx.1) * source_frame_width_height_f.0).ceil() as usize);
 
         let corner_points: CornerPoints = CornerPoints::new_from_row_major(

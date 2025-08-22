@@ -1,5 +1,4 @@
 use std::ops::{RangeInclusive};
-use byteorder::{ByteOrder, LittleEndian};
 use ndarray::Array1;
 use crate::FeagiDataError;
 use crate::genomic::descriptors::CorticalCoordinate;
@@ -29,7 +28,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::NeuronXYZPArrays;
+    /// use Feagi_Data_Structures::neurons::xyzp::NeuronXYZPArrays;
     ///
     /// let arrays = NeuronXYZPArrays::new();
     /// assert_eq!(arrays.len(), 0);
@@ -57,7 +56,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::NeuronXYZPArrays;
+    /// use Feagi_Data_Structures::neurons::xyzp::NeuronXYZPArrays;
     ///
     /// let x = vec![1, 2, 3];
     /// let y = vec![4, 5, 6];
@@ -94,7 +93,7 @@ impl NeuronXYZPArrays {
     /// # Examples
     /// ```
     /// use ndarray::Array1;
-    /// use feagi_data_structures::neurons::xyzp::NeuronXYZPArrays;
+    /// use Feagi_Data_Structures::neurons::xyzp::NeuronXYZPArrays;
     ///
     /// let x_nd = Array1::from_vec(vec![1, 2, 3]);
     /// let y_nd = Array1::from_vec(vec![4, 5, 6]);
@@ -139,7 +138,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::NeuronXYZPArrays;
+    /// use Feagi_Data_Structures::neurons::xyzp::NeuronXYZPArrays;
     ///
     /// let arrays = NeuronXYZPArrays::with_capacity(100);
     /// assert_eq!(arrays.capacity(), 100);
@@ -155,7 +154,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(10);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -172,7 +171,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
     /// assert_eq!(arrays.len(), 0);
@@ -189,7 +188,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(100);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -213,7 +212,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::NeuronXYZPArrays;
+    /// use Feagi_Data_Structures::neurons::xyzp::NeuronXYZPArrays;
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(10);
     /// arrays.ensure_capacity(50);
@@ -236,7 +235,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::NeuronXYZPArrays;
+    /// use Feagi_Data_Structures::neurons::xyzp::NeuronXYZPArrays;
     ///
     /// let mut arrays = NeuronXYZPArrays::new();
     /// arrays.reserve(100);
@@ -256,7 +255,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
     /// let neuron = NeuronXYZP::new(1, 2, 3, 0.5);
@@ -280,7 +279,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -305,7 +304,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -345,7 +344,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
     /// assert!(arrays.is_empty());
@@ -364,7 +363,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(2);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -397,7 +396,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(2);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -412,7 +411,7 @@ impl NeuronXYZPArrays {
             .zip(&self.y)
             .zip(&self.z)
             .zip(&self.p)
-            .map(|(((x,y),z),p)| 
+            .map(|(((x,y),z),p)|
                 (x.0,
                 NeuronXYZP {
                     cortical_coordinate: CorticalCoordinate::new(*x.1, *y, *z),
@@ -445,7 +444,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(2);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -471,7 +470,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(2);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -502,7 +501,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(2);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -520,7 +519,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -535,6 +534,7 @@ impl NeuronXYZPArrays {
         (&self.x, &self.y, &self.z, &self.p)
     }
 
+    /*
     /// Writes the neural data to a bytes buffer.
     ///
     /// The data is written in the following order: all x values, all y values, all z values, all p values.
@@ -548,7 +548,7 @@ impl NeuronXYZPArrays {
     ///
     /// # Examples
     /// ```
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
@@ -583,6 +583,8 @@ impl NeuronXYZPArrays {
         Ok(())
     }
     
+     */
+    
     /// Creates a new NeuronXYZPArrays from filtering neurons based on their locations.
     ///
     /// # Arguments
@@ -596,7 +598,7 @@ impl NeuronXYZPArrays {
     /// # Examples
     /// ```
     /// use std::ops::RangeInclusive;
-    /// use feagi_data_structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
+    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
     ///
     /// let mut arrays = NeuronXYZPArrays::with_capacity(3);
     /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));

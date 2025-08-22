@@ -247,6 +247,68 @@ impl ImageFrame {
 
     //endregion
 
+
+    //region Image Processing
+
+    //region In-Place
+    
+    pub fn change_brightness(&mut self, brightness_factor: f32) -> Result<(), FeagiDataError> { // TODO This algorithm is likely wrong given linear and gamma color spaces!
+        if brightness_factor < 0.0 {
+            return Err(FeagiDataError::BadParameters("Multiply brightness by must be positive!".into()).into());
+        }
+
+        self.pixels.mapv_inplace(|v| {
+            let scaled = (v) * brightness_factor;
+            scaled
+            //scaled.clamp(0.0, 1.0) // Ensure that we do not exceed outside 0.0 and 1.0 //TODO do we need this? Do we want to help the user in single step operations or be accurate in multistep operations
+        });
+        Ok(())
+    }
+    
+    pub fn change_contrast(&mut self, contrast_factor: f32) -> Result<(), FeagiDataError> { // TODO This algorithm is likely wrong given linear and gamma color spaces!
+        if contrast_factor < -1.0 || contrast_factor > 1.0 {
+            return Err(FeagiDataError::BadParameters("The contrast factor must be between -1.0 and 1.0!".into()).into());
+        }
+        // Algo sourced from https://ie.nitk.ac.in/blog/2020/01/19/algorithms-for-adjusting-brightness-and-contrast-of-an-image/
+        const CORRECTION_FACTOR: f32 = 1.015686; //  259 / 255
+        self.pixels.mapv_inplace(|v| {
+            let factor: f32 = (CORRECTION_FACTOR * (contrast_factor + 1.0)) / (CORRECTION_FACTOR - contrast_factor);
+            let pixel_val: f32 = (factor * (v - 0.5)) + 0.5;
+            pixel_val.clamp(0.0, 1.0)
+        });
+        Ok(())
+    }
+
+
+    //endregion
+
+    //region Out-Place
+    
+    pub fn resize_nearest_neighbor(&mut self, target_width_height: ImageXYResolution) -> Result<(), FeagiDataError> {
+        let source_resolution: ImageXYResolution = self.get_xy_resolution();
+        let source_resolution: (u32, u32) = (source_resolution.height as u32, source_resolution.width as u32);
+        let source_resolution_f: (f32, f32) = (source_resolution.0 as f32, source_resolution.1 as f32); // Y X order
+        let number_color_channels: usize = self.get_color_channel_count();
+
+        let mut sized_array: Array3<f32> = Array3::zeros((target_width_height.height, target_width_height.width, number_color_channels));
+        let target_width_height_f: (f32, f32) = (target_width_height.width as f32, target_width_height.height as f32);
+        for ((y, x, c), color_val) in sized_array.indexed_iter_mut() {
+            let nearest_neighbor_coordinate_y: usize = (((y as f32) / source_resolution_f.0) * target_width_height_f.1).floor() as usize;
+            let nearest_neighbor_coordinate_x: usize = (((x as f32) / source_resolution_f.1) * target_width_height_f.0).floor() as usize;
+            let nearest_neighbor_channel_value: f32 = self.pixels[(nearest_neighbor_coordinate_x, nearest_neighbor_coordinate_y, c)];
+            *color_val = nearest_neighbor_channel_value;
+        };
+        self.pixels = sized_array;
+
+        Ok(())
+    }
+
+    //endregion
+
+
+    //endregion
+
+
     // region Outputting Neurons
 
     pub fn write_as_neuron_xyzp_data(&self, write_target: &mut CorticalMappedXYZPNeuronData, target_id: CorticalID, x_channel_offset: CorticalChannelIndex) -> Result<(), FeagiDataError> {

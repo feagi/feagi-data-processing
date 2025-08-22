@@ -1,6 +1,7 @@
-use crate::error::{FeagiDataProcessingError, IODataError};
-use crate::io_data::image_descriptors::{ColorChannelLayout, ColorSpace, GazeProperties, ImageFrameProperties, SegmentedImageFrameProperties};
-use crate::io_data::{ImageFrame, ImageFrameTransformer, SegmentedImageFrame};
+use crate::FeagiDataError;
+use crate::processing::image_frame_processor::ImageFrameTransformer;
+use crate::data::image_descriptors::{ColorChannelLayout, GazeProperties, ImageFrameProperties, SegmentedImageFrameProperties};
+use crate::data::{ImageFrame, SegmentedImageFrame};
 
 #[derive(Debug, Clone)]
 pub struct ImageFrameSegmentator {
@@ -10,7 +11,7 @@ pub struct ImageFrameSegmentator {
 }
 
 impl ImageFrameSegmentator {
-    pub fn new(input_properties: ImageFrameProperties, output_properties: SegmentedImageFrameProperties, initial_gaze: GazeProperties) -> Result<ImageFrameSegmentator, FeagiDataProcessingError> {
+    pub fn new(input_properties: ImageFrameProperties, output_properties: SegmentedImageFrameProperties, initial_gaze: GazeProperties) -> Result<ImageFrameSegmentator, FeagiDataError> {
         Ok(
             ImageFrameSegmentator{
                 input_properties: input_properties.clone(),
@@ -24,20 +25,20 @@ impl ImageFrameSegmentator {
         )
     }
     
-    pub fn update_gaze(&mut self, gaze: &GazeProperties) -> Result<(), FeagiDataProcessingError> {
+    pub fn update_gaze(&mut self, gaze: &GazeProperties) -> Result<(), FeagiDataError> {
         self.ordered_transformers = Self::get_new_ordered_transformers(&self.input_properties, &self.output_properties, gaze)?;
         Ok(())
     }
     
-    pub fn verify_input_image(&self, input: &ImageFrame) -> Result<(), FeagiDataProcessingError> {
+    pub fn verify_input_image(&self, input: &ImageFrame) -> Result<(), FeagiDataError> {
         self.input_properties.verify_image_frame_matches_properties(input)
     }
     
-    pub fn verify_output_image(&self, output: &SegmentedImageFrame) -> Result<(), FeagiDataProcessingError> {
+    pub fn verify_output_image(&self, output: &SegmentedImageFrame) -> Result<(), FeagiDataError> {
         self.output_properties.verify_segmented_image_frame_matches_properties(output)
     }
     
-    pub fn segment_image(&self, input: &ImageFrame, target: &mut SegmentedImageFrame) -> Result<(), FeagiDataProcessingError> {
+    pub fn segment_image(&self, input: &ImageFrame, target: &mut SegmentedImageFrame) -> Result<(), FeagiDataError> {
         let output_image_frames = target.get_mut_ordered_image_frame_references();
         
         self.ordered_transformers[0].process_image(input, output_image_frames[0])?;
@@ -57,13 +58,13 @@ impl ImageFrameSegmentator {
     
     
     fn get_new_ordered_transformers(input_properties: &ImageFrameProperties, output_properties: &SegmentedImageFrameProperties, gaze: &GazeProperties) 
-        -> Result<[ImageFrameTransformer; 9], FeagiDataProcessingError> {
+        -> Result<[ImageFrameTransformer; 9], FeagiDataError> {
         
-        let cropping_points = gaze.calculate_source_corner_points_for_segmented_video_frame(input_properties.get_expected_xy_resolution())?;
+        let cropping_points = gaze.calculate_source_corner_points_for_segmented_video_frame(input_properties.get_image_resolution())?;
         let center_color_channels = output_properties.get_center_color_channel();
         let peripheral_color_channels = output_properties.get_peripheral_color_channels();
         let color_space = output_properties.get_color_space();
-        let output_resolutions = output_properties.get_expected_resolutions().as_ordered_array();
+        let output_resolutions = output_properties.get_resolutions().as_ordered_array();
         
         let center_to_grayscale: bool = center_color_channels == &ColorChannelLayout::GrayScale;
         let peripheral_to_grayscale: bool = peripheral_color_channels == &ColorChannelLayout::GrayScale;

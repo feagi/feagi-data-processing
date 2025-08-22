@@ -6,6 +6,41 @@
 use std::ops::Range;
 use crate::FeagiDataError;
 
+//region 2D Coordinates
+
+
+//endregion
+
+/// 2D coordinate with unsigned 32-bit integer components.
+#[derive(Clone, Debug, Hash, Eq, PartialEq, Copy)]
+pub struct FlatCoordinateU32 {
+    pub x: u32,
+    pub y: u32,
+}
+
+impl FlatCoordinateU32 {
+    /// Creates a new 2D coordinate.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use Feagi_Data_Structures::basic_components::FlatCoordinateU32;
+    ///
+    /// let coord = FlatCoordinateU32::new(10, 20);
+    /// assert_eq!(coord.x, 10);
+    /// assert_eq!(coord.y, 20);
+    /// ```
+    pub fn new(x: u32, y: u32) -> Self {
+        Self { x, y }
+    }
+}
+
+impl std::fmt::Display for FlatCoordinateU32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "[{}, {}]", self.x, self.y)
+    }
+}
+
 
 //region 3D Coordinates
 
@@ -24,7 +59,7 @@ impl CoordinateU32 {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_data_structures::basic_components::CoordinateU32;
+    /// use Feagi_Data_Structures::basic_components::CoordinateU32;
     /// 
     /// let coord = CoordinateU32::new(10, 20, 30);
     /// assert_eq!(coord.x, 10);
@@ -58,7 +93,7 @@ impl CoordinateI32 {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_data_structures::basic_components::CoordinateI32;
+    /// use Feagi_Data_Structures::basic_components::CoordinateI32;
     /// 
     /// let coord = CoordinateI32::new(-5, 0, 15);
     /// assert_eq!(coord.x, -5);
@@ -123,7 +158,7 @@ impl Dimensions{
     /// # Examples
     /// 
     /// ```
-    /// use feagi_data_structures::basic_components::Dimensions;
+    /// use Feagi_Data_Structures::basic_components::Dimensions;
     /// 
     /// let dims = Dimensions::new(100, 50, 25).unwrap();
     /// assert_eq!(dims.x, 100);
@@ -143,7 +178,7 @@ impl Dimensions{
     /// # Examples
     /// 
     /// ```
-    /// use feagi_data_structures::basic_components::{Dimensions, CoordinateU32};
+    /// use Feagi_Data_Structures::basic_components::{Dimensions, CoordinateU32};
     /// 
     /// let dims = Dimensions::new(10, 10, 10).unwrap();
     /// let valid_coord = CoordinateU32::new(5, 7, 3);
@@ -183,7 +218,7 @@ impl DimensionRange {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_data_structures::basic_components::DimensionRange;
+    /// use Feagi_Data_Structures::basic_components::DimensionRange;
     /// 
     /// let range = DimensionRange::new(0..10, 5..15, 0..20).unwrap();
     /// 
@@ -202,7 +237,7 @@ impl DimensionRange {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_data_structures::basic_components::DimensionRange;
+    /// use Feagi_Data_Structures::basic_components::DimensionRange;
     /// 
     /// let single_point = DimensionRange::new(5..6, 10..11, 15..16).unwrap();
     /// let multi_point = DimensionRange::new(0..10, 5..6, 0..5).unwrap();
@@ -219,7 +254,7 @@ impl DimensionRange {
     /// # Examples
     /// 
     /// ```
-    /// use feagi_data_structures::basic_components::{DimensionRange, CoordinateU32};
+    /// use Feagi_Data_Structures::basic_components::{DimensionRange, CoordinateU32};
     /// 
     /// let range = DimensionRange::new(0..10, 5..15, 0..20).unwrap();
     /// let valid_coord = CoordinateU32::new(5, 10, 15);
