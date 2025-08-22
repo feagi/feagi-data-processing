@@ -5,7 +5,7 @@ use crate::neurons::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPA
 use crate::wrapped_io_data::{WrappedIOData, WrappedIOType};
 use super::super::{NeuronXYZPEncoder};
 
-pub(crate) struct F32LinearNeuronXYZPEncoder {
+pub struct F32LinearNeuronXYZPEncoder {
     channel_dimensions: CorticalChannelDimensions,
     cortical_write_target: CorticalID,
     z_res: f32,

@@ -4,7 +4,7 @@ use crate::genomic::descriptors::{CorticalChannelDimensions, CorticalChannelInde
 use crate::neurons::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZP, NeuronXYZPArrays, NeuronXYZPEncoder};
 use crate::wrapped_io_data::{WrappedIOData, WrappedIOType};
 
-pub(crate) struct F32SplitSignDividedNeuronXYZPEncoder {
+pub struct F32SplitSignDividedNeuronXYZPEncoder {
     channel_dimensions: CorticalChannelDimensions,
     cortical_write_target: CorticalID
 }

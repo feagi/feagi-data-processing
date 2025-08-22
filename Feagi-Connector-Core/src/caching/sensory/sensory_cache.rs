@@ -6,12 +6,68 @@ use feagi_data_structures::FeagiDataError;
 use feagi_data_structures::genomic::descriptors::{AgentDeviceIndex, CorticalChannelIndex, CorticalGroupIndex};
 use feagi_data_structures::genomic::{CorticalID, SensorCorticalType};
 use feagi_data_structures::neurons::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
-use feagi_data_structures::processing::ImageFrameSegmentator;
+use feagi_data_structures::neurons::xyzp::encoders::*;
+use feagi_data_structures::neurons::NeuronCoderType;
+use feagi_data_structures::processing::{ImageFrameSegmentator, ImageFrameProcessor};
 use feagi_data_structures::wrapped_io_data::{WrappedIOData, WrappedIOType};
+use feagi_data_structures::sensor_definition;
 use crate::caching::hashmap_helpers::{AccessAgentLookupKey, CorticalAreaMetadataKey, FullChannelCacheKey};
 use crate::caching::sensory::sensory_channel_stream_cache::SensoryChannelStreamCache;
 use crate::data_pipeline::stages::{ImageFrameProcessorStage, ImageFrameSegmentatorStage, LinearScaleTo0And1Stage};
 use crate::data_pipeline::StreamCacheStage;
+
+macro_rules! define_cortical_group_registration {
+    (
+        $cortical_io_type_enum_name:ident {
+            $(
+                $(#[doc = $doc:expr])?
+                $cortical_type_key_name:ident => {
+                    friendly_name: $display_name:expr,
+                    snake_case_identifier: $snake_case_identifier:expr,
+                    base_ascii: $base_ascii:expr,
+                    channel_dimension_range: $channel_dimension_range:expr,
+                    default_coder_type: $default_coder_type:expr,
+                }
+            ),* $(,)?
+        }
+    ) => {
+        $(
+            // Generate function for each sensor type (conditionally based on default_coder_type)
+            define_cortical_group_registration!(@generate_function_if_needed 
+                $cortical_type_key_name, 
+                $snake_case_identifier, 
+                $default_coder_type
+            );
+        )*
+    };
+    
+    // Generate function for any sensor type (simplified approach)
+    (@generate_function_if_needed $cortical_type:ident, $snake_case_id:expr, $default_coder_type:expr) => {
+        paste::paste! {
+            #[doc = "Register cortical group for " $snake_case_id " sensor type"]
+            pub fn [<register_cortical_group_for_ $snake_case_id>](&mut self, 
+                cortical_group: CorticalGroupIndex,
+                number_of_channels: usize,
+                allow_stale_data: bool,
+                neuron_resolution: usize,
+                lower_bound: f32,
+                upper_bound: f32) -> Result<(), FeagiDataError> {
+
+                // For now, all generated functions use the F32Normalized0To1_Linear implementation
+                // TODO: Implement proper coder type-specific logic based on $default_coder_type
+                self.register_cortical_area_f32_normalized_0_to_1_linear(
+                    SensorCorticalType::$cortical_type,
+                    cortical_group, 
+                    number_of_channels,
+                    neuron_resolution, 
+                    lower_bound,
+                    upper_bound, 
+                    allow_stale_data
+                )
+            }
+        }
+    };
+}
 
 pub struct SensorCache {
     channel_caches: HashMap<FullChannelCacheKey, SensoryChannelStreamCache>, // (cortical type, grouping index, channel) -> sensory data cache, the main lookup
@@ -32,25 +88,16 @@ impl SensorCache {
     
     //region Registration
 
-    //region macro
-
-    pub fn register_cortical_group_for_proximity(&mut self, cortical_group: CorticalGroupIndex,
-                                                 number_of_channels: usize,
-                                                 allow_stale_data: bool,
-                                                 neuron_resolution: usize,
-                                                 lower_bound: f32,
-                                                 upper_bound: f32) -> Result<(), FeagiDataError> {
-
-        self.register_cortical_area_f32_normalized_0_to_1_linear(SensorCorticalType::Proximity,
-                                                                 cortical_group, number_of_channels,
-                                                                 neuron_resolution, lower_bound,
-                                                                 upper_bound, allow_stale_data)
-    }
+    //region Generated macro functions
+    
+    // Generate registration functions for all sensor types with default_coder_type
+    sensor_definition!(define_cortical_group_registration);
 
     //endregion
 
-    //region Custom Calls
-
+    //region Manual Registration Functions
+    // Manually-defined functions for sensor types that need special handling
+    
     pub fn register_cortical_group_for_image_camera(&mut self, cortical_group: CorticalGroupIndex,
                                                     number_of_channels: usize, allow_stale_data: bool,
                                                     input_image_properties: ImageFrameProperties,
@@ -113,7 +160,7 @@ impl SensorCache {
                 let first_key = key_vector.first().unwrap();
                 let first_checking_cache = self.channel_caches.get(first_key).unwrap();
                 if new_checking_cache.get_input_data_type() != first_checking_cache.get_input_data_type() {
-                    return Err(FeagiDataError::BadParameters(format!("Cannot to the same Agent Device Index {} that already contains a device channel accepting {} another device channel that accepts {}! Types must match!",
+                    return Err(FeagiDataError::BadParameters(format!("Cannot to the same Agent Device Index {:?} that already contains a device channel accepting {} another device channel that accepts {}! Types must match!",
                                                                       agent_device_index, first_checking_cache.get_input_data_type(), new_checking_cache.get_input_data_type())).into())
                 }
 
@@ -226,7 +273,7 @@ impl SensorCache {
         //TODO template should allow checking for input data type
         self.verify_number_channels(number_of_channels)?;
         
-        let image_transformer_definition = ImageFrameTransformer::new_from_input_output_properties(&input_image_properties, &output_image_properties)?;
+        let image_transformer_definition = ImageFrameProcessor::new_from_input_output_properties(&input_image_properties, &output_image_properties)?;
         
         let cortical_id = CorticalID::new_sensor_cortical_area_id(sensor_cortical_type, cortical_group)?;
         let neuron_encoder = Box::new(ImageFrameNeuronXYZPEncoder::new(cortical_id, &output_image_properties)?);
@@ -316,10 +363,6 @@ impl SensorCache {
     
     
 }
-
-
-
-
 
 
 struct CorticalAreaCacheDetails {

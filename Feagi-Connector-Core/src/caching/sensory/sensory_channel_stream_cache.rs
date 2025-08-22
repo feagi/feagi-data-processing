@@ -24,7 +24,7 @@ use crate::data_pipeline::{ProcessorRunner, StreamCacheStage};
 /// - **Neural Encoding**: Direct conversion from processed data to neural representations
 /// - **Type Safety**: Tracks input and output data types through the processing chain
 #[derive(Debug)]
-pub(crate) struct SensoryChannelStreamCache { 
+pub(crate) struct SensoryChannelStreamCache {
     processor_runner: ProcessorRunner,
     channel: CorticalChannelIndex,
     last_updated: Instant,

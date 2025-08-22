@@ -6,7 +6,7 @@ use crate::genomic::descriptors::CorticalChannelIndex;
 use crate::neurons::xyzp::{CorticalMappedXYZPNeuronData, NeuronXYZPEncoder};
 use crate::wrapped_io_data::{WrappedIOData, WrappedIOType};
 
-pub(crate) struct ImageFrameNeuronXYZPEncoder {
+pub struct ImageFrameNeuronXYZPEncoder {
     image_properties: ImageFrameProperties,
     cortical_write_target: CorticalID
 }
