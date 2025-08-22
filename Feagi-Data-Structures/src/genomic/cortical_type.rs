@@ -137,7 +137,7 @@ impl CorticalType {
                 if as_string.is_err() {
                     return Err(FeagiDataError::DeserializationError("Unable to parse cortical ID bytes as ASCII!".into()));
                 }
-                Err(FeagiDataError::BadParameter(format!("Invalid cortical ID '{}'!", as_string.unwrap())).into())
+                Err(FeagiDataError::BadParameters(format!("Invalid cortical ID '{}'!", as_string.unwrap())).into())
             }
         }
 
@@ -145,8 +145,8 @@ impl CorticalType {
     
     pub fn to_cortical_id(&self, io_cortical_index: CorticalGroupIndex) -> Result<CorticalID, FeagiDataError> {
         match self {
-            Self::Custom => Err(FeagiDataError::BadParameter("Custom Cortical Areas can have arbitrary Cortical IDs and thus cannot be convert to from type!".into())),
-            Self::Memory => Err(FeagiDataError::BadParameter("Memory Cortical Areas can have arbitrary Cortical IDs and thus cannot be convert to from type!".into())),
+            Self::Custom => Err(FeagiDataError::BadParameters("Custom Cortical Areas can have arbitrary Cortical IDs and thus cannot be convert to from type!".into())),
+            Self::Memory => Err(FeagiDataError::BadParameters("Memory Cortical Areas can have arbitrary Cortical IDs and thus cannot be convert to from type!".into())),
             Self::Core(c) => {
                 Ok(CorticalID::new_core_cortical_area_id(*c)?)
             }
@@ -162,9 +162,9 @@ impl CorticalType {
     
     pub fn try_get_channel_size_boundaries(&self) -> Result<DimensionRange, FeagiDataError> {
         match self {
-            Self::Custom => Err(FeagiDataError::BadParameter("Custom Cortical Areas do not have channels!".into())),
-            Self::Memory => Err(FeagiDataError::BadParameter("Memory Cortical Areas do not have channels!".into())),
-            Self::Core(_) => Err(FeagiDataError::BadParameter("Core Cortical Areas do not have channels!".into())),
+            Self::Custom => Err(FeagiDataError::BadParameters("Custom Cortical Areas do not have channels!".into())),
+            Self::Memory => Err(FeagiDataError::BadParameters("Memory Cortical Areas do not have channels!".into())),
+            Self::Core(_) => Err(FeagiDataError::BadParameters("Core Cortical Areas do not have channels!".into())),
             Self::Sensory(s) => Ok(s.get_channel_dimension_range()),
             Self::Motor(m) => Ok(m.get_channel_dimension_range()),
         }
@@ -228,7 +228,7 @@ impl CorticalType {
     //region Verify Type
     pub fn verify_is_core(&self) -> Result<(), FeagiDataError> {
         if !self.is_type_core() {
-            return Err(FeagiDataError::BadParameter("Expected cortical type to be type Core!".into()))
+            return Err(FeagiDataError::BadParameters("Expected cortical type to be type Core!".into()))
         }
         Ok(())
     }
@@ -236,7 +236,7 @@ impl CorticalType {
 
     pub fn verify_is_sensor(&self) -> Result<(), FeagiDataError> {
         if !self.is_type_sensor() {
-            return Err(FeagiDataError::BadParameter("Expected cortical type to be type Sensor!".into()))
+            return Err(FeagiDataError::BadParameters("Expected cortical type to be type Sensor!".into()))
         }
         Ok(())
     }
@@ -244,7 +244,7 @@ impl CorticalType {
 
     pub fn verify_is_motor(&self) -> Result<(), FeagiDataError> {
         if !self.is_type_motor() {
-            return Err(FeagiDataError::BadParameter("Expected cortical type to be type Motor!".into()))
+            return Err(FeagiDataError::BadParameters("Expected cortical type to be type Motor!".into()))
         }
         Ok(())
     }
@@ -252,7 +252,7 @@ impl CorticalType {
 
     pub fn verify_is_custom(&self) -> Result<(), FeagiDataError> {
         if !self.is_type_custom() {
-            return Err(FeagiDataError::BadParameter("Expected cortical type to be type Custom!".into()))
+            return Err(FeagiDataError::BadParameters("Expected cortical type to be type Custom!".into()))
         }
         Ok(())
     }
@@ -260,7 +260,7 @@ impl CorticalType {
 
     pub fn verify_is_memory(&self) -> Result<(), FeagiDataError> {
         if !self.is_type_memory() {
-            return Err(FeagiDataError::BadParameter("Expected cortical type to be type Memory!".into()))
+            return Err(FeagiDataError::BadParameters("Expected cortical type to be type Memory!".into()))
         }
         Ok(())
     }

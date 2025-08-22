@@ -25,7 +25,7 @@ impl CorticalID {
         let bytes = desired_id_string.as_bytes();
         let bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
         if bytes[0] != b'c' {
-            return Err(FeagiDataError::BadParameter(format!("A custom cortical area ID must start with 'c'! Cortical area given: {}", desired_id_string)).into());
+            return Err(FeagiDataError::BadParameters(format!("A custom cortical area ID must start with 'c'! Cortical area given: {}", desired_id_string)).into());
         }
         Ok(CorticalID { bytes: *bytes })
     }
@@ -39,7 +39,7 @@ impl CorticalID {
         let bytes = desired_id_string.as_bytes();
         let bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH] = bytes.try_into().unwrap();
         if bytes[0] != b'm' {
-            return Err(FeagiDataError::BadParameter(format!("A memory cortical area ID must start with 'm'! Cortical area given: {}", desired_id_string)).into());
+            return Err(FeagiDataError::BadParameters(format!("A memory cortical area ID must start with 'm'! Cortical area given: {}", desired_id_string)).into());
         }
         Ok(CorticalID { bytes: *bytes })
     }
@@ -146,21 +146,21 @@ fn risky_bytes_to_string(bytes: &[u8; CorticalID::CORTICAL_ID_LENGTH]) -> String
 
 fn verify_input_length(string: &String) -> Result<(), FeagiDataError> {
     if string.len() != CorticalID::CORTICAL_ID_LENGTH {
-        return Err(FeagiDataError::BadParameter(format!("A cortical ID must have a length of {}! Given cortical ID '{}' is not!", CorticalID::CORTICAL_ID_LENGTH, string)));
+        return Err(FeagiDataError::BadParameters(format!("A cortical ID must have a length of {}! Given cortical ID '{}' is not!", CorticalID::CORTICAL_ID_LENGTH, string)));
     }
     Ok(())
 }
 
 fn verify_input_ascii(string: &String) -> Result<(), FeagiDataError> {
     if !string.is_ascii() {
-        return Err(FeagiDataError::BadParameter(format!("A cortical ID must be entirely ASCII! Given cortical ID '{}' is not!", string)));
+        return Err(FeagiDataError::BadParameters(format!("A cortical ID must be entirely ASCII! Given cortical ID '{}' is not!", string)));
     }
     Ok(())
 }
 
 fn verify_allowed_characters(string: &String) -> Result<(), FeagiDataError> {
     if !string.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        return Err(FeagiDataError::BadParameter(format!("A cortical ID must be made only of alphanumeric characters and underscores! Given cortical ID '{}' is not!", string)));
+        return Err(FeagiDataError::BadParameters(format!("A cortical ID must be made only of alphanumeric characters and underscores! Given cortical ID '{}' is not!", string)));
     }
     Ok(())
 }

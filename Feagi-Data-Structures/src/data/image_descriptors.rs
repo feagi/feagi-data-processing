@@ -197,7 +197,7 @@ impl TryFrom<usize> for ColorChannelLayout {
             2 => Ok(ColorChannelLayout::RG),
             3 => Ok(ColorChannelLayout::RGB),
             4 => Ok(ColorChannelLayout::RGBA),
-            _ => Err(FeagiDataError::BadParameter(format!("No Channel Layout has {} channels! Acceptable values are 1,2,3,4!", value)).into())
+            _ => Err(FeagiDataError::BadParameters(format!("No Channel Layout has {} channels! Acceptable values are 1,2,3,4!", value)).into())
         }
     }
 }
@@ -279,14 +279,14 @@ impl ImageFrameProperties {
     /// - The channel layout doesn't match
     pub fn verify_image_frame_matches_properties(&self, image_frame: &ImageFrame) -> Result<(), FeagiDataError> {
         if image_frame.get_xy_resolution() != self.image_resolution {
-            return Err(FeagiDataError::BadParameter(format!{"Expected resolution of {} but received an image with resolution of {}!",
-                                                              self.image_resolution, image_frame.get_xy_resolution()}).into())
+            return Err(FeagiDataError::BadParameters(format!{"Expected resolution of {} but received an image with resolution of {}!",
+                                                             self.image_resolution, image_frame.get_xy_resolution()}).into())
         }
         if image_frame.get_color_space() != &self.color_space {
-            return Err(FeagiDataError::BadParameter(format!("Expected color space of {}, but got image with color space of {}!", self.color_space.to_string(), self.color_space.to_string())).into())
+            return Err(FeagiDataError::BadParameters(format!("Expected color space of {}, but got image with color space of {}!", self.color_space.to_string(), self.color_space.to_string())).into())
         }
         if image_frame.get_channel_layout() != &self.color_channel_layout {
-            return Err(FeagiDataError::BadParameter(format!("Expected color channel layout of {}, but got image with color channel layout of {}!", self.color_channel_layout.to_string(), self.color_channel_layout.to_string())).into())
+            return Err(FeagiDataError::BadParameters(format!("Expected color channel layout of {}, but got image with color channel layout of {}!", self.color_channel_layout.to_string(), self.color_channel_layout.to_string())).into())
         }
         Ok(())
     }
@@ -370,7 +370,7 @@ impl SegmentedImageFrameProperties {
 
     pub fn verify_segmented_image_frame_matches_properties(&self, segmented_image_frame: &SegmentedImageFrame) -> Result<(), FeagiDataError> {
         if self != &segmented_image_frame.get_segmented_image_frame_properties() {
-            return Err(FeagiDataError::BadParameter("Segmented image frame does not match the expected segmented frame properties!".into()).into())
+            return Err(FeagiDataError::BadParameters("Segmented image frame does not match the expected segmented frame properties!".into()).into())
         }
         Ok(())
     }
@@ -409,11 +409,11 @@ impl CornerPoints {
     /// - Err(DataProcessingError) if the coordinates are invalid
     pub fn new_from_row_major(lower_left_yx: (usize, usize), upper_right_yx: (usize, usize)) -> Result<CornerPoints,  FeagiDataError> {
         if lower_left_yx.1 >= upper_right_yx.1 {
-            return Err(FeagiDataError::BadParameter(format!("The lower left point must have a smaller X ({}) index than the upper right point ({})!", lower_left_yx.1, upper_right_yx.1).into()).into());
+            return Err(FeagiDataError::BadParameters(format!("The lower left point must have a smaller X ({}) index than the upper right point ({})!", lower_left_yx.1, upper_right_yx.1).into()).into());
         }
 
         if lower_left_yx.0 <= upper_right_yx.0 {
-            return Err(FeagiDataError::BadParameter(format!("The lower left point must have a greater Y ({}) index than the upper right point ({})!", lower_left_yx.0, upper_right_yx.0).into()).into());
+            return Err(FeagiDataError::BadParameters(format!("The lower left point must have a greater Y ({}) index than the upper right point ({})!", lower_left_yx.0, upper_right_yx.0).into()).into());
         };
         Ok(CornerPoints {
             lower_left: lower_left_yx,
@@ -440,11 +440,11 @@ impl CornerPoints {
         -> Result<CornerPoints,  FeagiDataError> {
 
         if left_lower_xy.0 >= right_upper_xy.0 || left_lower_xy.1 >= right_upper_xy.1 {
-            return Err(FeagiDataError::BadParameter("Given corner points do not enclose a valid area!".into()).into());
+            return Err(FeagiDataError::BadParameters("Given corner points do not enclose a valid area!".into()).into());
         }
 
         if right_upper_xy.0 > total_source_resolution_width_height.0 || right_upper_xy.1 > total_source_resolution_width_height.1 {
-            return Err(FeagiDataError::BadParameter("Corner bounds must be within the total resolution!".into()).into());
+            return Err(FeagiDataError::BadParameters("Corner bounds must be within the total resolution!".into()).into());
         }
 
         Ok(CornerPoints {
@@ -546,17 +546,17 @@ impl GazeProperties {
     pub(crate) fn new_row_major_where_origin_top_left(center_coordinates_normalized_yx: (f32, f32), center_size_normalized_yx: (f32, f32)) -> Result<GazeProperties, FeagiDataError> {
         let range_0_1: RangeInclusive<f32> = 0.0..=1.0;
         if !(range_0_1.contains(&center_coordinates_normalized_yx.0) && range_0_1.contains(&center_coordinates_normalized_yx.1)) {
-            return Err(FeagiDataError::BadParameter("Central vision center coordinates are to be normalized and must be between 0 and 1!".into()).into())
+            return Err(FeagiDataError::BadParameters("Central vision center coordinates are to be normalized and must be between 0 and 1!".into()).into())
         }
         if !(range_0_1.contains(&center_size_normalized_yx.0) && range_0_1.contains(&center_size_normalized_yx.1)) {
-            return Err(FeagiDataError::BadParameter("Central vision size is to be normalized and must be between 0 and 1!".into()).into())
+            return Err(FeagiDataError::BadParameters("Central vision size is to be normalized and must be between 0 and 1!".into()).into())
         }
 
         let range_overlap_y: RangeInclusive<f32> = (center_size_normalized_yx.0 / 2.0)..=(1.0 + (center_size_normalized_yx.0 / 2.0));
         let range_overlap_x: RangeInclusive<f32> = (center_size_normalized_yx.1 / 2.0)..=(1.0 + (center_size_normalized_yx.1 / 2.0));
 
         if !(range_overlap_y.contains(&center_coordinates_normalized_yx.0) && range_overlap_x.contains(&center_coordinates_normalized_yx.1)) {
-            return Err(FeagiDataError::BadParameter("Resulting central vision crop includes regions outside input image!".into()).into())
+            return Err(FeagiDataError::BadParameters("Resulting central vision crop includes regions outside input image!".into()).into())
         }
 
         Ok(GazeProperties {
@@ -600,7 +600,7 @@ impl GazeProperties {
 
     pub fn calculate_source_corner_points_for_segmented_video_frame(&self, source_frame_width_height: (usize, usize)) -> Result<[CornerPoints; 9], FeagiDataError> {
         if source_frame_width_height.0 < 3 || source_frame_width_height.1 < 3 {
-            return Err(FeagiDataError::BadParameter("Source frame width and height must be at least 3!".into()).into())
+            return Err(FeagiDataError::BadParameters("Source frame width and height must be at least 3!".into()).into())
         }
 
         let center_corner_points = self.calculate_pixel_coordinates_of_center_corners(source_frame_width_height)?;

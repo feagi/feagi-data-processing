@@ -70,7 +70,7 @@ impl NeuronXYZPArrays {
     pub fn new_from_vectors(x: Vec<u32>, y: Vec<u32>, z: Vec<u32>, p: Vec<f32>) -> Result<Self, FeagiDataError> {
         let len = x.len();
         if len != y.len() || len != z.len() || len != p.len() {
-            return Err(FeagiDataError::BadParameter("Input vectors must be the same length to generate XYZP neuron data!!".into()));
+            return Err(FeagiDataError::BadParameters("Input vectors must be the same length to generate XYZP neuron data!!".into()));
         }
         Ok(NeuronXYZPArrays {
             x,
@@ -107,7 +107,7 @@ impl NeuronXYZPArrays {
     pub fn new_from_ndarrays(x_nd: Array1<u32>, y_nd: Array1<u32>, z_nd: Array1<u32>, p_nd: Array1<f32>) -> Result<Self, FeagiDataError> {
         let len = x_nd.len();
         if len != y_nd.len() || len != z_nd.len() || len != p_nd.len() {
-            return Err(FeagiDataError::BadParameter("ND Arrays must be the same length to generate XYZP neuron data!".into()));
+            return Err(FeagiDataError::BadParameters("ND Arrays must be the same length to generate XYZP neuron data!".into()));
         }
         Ok(NeuronXYZPArrays{ x: x_nd.to_vec(), y: y_nd.to_vec(), z: z_nd.to_vec(), p: p_nd.to_vec()})
     }
@@ -289,7 +289,7 @@ impl NeuronXYZPArrays {
     /// ```
     pub fn get(&self, index: usize) -> Result<NeuronXYZP, FeagiDataError> {
         if index >= self.len()  {
-            return Err(FeagiDataError::BadParameter(format!("Given index {} is exceeds NeuronXYZPArray length of {}!", index, self.len())).into())
+            return Err(FeagiDataError::BadParameters(format!("Given index {} is exceeds NeuronXYZPArray length of {}!", index, self.len())).into())
         }
         let x = self.x[index];
         let y = self.y[index];

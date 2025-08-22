@@ -15,16 +15,16 @@ pub enum WrappedIOData
 impl WrappedIOData {
     pub fn new_f32(value: f32) -> Result<Self, FeagiDataError> {
         if value.is_nan() || value.is_infinite() {
-            return Err(FeagiDataError::BadParameter("Input value cannot be NaN or Infinite!".into()).into());
+            return Err(FeagiDataError::BadParameters("Input value cannot be NaN or Infinite!".into()).into());
         }
         Ok(Self::F32(value))
     }
     pub fn new_0_1_f32(value: f32) -> Result<Self, FeagiDataError> {
         if value.is_nan() || value.is_infinite() {
-            return Err(FeagiDataError::BadParameter("Input value cannot be NaN or Infinite!".into()).into());
+            return Err(FeagiDataError::BadParameters("Input value cannot be NaN or Infinite!".into()).into());
         }
         if value < 0.0 || value > 1.0 {
-            return Err(FeagiDataError::BadParameter("Input value must be between 0 and 1!".into()).into());
+            return Err(FeagiDataError::BadParameters("Input value must be between 0 and 1!".into()).into());
         }
         Ok(Self::F32Normalized0To1(value))
     }
@@ -32,10 +32,10 @@ impl WrappedIOData {
 
     pub fn new_m1_1_f32(value: f32) -> Result<Self, FeagiDataError> {
         if value.is_nan() || value.is_infinite() {
-            return Err(FeagiDataError::BadParameter("Input value cannot be NaN or Infinite!".into()).into());
+            return Err(FeagiDataError::BadParameters("Input value cannot be NaN or Infinite!".into()).into());
         }
         if value < -1.0 || value > 1.0 {
-            return Err(FeagiDataError::BadParameter("Input value must be between -1 and 1!".into()).into());
+            return Err(FeagiDataError::BadParameters("Input value must be between -1 and 1!".into()).into());
         }
         Ok(Self::F32NormalizedM1To1(value))
     }
@@ -74,7 +74,7 @@ impl TryFrom<WrappedIOData> for f32 {
             WrappedIOData::F32(float) => Ok(float),
             WrappedIOData::F32Normalized0To1(float) => Ok(float),
             WrappedIOData::F32NormalizedM1To1(float) => Ok(float),
-            _ => Err(FeagiDataError::BadParameter("This variable is not a f32 type value!".into()).into()),
+            _ => Err(FeagiDataError::BadParameters("This variable is not a f32 type value!".into()).into()),
         }
     }
 }
@@ -86,7 +86,7 @@ impl TryFrom<&WrappedIOData> for f32 {
             WrappedIOData::F32(float) => Ok(*float),
             WrappedIOData::F32Normalized0To1(float) => Ok(*float),
             WrappedIOData::F32NormalizedM1To1(float) => Ok(*float),
-            _ => Err(FeagiDataError::BadParameter("This variable is not a f32 type value!".into()).into()),
+            _ => Err(FeagiDataError::BadParameters("This variable is not a f32 type value!".into()).into()),
         }
     }
 }
@@ -98,7 +98,7 @@ impl TryFrom<WrappedIOData> for ImageFrame {
     fn try_from(value: WrappedIOData) -> Result<Self, Self::Error> {
         match value {
             WrappedIOData::ImageFrame(image) => Ok(image),
-            _ => Err(FeagiDataError::BadParameter("This variable is not a Image Frame!".into()).into()),
+            _ => Err(FeagiDataError::BadParameters("This variable is not a Image Frame!".into()).into()),
         }
     }
 }
@@ -109,7 +109,7 @@ impl<'a> TryFrom<&'a WrappedIOData> for &'a ImageFrame {
     fn try_from(value: &'a WrappedIOData) -> Result<Self, Self::Error> {
         match value {
             WrappedIOData::ImageFrame(image_ref) => Ok(image_ref),
-            _ => Err(FeagiDataError::BadParameter("This variable is not a Image Frame!".into()).into()),
+            _ => Err(FeagiDataError::BadParameters("This variable is not a Image Frame!".into()).into()),
         }
     }
 }
@@ -120,7 +120,7 @@ impl<'a> TryFrom<&'a mut WrappedIOData> for &'a mut ImageFrame {
     fn try_from(value: &'a mut WrappedIOData) -> Result<Self, Self::Error> {
         match value {
             WrappedIOData::ImageFrame(image_ref) => Ok(image_ref),
-            _ => Err(FeagiDataError::BadParameter("This variable is not a Image Frame!".into()).into()),
+            _ => Err(FeagiDataError::BadParameters("This variable is not a Image Frame!".into()).into()),
         }
     }
 }
@@ -131,7 +131,7 @@ impl TryFrom<WrappedIOData> for SegmentedImageFrame {
     fn try_from(value: WrappedIOData) -> Result<Self, Self::Error> {
         match value {
             WrappedIOData::SegmentedImageFrame(image_ref) => Ok(image_ref),
-            _ => Err(FeagiDataError::BadParameter("This variable is not a SegmentedImageFrame!".into()).into()),
+            _ => Err(FeagiDataError::BadParameters("This variable is not a SegmentedImageFrame!".into()).into()),
         }
     }
 }
@@ -142,7 +142,7 @@ impl<'a> TryFrom<&'a WrappedIOData> for &'a SegmentedImageFrame {
     fn try_from(value: &'a WrappedIOData) -> Result<Self, Self::Error> {
         match value {
             WrappedIOData::SegmentedImageFrame(image_ref) => Ok(image_ref),
-            _ => Err(FeagiDataError::BadParameter("This variable is not a Segmented Image Frame!".into()).into()),
+            _ => Err(FeagiDataError::BadParameters("This variable is not a Segmented Image Frame!".into()).into()),
         }
     }
 }
@@ -153,7 +153,7 @@ impl<'a> TryFrom<&'a mut WrappedIOData> for &'a mut SegmentedImageFrame {
     fn try_from(value: &'a mut WrappedIOData) -> Result<Self, Self::Error> {
         match value {
             WrappedIOData::SegmentedImageFrame(image_ref) => Ok(image_ref),
-            _ => Err(FeagiDataError::BadParameter("This variable is not a Segmented Image Frame!".into()).into()),
+            _ => Err(FeagiDataError::BadParameters("This variable is not a Segmented Image Frame!".into()).into()),
         }
     }
 }

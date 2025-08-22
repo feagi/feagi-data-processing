@@ -11,10 +11,10 @@ macro_rules! define_index {
             Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord
         )]
         pub struct $name($inner);
-        
+
         impl std::ops::Deref for $name {
             type Target = $inner;
-            
+
             fn deref(&self) -> &Self::Target {
                 &self.0
             }
@@ -46,7 +46,7 @@ macro_rules! define_nonzero_count {
             /// Creates a new instance, returns Err if validation fails
             pub fn new(value: $base) -> Result<Self, FeagiDataError> {
                 if value == 0 {
-                    return Err(FeagiDataError::BadParameter("Count cannot be zero!".into()));
+                    return Err(FeagiDataError::BadParameters("Count cannot be zero!".into()));
                 }
                 Ok($name(value))
             }

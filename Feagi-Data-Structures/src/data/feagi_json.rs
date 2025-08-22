@@ -93,7 +93,7 @@ impl FeagiJSON {
     pub fn from_json_string(string: String) -> Result<FeagiJSON, FeagiDataError> {
         match serde_json::from_str(&string) {
             Ok(json_value) => Ok(FeagiJSON { json: json_value }),
-            Err(e) => Err(FeagiDataError::BadParameter(
+            Err(e) => Err(FeagiDataError::BadParameters(
                 format!("Failed to parse JSON string: {}", e)
             ).into()),
         }

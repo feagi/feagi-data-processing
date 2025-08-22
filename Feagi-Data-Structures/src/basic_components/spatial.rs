@@ -97,7 +97,7 @@ impl std::fmt::Display for CartesianResolution {
 impl CartesianResolution {
     pub fn new(width: usize, height: usize) -> Result<Self, FeagiDataError> {
         if width == 0 || height == 0 {
-            return Err(FeagiDataError::BadParameter("Width or Height cannot be 0!".to_string()));
+            return Err(FeagiDataError::BadParameters("Width or Height cannot be 0!".to_string()));
         }
         Ok(Self { width, height })
     }
@@ -133,7 +133,7 @@ impl Dimensions{
     /// ```
     pub fn new(x: u32, y: u32, z: u32) -> Result<Self, FeagiDataError> {
         if x == 0 || y == 0 || z == 0{
-            return Err(FeagiDataError::BadParameter("Dimensions in any direction cannot be zero!".into()))
+            return Err(FeagiDataError::BadParameters("Dimensions in any direction cannot be zero!".into()))
         }
         Ok(Dimensions{x, y, z})
     }
@@ -156,7 +156,7 @@ impl Dimensions{
         if  positive_coordinates.x < self.x && positive_coordinates.y < self.y && positive_coordinates.z < self.z{
             return Ok(())
         }
-        Err(FeagiDataError::BadParameter(format!("Point {} is not within the dimension bounds of {}!", positive_coordinates, self)))
+        Err(FeagiDataError::BadParameters(format!("Point {} is not within the dimension bounds of {}!", positive_coordinates, self)))
     }
 }
 
@@ -192,7 +192,7 @@ impl DimensionRange {
     /// ```
     pub fn new(x: Range<u32>, y: Range<u32>, z: Range<u32>) -> Result<DimensionRange, FeagiDataError> {
         if x.is_empty() || y.is_empty() || z.is_empty() {
-            return Err(FeagiDataError::BadParameter("A given range has some empty or invalid ranges!".into()))
+            return Err(FeagiDataError::BadParameters("A given range has some empty or invalid ranges!".into()))
         }
         Ok(DimensionRange { x, y, z })
     }
@@ -230,7 +230,7 @@ impl DimensionRange {
     /// ```
     pub fn verify_coordinate_u32_within_range(&self, checking: &CoordinateU32) -> Result<(), FeagiDataError> {
         if !self.x.contains(&checking.x) || !self.y.contains(&checking.y) || !self.z.contains(&checking.z){
-            return Err(FeagiDataError::BadParameter(format!("Point {} is not within the acceptable range of {}!", checking, self)));
+            return Err(FeagiDataError::BadParameters(format!("Point {} is not within the acceptable range of {}!", checking, self)));
         }
         Ok(())
 

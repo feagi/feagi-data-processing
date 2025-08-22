@@ -1,11 +1,10 @@
 [package]
-name = "feagi_data_structures"
-version = "0.0.1-beta.1"
-edition = "2024"
-license = "Apache-2.0"
-description = "A library for FEAGI libraries to use to describe data"
+name = "Feagi-Data-Structures"
+# Other data inherited
 
 [dependencies]
-ndarray = "0.16.1"
-byteorder = "1.5.0"
-serde_json = "1.0.140"
+serde_json = { workspace = true }
+ndarray = { workspace = true }
+
+[dev-dependencies]
+ndarray-npy = "0.9.1"

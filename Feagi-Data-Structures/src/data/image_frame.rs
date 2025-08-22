@@ -341,10 +341,10 @@ impl ImageFrame {
     /// - Err(DataProcessingError) if the color properties don't match
     fn err_if_incoming_image_frame_is_color_incompatible(&self, incoming: &ImageFrame) -> Result<(), FeagiDataError> {
         if self.color_space != incoming.color_space {
-            return Err(FeagiDataError::BadParameter("Incoming source array does not have matching color space!".into()).into())
+            return Err(FeagiDataError::BadParameters("Incoming source array does not have matching color space!".into()).into())
         }
         if self.channel_layout == incoming.channel_layout {
-            return Err(FeagiDataError::BadParameter("Incoming source array does not have matching color channel count!!".into()).into())
+            return Err(FeagiDataError::BadParameters("Incoming source array does not have matching color channel count!!".into()).into())
         }
         Ok(())
     }
