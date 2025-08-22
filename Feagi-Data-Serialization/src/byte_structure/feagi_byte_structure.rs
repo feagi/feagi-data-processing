@@ -5,10 +5,9 @@
 //! wrapped_io_data, providing comprehensive validation, parsing, and manipulation capabilities.
 
 use byteorder::{ByteOrder, LittleEndian};
-use crate::data::FeagiJSON;
-use crate::FeagiDataError;
-use crate::neurons::xyzp::CorticalMappedXYZPNeuronData;
-//use crate::io_data::FeagiJSON;
+use feagi_data_structures::data::FeagiJSON;
+use feagi_data_structures::FeagiDataError;
+use feagi_data_structures::neurons::xyzp::CorticalMappedXYZPNeuronData;
 use super::FeagiByteStructureType;
 use super::FeagiByteStructureCompatible;
 
@@ -30,7 +29,7 @@ use super::FeagiByteStructureCompatible;
 ///
 /// ## Single Structure Format
 /// ```text
-/// [Type (1)][Version (1)][Type-specific payload...]
+/// [Type=? (1)][Version (1)][Type-specific payload...]
 /// ```
 ///
 /// ## Multi-Structure Container Format
@@ -96,13 +95,6 @@ impl FeagiByteStructure {
     /// - Valid structure type identifier (bytes 0)
     /// - Non-zero version number (bytes 1)
     /// - Additional format-specific validations may be added
-    ///
-    /// # Example
-    /// ```rust
-    /// use Feagi_Data_Structures::bytes::FeagiByteStructure;
-    /// let raw_data = vec![1, 1, 123, 125]; // JSON format, version 1, "{}"
-    /// let structure = FeagiByteStructure::create_from_bytes(raw_data).unwrap();
-    /// ```
     pub fn create_from_bytes(bytes: Vec<u8>) -> Result<FeagiByteStructure, FeagiDataError> {
         if bytes.len() < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
             return Err(FeagiDataError::DeserializationError(format!("Byte structure needs to be at least {} long to be considered valid. Given structure is only {} long!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID, bytes.len())).into());
@@ -166,7 +158,7 @@ impl FeagiByteStructure {
     pub fn create_from_multiple_existing(existing: Vec<&FeagiByteStructure>) -> Result<FeagiByteStructure, FeagiDataError> {
         
         if existing.is_empty() {
-            return Err(FeagiDataError::BadParameter("You must specify at least one bytes structure to put into a multistruct!".into()).into());
+            return Err(FeagiDataError::BadParameters("You must specify at least one bytes structure to put into a multistruct!".into()).into());
         }
         
         if existing.len() == 1 {
@@ -187,7 +179,7 @@ impl FeagiByteStructure {
 
         if slices.len() > 255 {
             // wtf are you doing
-            return Err(FeagiDataError::BadParameter("The maximum number of structures that can exist in a multistruct is 255!".into()).into());
+            return Err(FeagiDataError::BadParameters("The maximum number of structures that can exist in a multistruct is 255!".into()).into());
         }
         
         Ok(FeagiByteStructure::build_multistruct_from_slices(slices))
@@ -317,7 +309,7 @@ impl FeagiByteStructure {
             return Ok(self.clone());
         }
         if index > self.contained_structure_count()? {
-            return Err(FeagiDataError::BadParameter(format!("Given struct index {} is out of bounds given this multistruct only contains {} elements!", index, self.contained_structure_count()?)).into());
+            return Err(FeagiDataError::BadParameters(format!("Given struct index {} is out of bounds given this multistruct only contains {} elements!", index, self.contained_structure_count()?)).into());
         }
         Ok(FeagiByteStructure::create_from_bytes(
             self.get_multistruct_specific_slice(index).to_vec()
@@ -344,7 +336,7 @@ impl FeagiByteStructure {
     pub fn copy_out_single_object_from_single_struct(&self) -> Result<Box<dyn FeagiByteStructureCompatible>, FeagiDataError> {
         let this_struct_type = self.try_get_structure_type()?;
         if this_struct_type == FeagiByteStructureType::MultiStructHolder {
-            return Err(FeagiDataError::BadParameter("Cannot return a multistruct holding multiple structs as a single object!".into()).into())
+            return Err(FeagiDataError::BadParameters("Cannot return a multistruct holding multiple structs as a single object!".into()).into())
         }
         
         // Factory pattern to create the appropriate concrete type based on structure type
@@ -357,7 +349,7 @@ impl FeagiByteStructure {
             },
             FeagiByteStructureType::MultiStructHolder => {
                 // This case is already handled above, but included for completeness
-                Err(FeagiDataError::BadParameter("Cannot return a multistruct holding multiple structs as a single object!".into()).into())
+                Err(FeagiDataError::BadParameters("Cannot return a multistruct holding multiple structs as a single object!".into()).into())
             }
             //_ => {
             //    Err(FeagiDataError::InternalError(format!("Missing export definition for FBS object type {}!", this_struct_type)))
@@ -495,7 +487,7 @@ impl FeagiByteStructure {
 
     pub fn ensure_capacity_of_at_least(&mut self, size: usize) -> Result<(), FeagiDataError> {
         if size < Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID {
-            return Err(FeagiDataError::BadParameter(format!("Cannot set capacity to less than minimum required capacity of {}!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID)).into());
+            return Err(FeagiDataError::BadParameters(format!("Cannot set capacity to less than minimum required capacity of {}!", Self::MINIMUM_LENGTH_TO_BE_CONSIDERED_VALID)).into());
         }
 
         if self.bytes.capacity() < size {

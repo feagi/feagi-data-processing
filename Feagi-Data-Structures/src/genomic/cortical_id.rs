@@ -89,7 +89,7 @@ impl CorticalID {
     
     //endregion
     
-    //region Byte Data
+    //region Properties
 
     /// Returns the raw bytes of this cortical identifier.
     ///
@@ -102,25 +102,6 @@ impl CorticalID {
         &self.bytes
     }
 
-    /// Writes the cortical ID bytes to a target array.
-    ///
-    /// Copies the 6 bytes of this cortical ID into the provided target array.
-    /// This is useful when you need to embed the cortical ID into a larger
-    /// data structure or buffer.
-    ///
-    /// # Arguments
-    /// * `target` - Mutable reference to a 6-bytes array to write to
-    ///
-    /// # Returns
-    /// * `Ok(())` - Bytes successfully copied
-    pub(crate) fn write_bytes_at(&self, target: &mut [u8; CorticalID::CORTICAL_ID_LENGTH]) -> Result<(), FeagiDataError> {
-        target.copy_from_slice(&self.bytes);
-        Ok(())
-    }
-    
-    //endregion
-    
-    //region Properties
     pub fn as_ascii_string(&self) -> String {
         risky_bytes_to_string(&self.bytes)
     }

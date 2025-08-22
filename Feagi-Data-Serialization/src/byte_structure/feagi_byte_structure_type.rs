@@ -1,12 +1,12 @@
 //! Type identification for FEAGI bytes structure formats.
 //!
 //! This module defines the `FeagiByteStructureType` enum, which provides standardized
-//! identifiers for different serialization formats supported by the FEAGI system.
+//! identifiers for different serialization formats supported by FEAGI.
 //! These type identifiers are embedded in the binary format headers to enable
 //! format detection and proper deserialization.
 
 use std::fmt::{Display, Formatter};
-use crate::FeagiDataError;
+use feagi_data_structures::FeagiDataError;
 
 /// Enumeration of all supported FEAGI bytes structure format types.
 /// 
@@ -68,7 +68,7 @@ impl FeagiByteStructureType {
     /// * `Err(FeagiDataProcessingError)` - If the bytes array is empty or contains an unknown type
     ///
     /// # Requirements
-    /// The bytes array must contain at least one bytes. The first bytes is interpreted
+    /// The bytes array must contain at least one byte. The first bytes is interpreted
     /// as the format type identifier according to the FEAGI bytes structure standard.
     pub fn try_get_type_from_bytes(bytes: &[u8]) -> Result<FeagiByteStructureType, FeagiDataError> {
         if bytes.len() < 1 {

@@ -8,7 +8,6 @@ description = "The most core library, defines the basic data types used by FEAGI
 [dependencies]
 serde_json = { workspace = true }
 ndarray = { workspace = true }
-# byteorder = "1.5.0"
 
 [dev-dependencies]
 ndarray-npy = "0.9.1"

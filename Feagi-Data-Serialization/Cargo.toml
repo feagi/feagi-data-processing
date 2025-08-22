@@ -1,6 +1,13 @@
 [package]
 name = "Feagi-Data-Serialization"
-version = "0.1.0"
-edition = "2024"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Adds serialization and deserialization to select Feagi Data Structures."
+
 
 [dependencies]
+serde_json = { workspace = true }
+ndarray = { workspace = true }
+byteorder = "1.5.0"
+feagi_data_structures = { path = "../Feagi-Data-Structures", package = "Feagi-Data-Structures" }

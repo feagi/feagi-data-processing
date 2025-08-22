@@ -533,57 +533,7 @@ impl NeuronXYZPArrays {
     pub fn borrow_xyzp_vectors(&self) -> (&Vec<u32>, &Vec<u32>, &Vec<u32>, &Vec<f32>) {
         (&self.x, &self.y, &self.z, &self.p)
     }
-
-    /*
-    /// Writes the neural data to a bytes buffer.
-    ///
-    /// The data is written in the following order: all x values, all y values, all z values, all p values.
-    /// Each value is written using little-endian bytes order.
-    ///
-    /// # Arguments
-    /// * `bytes_to_write_to` - The bytes buffer to write the data to
-    ///
-    /// # Returns
-    /// * `Result<(), NeuronError>` - Success or an error if the buffer size is incorrect
-    ///
-    /// # Examples
-    /// ```
-    /// use Feagi_Data_Structures::neurons::xyzp::{NeuronXYZPArrays, NeuronXYZP};
-    ///
-    /// let mut arrays = NeuronXYZPArrays::with_capacity(1);
-    /// arrays.push(&NeuronXYZP::new(1, 2, 3, 0.5));
-    ///
-    /// let mut buffer = vec![0u8; NeuronXYZP::NUMBER_BYTES_PER_NEURON];
-    /// arrays.write_neural_data_to_bytes(&mut buffer).unwrap();
-    /// ```
-    pub fn write_neural_data_to_bytes(&self, bytes_to_write_to: &mut [u8]) -> Result<(), FeagiDataError> {
-        const U32_F32_LENGTH: usize = 4;
-        let number_of_neurons_to_write: usize = self.len();
-        let number_bytes_needed = self.get_size_in_number_of_bytes();
-        if bytes_to_write_to.len() != number_bytes_needed {
-            return Err(FeagiDataError::SerializationError(format!("Need exactly {} bytes to write xyzp neuron data, but given a space of {} bytes!", bytes_to_write_to.len(), number_bytes_needed).into()))
-        }
-        let mut x_offset: usize = 0;
-        let mut y_offset = number_of_neurons_to_write * U32_F32_LENGTH; // quarter way through the total bytes
-        let mut z_offset = number_of_neurons_to_write * U32_F32_LENGTH * 2; // halfway through the total bytes
-        let mut p_offset = number_of_neurons_to_write * U32_F32_LENGTH * 3; // three quarters way through the total bytes
-
-        for i in 0 .. number_of_neurons_to_write {
-            LittleEndian::write_u32(&mut bytes_to_write_to[x_offset .. x_offset + U32_F32_LENGTH], self.x[i]);
-            LittleEndian::write_u32(&mut bytes_to_write_to[y_offset .. y_offset + U32_F32_LENGTH], self.y[i]);
-            LittleEndian::write_u32(&mut bytes_to_write_to[z_offset .. z_offset + U32_F32_LENGTH], self.z[i]);
-            LittleEndian::write_f32(&mut bytes_to_write_to[p_offset .. p_offset + U32_F32_LENGTH], self.p[i]);
-
-            x_offset += U32_F32_LENGTH;
-            y_offset += U32_F32_LENGTH;
-            z_offset += U32_F32_LENGTH;
-            p_offset += U32_F32_LENGTH;
-        };
-
-        Ok(())
-    }
     
-     */
     
     /// Creates a new NeuronXYZPArrays from filtering neurons based on their locations.
     ///

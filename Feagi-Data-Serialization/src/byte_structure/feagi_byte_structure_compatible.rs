@@ -1,6 +1,6 @@
 //! Trait definition for types that can be serialized to and from FEAGI bytes structures.
 
-use crate::FeagiDataError;
+use feagi_data_structures::FeagiDataError;
 use super::{FeagiByteStructure, FeagiByteStructureType};
 
 /// Trait for types that can be serialized to and deserialized from FEAGI bytes structures.
