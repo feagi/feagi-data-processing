@@ -184,6 +184,9 @@ macro_rules! define_cortical_group_registration {
         // None, Skip generating function for None coder types
     };
 
+    (@generate_function_with_signature $cortical_type:ident, $snake_case_id:expr, $default_coder_type:expr) => {
+        compile_error!(concat!("Unhandled default_coder_type for function signature: ", stringify!($default_coder_type)));
+    };
 
 }
 
