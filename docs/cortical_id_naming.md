@@ -29,11 +29,14 @@ last two letters are reserved for group index.
 - [ ] iic7 - Top Middle of the 9 segment vision
 - [ ] iic8 - Top Right of the 9 segment vision
 
+ Data type: uint8
 
-### Gyro
 
+### IMU (Inertial Measurement Unit)
 
-### Accelerometer
+- [ ] imuq - IMU represented as a quaternion  
+ Channel width: 9 (3 for Accelerometer, 3 for Gyroscope, 3 for magnetometer)
+ Data type: Quatenion
 
 
 ### Infraret
@@ -46,8 +49,7 @@ last two letters are reserved for group index.
 
 ### Battery Gauge
 
-### Compass
-
+### BCI (Brain Computer Interface)
 
 ### Object Classifier
 
@@ -71,7 +73,7 @@ last two letters are reserved for group index.
 
 # OPU (Oputput Processing Unit)
 
-* The forth position in the cortical id of all OPUs will be either 'a','i', or '_'. 'a' stands for 'absolute' positioning, 'i' stands for 'incremental', and '-' is used when neigther applies. 
+* The forth position in the cortical id of select OPUs will be either 'a','i', or '_'. 'a' stands for 'absolute' targeting and 'i' stands for 'incremental'. In absolute 
 
 
 ## Suppoted Data Types:
