@@ -5,6 +5,8 @@ first letter from left: i (IPU), o (OPU), m (memory), c(custom), _(core)
 next three letters are for functional abbreviations: e.g. ic4 (image camera 4th segment. aka. central vision)
 last two letters are reserved for group index. 
 
+FEAGI primarily uses 'rate encoding' method to encode sensory data into neuronal activities.
+
 
 
 # IPU (Input Processing Unit)
@@ -19,17 +21,20 @@ last two letters are reserved for group index.
 
 
 ### Image Camera
-- [ ] iic0 - Bottom Left of the 9 segment vision
-- [ ] iic1 - Bottom Middle of the 9 segment vision
-- [ ] iic2 - Bottom Right of the 9 segment vision
-- [ ] iic3 - Middle Left of the 9 segment vision
-- [ ] iic4 - Middle Middle of the 9 segment vision aka. central vision
-- [ ] iic5 - Middle Right of the 9 segment vision
-- [ ] iic6 - Top Left of the 9 segment vision
-- [ ] iic7 - Top Middle of the 9 segment vision
-- [ ] iic8 - Top Right of the 9 segment vision
+- [ ] iic0xx - Bottom Left of the 9 segment vision
+- [ ] iic1xx - Bottom Middle of the 9 segment vision
+- [ ] iic2xx - Bottom Right of the 9 segment vision
+- [ ] iic3xx - Middle Left of the 9 segment vision
+- [ ] iic4xx - Middle Middle of the 9 segment vision aka. central vision
+- [ ] iic5xx - Middle Right of the 9 segment vision
+- [ ] iic6xx - Top Left of the 9 segment vision
+- [ ] iic7xx - Top Middle of the 9 segment vision
+- [ ] iic8xx - Top Right of the 9 segment vision
 
  Data type: uint8
+ Encoding: Rate + Magnitude
+ 
+ 
 
 
 ### IMU (Inertial Measurement Unit)
@@ -58,6 +63,8 @@ last two letters are reserved for group index.
 
 
 ### GPIO
+
+Encoding: Rate + Magnitude + Label
 
 
 ### Servo Motor Encoder
