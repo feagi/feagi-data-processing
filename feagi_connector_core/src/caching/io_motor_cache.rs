@@ -10,13 +10,13 @@ use crate::data_pipeline::{PipelineStageProperties, PipelineStagePropertyIndex, 
 use crate::neuron_coding::xyzp::NeuronXYZPDecoder;
 use crate::wrapped_io_data::WrappedIOData;
 
-pub(crate) struct IOMotorCache {
-    stream_caches: HashMap<(MotorCorticalType, CorticalGroupIndex), MotorChannelStreamCaches>,
+pub(crate) struct IOMotorCache<'a> {
+    stream_caches: HashMap<(MotorCorticalType, CorticalGroupIndex), MotorChannelStreamCaches<'a>>,
     neuron_data: CorticalMappedXYZPNeuronData,
     byte_data: FeagiByteContainer,
 }
 
-impl IOMotorCache {
+impl<'a> IOMotorCache<'a> {
 
     pub fn new() -> Self {
         IOMotorCache {
@@ -68,7 +68,7 @@ impl IOMotorCache {
 
     pub fn try_register_motor_callback<F>(&mut self, motor_type: MotorCorticalType, group_index: CorticalGroupIndex, channel_index: CorticalChannelIndex, callback: F) -> Result<FeagiSignalIndex, FeagiDataError>
     where
-        F: Fn(&()) + Send + Sync + 'static,
+        F: Fn(&()) + Send + Sync + 'a,  // Changed from 'static to 'a
     {
         let motor_stream_caches = self.try_get_motor_channel_stream_caches_mut(motor_type, group_index)?;
         let index = motor_stream_caches.try_connect_to_data_processed_signal(channel_index, callback)?;
@@ -120,7 +120,7 @@ impl IOMotorCache {
 
 
     //region Internal
-    fn try_get_motor_channel_stream_caches(&self, motor_type: MotorCorticalType, group_index: CorticalGroupIndex) -> Result<&MotorChannelStreamCaches, FeagiDataError> {
+    fn try_get_motor_channel_stream_caches(&self, motor_type: MotorCorticalType, group_index: CorticalGroupIndex) -> Result<&MotorChannelStreamCaches<'a>, FeagiDataError> {
         let check = self.stream_caches.get(&(motor_type, group_index));
         if check.is_none() {
             return Err(FeagiDataError::BadParameters(format!("Unable to find {} of cortical group index {} in registered motor's list!", motor_type, group_index)))
@@ -129,7 +129,7 @@ impl IOMotorCache {
         Ok(check)
     }
 
-    fn try_get_motor_channel_stream_caches_mut(&mut self, motor_type: MotorCorticalType, group_index: CorticalGroupIndex) -> Result<&mut MotorChannelStreamCaches, FeagiDataError> {
+    fn try_get_motor_channel_stream_caches_mut(&mut self, motor_type: MotorCorticalType, group_index: CorticalGroupIndex) -> Result<&mut MotorChannelStreamCaches<'a>, FeagiDataError> {
         let check = self.stream_caches.get_mut(&(motor_type, group_index));
         if check.is_none() {
             return Err(FeagiDataError::BadParameters(format!("Unable to find {} of cortical group index {} in registered motor's list!", motor_type, group_index)))

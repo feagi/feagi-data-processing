@@ -8,15 +8,15 @@ use crate::neuron_coding::xyzp::NeuronXYZPDecoder;
 use crate::wrapped_io_data::{WrappedIOData, WrappedIOType};
 
 #[derive(Debug)]
-pub(crate) struct MotorChannelStreamCaches {
+pub(crate) struct MotorChannelStreamCaches<'a> {
     neuron_decoder: Box<dyn NeuronXYZPDecoder>,
     pipeline_runners: Vec<PipelineStageRunner>,
     most_recent_directly_decoded_outputs: Vec<WrappedIOData>,
     has_channel_been_updated: Vec<bool>,
-    value_updated_callbacks: Vec<FeagiSignal<()>>,
+    value_updated_callbacks: Vec<FeagiSignal<'a, ()>>,
 }
 
-impl MotorChannelStreamCaches {
+impl<'a> MotorChannelStreamCaches<'a> {
     pub fn new(neuron_decoder: Box<dyn NeuronXYZPDecoder>, stage_properties_per_channels: Vec<Vec<Box<dyn PipelineStageProperties + Sync + Send>>>) -> Result<Self, FeagiDataError> {
         if stage_properties_per_channels.is_empty() {
             return Err(FeagiDataError::InternalError("MotorChannelStreamCaches Cannot be initialized with 0 channels!".into()))
@@ -106,7 +106,7 @@ impl MotorChannelStreamCaches {
 
     pub fn try_connect_to_data_processed_signal<F>(&mut self, cortical_channel_index: CorticalChannelIndex, callback: F) -> Result<FeagiSignalIndex, FeagiDataError>
     where
-        F: Fn(&()) + Send + Sync + 'static,
+        F: Fn(&()) + Send + Sync + 'a,  // Changed from 'static to 'a
     {
         _ = self.try_get_pipeline_runner(cortical_channel_index)?;
         let idx = *cortical_channel_index as usize;

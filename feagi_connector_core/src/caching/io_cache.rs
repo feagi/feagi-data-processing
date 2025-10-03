@@ -131,7 +131,7 @@ impl IOCache {
 
     pub fn motor_add_callback_gaze_absolute<F>(&mut self, group: CorticalGroupIndex, channel: CorticalChannelIndex, callback: F) -> Result<FeagiSignalIndex, FeagiDataError>
     where
-        F: Fn(&()) + Send + Sync + 'static,
+        F: Fn(&()) + Send + Sync,
     {
         const MOTOR_TYPE: MotorCorticalType = MotorCorticalType::GazeAbsoluteLinear;
         let index = self.motors.try_register_motor_callback(MOTOR_TYPE, group, channel, callback)?;
